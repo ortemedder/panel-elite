@@ -9,6 +9,14 @@ DIR = os.path.expanduser(r"~\Saved Games\Frontier Developments\Elite Dangerous")
 MISSION_DAYS = 30          # dias de journal que se leen al arrancar para recuperar misiones
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# v0.86b: usar IPv4 para EDSM e Inara (en algunas conexiones el IPv6 esta roto y todo se queda esperando)
+_orig_gai = socket.getaddrinfo
+def _gai4(host, *a, **k):
+    res = _orig_gai(host, *a, **k)
+    v4 = [r for r in res if r[0] == socket.AF_INET]
+    return v4 or res
+socket.getaddrinfo = _gai4
 info = {"system": "", "fuelcap": None, "cargocap": None, "mode": None,
         "nav": {"target": None, "star": None, "jumps": None, "last": None}}
 route = []          # [(sistema, clase)]
@@ -110,15 +118,15 @@ def handle_extra(e):
         if sess: sess["deaths"] += 1
     # estacion
     elif ev == "DockingRequested":
-        station.clear(); station.update(status="SOLICITADO", name=e.get("StationName"), type=e.get("StationType"))
+        station.clear(); station.update(status="SOLICITADO", name=e.get("StationName_Localised") or e.get("StationName"), type=e.get("StationType"), mid=e.get("MarketID"))
     elif ev == "DockingGranted":
-        station.update(status="CONCEDIDO", pad=e.get("LandingPad"), name=e.get("StationName"), type=e.get("StationType"))
+        station.update(status="CONCEDIDO", pad=e.get("LandingPad"), name=e.get("StationName_Localised") or e.get("StationName"), type=e.get("StationType"), mid=e.get("MarketID"))
     elif ev == "DockingDenied":
         station.update(status="DENEGADO", reason=e.get("Reason"), name=e.get("StationName"), type=e.get("StationType"))
     elif ev in ("DockingTimeout", "DockingCancelled"):
         station.update(status="CADUCADO" if ev == "DockingTimeout" else "CANCELADO", pad=None)
     elif ev == "Docked":
-        station.update(status="ATRACADO", name=e.get("StationName"), type=e.get("StationType"),
+        station.update(status="ATRACADO", name=e.get("StationName"), type=e.get("StationType"), mid=e.get("MarketID"),
                        services=e.get("StationServices") or [], dist=e.get("DistFromStarLS"),
                        economy=e.get("StationEconomy_Localised"), faction=(e.get("StationFaction") or {}).get("Name"))
     elif ev == "Undocked":
@@ -346,7 +354,7 @@ def explo_pkt():
 
 # datos pesados que casi no cambian: solo se envian si cambian (y todos cada 5 s por si se pierde alguno)
 HEAVY = ("orbits", "explo", "sysinfo", "market", "rings", "mats", "carrier", "pack", "srvmats", "alien",
-         "exdiary", "ranks", "routeinfo", "ppme", "dest", "mycg", "friends", "binds", "inara")
+         "exdiary", "ranks", "routeinfo", "ppme", "dest", "mycg", "friends", "binds", "inara", "naves")
 _heavy, _full, last_size = {}, [0.0], [0]
 
 def send(obj):
@@ -676,7 +684,8 @@ def handle_combat(e):
             veh = "F" if footcz["onfoot"] else "N"
         combat["n"] = combat.get("n", 0) + 1
         ln, lc = ledger_tot()
-        note("kill", f"{tgt[:28]}|{rew}|{kind}|{veh}|{footcz['n'] if veh == 'F' else combat['n']}|{ln}|{lc}")
+        ctot = career_add(ev, veh)
+        note("kill", f"{tgt[:28]}|{rew}|{kind}|{veh}|{footcz['n'] if veh == 'F' else combat['n']}|{ln}|{lc}|{ctot}")
     elif ev == "Interdicted" and e.get("Submitted"):
         note("submitted", f"{e.get('Interdictor_Localised') or e.get('Interdictor') or ''}|{int(bool(e.get('IsPlayer')))}")
     elif ev == "EscapeInterdiction":
@@ -887,11 +896,7 @@ def handle_v080(e):
         if tr == "MainMenu" and ts - music["died"] < 120:
             pass                                  # pantalla de carga tras morir: no es el menu principal
         elif tr == "MainMenu" and old != "MainMenu":
-            info["menu"] = True
-            note("mainmenu", "")
-            if sess and not music["sent"]:
-                music["sent"] = True
-                sess_summary()
+            music["pending"] = time.time()             # se confirma en menu_check() con el Status.json
         elif tr in COMBAT_MUSIC and old not in COMBAT_MUSIC:
             note("combatmusic", tr)
         elif tr in TG_MUSIC and time.time() - music["tg"] > 120:
@@ -927,8 +932,12 @@ def handle_v071(e):
         note("arrive", f"{nm}|{drop['threat'] if recent else 0}|{e.get('Body') or ''}|{e.get('BodyType') or ''}|"
                        f"{int(bool(recent and drop.get('market')))}")
         drop["t"] = 0
+    elif ev in ("Embark", "Disembark"):
+        drop["emb"] = iso2epoch(e.get("timestamp")) or time.time()
     elif ev == "BackpackChange":
         have = {k: c for k, _, c in pack.get("raw", [])}
+        if abs((iso2epoch(e.get("timestamp")) or time.time()) - drop.get("emb", 0)) <= 2:
+            return                                        # cambio de mochila al embarcar / desembarcar
         for x in e.get("Removed") or []:
             n = (x.get("Name") or "").lower()
             if n in GRENADES:
@@ -1018,6 +1027,9 @@ def handle_alerts(e):
     handle_cg(e)
     handle_v071(e)
     handle_v080(e)
+    handle_v088(e)
+    handle_v089(e)
+    handle_v092(e)
     if ev == "SystemsShutdown":
         note("shutdown", "")
     if ev == "StartJump" and e.get("JumpType") == "Hyperspace":
@@ -1275,19 +1287,31 @@ def mats_pkt():
 
 # ---- portanaves (menu 12.6) ----
 carrier = {}
+sqcarrier = {}             # portanaves de escuadron (solo su sistema y su numero)
 
 def handle_carrier(e):
     ev = e.get("event")
     if ev == "CarrierStats":
-        carrier.update(name=e.get("Name"), callsign=e.get("Callsign"), fuel=e.get("FuelLevel"),
+        fin_, sp_ = e.get("Finance") or {}, e.get("SpaceUsage") or {}
+        carrier.update(access=e.get("DockingAccess"), notorious=bool(e.get("AllowNotorious")),
+                       avail=fin_.get("AvailableBalance"), reserve=fin_.get("ReserveBalance"),
+                       jump=e.get("JumpRangeCurr"), free=sp_.get("FreeSpace"), cargo=sp_.get("Cargo"),
+                       crew=[c.get("CrewRole") for c in (e.get("Crew") or []) if c.get("Activated") and c.get("Enabled", True)])
+        carrier.update(id=e.get("CarrierID", carrier.get("id")), name=e.get("Name"), callsign=e.get("Callsign"), fuel=e.get("FuelLevel"),
                        balance=(e.get("Finance") or {}).get("CarrierBalance"))
     elif ev == "CarrierJumpRequest":
         carrier.update(dest=e.get("SystemName"), dest_body=e.get("Body"),
                        depart=iso2epoch(e.get("DepartureTime")) or (iso2epoch(e.get("timestamp")) or time.time()) + 15 * 60)
     elif ev == "CarrierJumpCancelled":
         carrier.update(dest=None, depart=None)
+    elif ev == "CarrierLocation" and e.get("CarrierType") == "SquadronCarrier":
+        sqcarrier.update(id=e.get("CarrierID"), system=e.get("StarSystem"))
     elif ev in ("CarrierJump", "CarrierLocation"):
+        if ev == "CarrierJump" and sqcarrier.get("id") and e.get("MarketID") == sqcarrier["id"]:
+            sqcarrier["system"] = e.get("StarSystem"); return
         carrier.update(system=e.get("StarSystem"), dest=None, depart=None)
+        if ev == "CarrierLocation" and e.get("CarrierID"):
+            carrier["id"] = e["CarrierID"]
     elif ev == "CarrierDepositFuel":
         carrier["fuel"] = e.get("Total", carrier.get("fuel"))
     elif ev in ("CarrierFinance", "CarrierBankTransfer"):
@@ -1321,9 +1345,11 @@ def load_market():
             best.append([name, sell, mean])
     rows.sort(key=lambda r: -r[1] * r[2])
     best.sort(key=lambda r: -(r[1] - r[2]) / r[2])
+    if market.get("station") and market.get("station") != m.get("StationName"):
+        market_prev.clear(); market_prev.update(market)
     market.clear()
-    market.update(station=m.get("StationName"), t=iso2epoch(m.get("timestamp")) or time.time(),
-                  sell=rows[:20], best=best[:8])
+    market.update(station=m.get("StationName"), mid=m.get("MarketID"), sys=m.get("StarSystem"),
+                  t=iso2epoch(m.get("timestamp")) or time.time(), sell=rows[:20], best=best[:8])
 
 def handle_market(e):
     if e.get("event") == "Market":
@@ -1548,16 +1574,19 @@ def check_risk():
     elif step < risk_step[0]:
         risk_step[0] = step
 
-def fetch_edsm(system):
-    if not system or system == edsm["system"]:
+def fetch_edsm(system, force=False):
+    if not system or (system == edsm["system"] and not force):
         return
-    edsm.update(system=system, orbits=[], status="consultando")
+    edsm.update(system=system, orbits=[], status="consultando", failt=0)
+    threading.Thread(target=fetch_st_types, args=(system,), daemon=True).start()
     try:
         url = "https://www.edsm.net/api-system-v1/bodies?systemName=" + urllib.parse.quote(system)
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ElitePanel"}), timeout=15) as r:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ElitePanel"}), timeout=30) as r:
             data = json.loads(r.read().decode("utf-8") or "{}")
     except Exception as ex:
-        edsm["status"] = "error"; print("EDSM:", ex, flush=True)
+        blk = "timed out" in str(ex).lower() or "10060" in str(ex) or "unreachable" in str(ex).lower()
+        edsm.update(status="bloqueado" if blk else "error", failt=time.time())
+        print("EDSM:", ex, "(¿bloqueo de LaLiga? reintento en 10 min)" if blk else "", flush=True)
         arrival_note(system, None); return
     out = []
     for b in (data.get("bodies") if isinstance(data, dict) else None) or []:
@@ -1859,6 +1888,476 @@ def kill_loop():
 
 threading.Thread(target=kill_loop, daemon=True).start()
 
+
+# ---------- v0.87: EDSM con reintentos, menu principal confirmado e Inara del CMDR fijado ----------
+def edsm_retry():
+    if edsm.get("status") in ("bloqueado", "error") and edsm.get("system") == explo["system"] \
+            and edsm.get("failt") and time.time() - edsm["failt"] > 600:
+        edsm["failt"] = time.time()
+        threading.Thread(target=fetch_edsm, args=(explo["system"], True), daemon=True).start()
+
+def menu_check():
+    empty = not cur_st.get("Flags") and not cur_st.get("Flags2")
+    p = music.get("pending")
+    if p:
+        if empty:
+            music["pending"] = None
+            if not info.get("menu"):
+                info["menu"] = True
+                note("mainmenu", "")
+                if sess and not music["sent"]:
+                    music["sent"] = True
+                    sess_summary()
+        elif time.time() - p > 20:
+            music["pending"] = None                    # era el menu de Operations o una pantalla de carga
+    if info.get("menu") and not empty:
+        info["menu"] = False
+
+INARA_CACHE_H = 72
+INARA_GAP = 120                                         # como mucho una consulta de CMDR cada 2 minutos
+icache = {"data": None, "last": 0.0, "queue": []}
+
+def _icache():
+    if icache["data"] is None:
+        try:
+            with open(os.path.join(HERE, "inara_cache.json"), encoding="utf-8") as f:
+                icache["data"] = json.load(f)
+        except (OSError, ValueError):
+            icache["data"] = {}
+    return icache["data"]
+
+def inara_target(name):
+    """Perfil de Inara de un CMDR (de la cache de 72 h); si no esta, se pide en segundo plano."""
+    name = (name or "").replace("CMDR ", "").replace("Cmdr ", "").strip()
+    if not name:
+        return None
+    c = _icache().get(name.lower())
+    if c and time.time() - c.get("t", 0) < INARA_CACHE_H * 3600:
+        return c.get("p")
+    if name not in icache["queue"]:
+        icache["queue"].append(name)
+    return None
+
+def inara_target_loop():
+    while True:
+        time.sleep(3)
+        if not icache["queue"] or time.time() - icache["last"] < INARA_GAP:
+            continue
+        name = icache["queue"].pop(0)
+        key = (_inara_txt("inara_clave.txt") or [""])[0]
+        if not key:
+            icache["queue"].clear(); continue
+        icache["last"] = time.time()
+        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        body = {"header": {"appName": INARA_APP, "appVersion": "0.87", "isBeingDeveloped": True, "APIkey": key,
+                           **({"commanderName": ranks["cmdr"]} if ranks.get("cmdr") else {})},
+                "events": [{"eventName": "getCommanderProfile", "eventTimestamp": ts, "eventData": {"searchName": name}}]}
+        try:
+            req = urllib.request.Request(INARA_URL, data=json.dumps(body).encode(),
+                                         headers={"Content-Type": "application/json", "User-Agent": "PanelEliteRPi/0.87"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                res = json.load(r)
+            ev = (res.get("events") or [{}])[0]
+            p = _inara_trim(ev.get("eventData") or {}) if ev.get("eventStatus") in (200, 202) else {"name": name, "none": True}
+        except Exception as e:
+            print("Inara (CMDR fijado):", e, flush=True)
+            continue
+        _icache()[name.lower()] = {"t": time.time(), "p": p}
+        try:
+            with open(os.path.join(HERE, "inara_cache.json"), "w", encoding="utf-8") as f:
+                json.dump(icache["data"], f, ensure_ascii=False)
+        except OSError:
+            pass
+        print("Inara: perfil de", name, "guardado", flush=True)
+
+def target_pkt():
+    if not target:
+        return target
+    if target.get("cmdr"):
+        p = inara_target(target.get("pilot"))
+        if p:
+            return dict(target, inara=p)
+    return target
+
+threading.Thread(target=inara_target_loop, daemon=True).start()
+
+
+# ---------- v0.88: naves (fichas guardadas en naves.json junto al sender) ----------
+MOD_ES = [("hyperdrive_overcharge", "Motor FSD SCO"), ("hyperdrive", "Motor FSD"), ("engine", "Propulsores"),
+          ("powerplant", "Planta de energía"), ("powerdistributor", "Distribuidor de energía"),
+          ("lifesupport", "Soporte vital"), ("sensors", "Sensores"), ("fueltank", "Tanque de combustible"),
+          ("armour", "Blindaje"), ("shieldgenerator", "Generador de escudos"), ("shieldcellbank", "Banco de células de escudo"),
+          ("hullreinforcement", "Refuerzo de casco"), ("modulereinforcement", "Refuerzo de módulos"),
+          ("guardianhullreinforcement", "Refuerzo de casco guardián"), ("guardianshieldreinforcement", "Refuerzo de escudo guardián"),
+          ("guardianfsdbooster", "Potenciador FSD guardián"), ("fsdinterdictor", "Interdictor FSD"),
+          ("fuelscoop", "Recogedor de combustible"), ("cargorack", "Bodega"), ("corrosionproofcargorack", "Bodega anticorrosión"),
+          ("passengercabin", "Cabina de pasajeros"), ("buggybay", "Hangar de vehículos"), ("fighterbay", "Hangar de cazas"),
+          ("dockingcomputer_advanced", "Ordenador de atraque avanzado"), ("dockingcomputer", "Ordenador de atraque"),
+          ("supercruiseassist", "Asistente de supercrucero"), ("detailedsurfacescanner", "Escáner de superficie"),
+          ("refinery", "Refinería"), ("repairer", "Unidad de reparación AFM"), ("dronecontrol", "Controlador de drones"),
+          ("multidronecontrol", "Controlador de drones universal"), ("expmodulestabiliser", "Estabilizador experimental"),
+          ("planetapproachsuite", "Aproximación planetaria"), ("shipdatalinkscanner", "Escáner de enlace de datos"),
+          ("codexscanner", "Escáner del códice"), ("stellarbodydiscoveryscanner", "Escáner de descubrimiento (FSS)"),
+          ("pulselaser", "Láser de pulsos"), ("burstlaser", "Láser de ráfagas"), ("beamlaser", "Láser de haz"),
+          ("multicannon", "Multicañón"), ("cannon", "Cañón"), ("slugshot", "Cañón de fragmentación"),
+          ("railgun", "Cañón de riel"), ("plasmaaccelerator", "Acelerador de plasma"), ("mininglaser", "Láser de minería"),
+          ("dumbfiremissilerack", "Misiles"), ("basicmissilerack", "Misiles guiados"), ("drunkmissilerack", "Misiles en enjambre"),
+          ("minelauncher", "Lanzaminas"), ("torpedopylon", "Torpedos"), ("flakmortar", "Mortero de metralla"),
+          ("atdumbfiremissile", "Misiles AX"), ("atmulticannon", "Multicañón AX"), ("guardian_gausscannon", "Cañón Gauss guardián"),
+          ("guardian_plasmalauncher", "Plasma guardián"), ("guardian_shardcannon", "Cañón de esquirlas guardián"),
+          ("heatsinklauncher", "Lanzador de disipadores"), ("chafflauncher", "Lanzador de chaff"),
+          ("electroniccountermeasure", "Contramedidas electrónicas"), ("plasmapointdefence", "Defensa puntual"),
+          ("shieldbooster", "Potenciador de escudos"), ("cloudscanner", "Escáner de estela"),
+          ("crimescanner", "Escáner de recompensas"), ("cargoscanner", "Escáner de carga"),
+          ("mrascanner", "Escáner de pulsos"), ("xenoscanner", "Escáner xeno"), ("shutdownfieldneutraliser", "Neutralizador de campo")]
+MOD_SORTED = sorted(MOD_ES, key=lambda x: -len(x[0]))      # el nombre mas largo primero (multicanon antes que canon)
+CLS = {"1": "A", "2": "B", "3": "C", "4": "D", "5": "E"}
+naves = {"data": None}
+
+def _naves():
+    if naves["data"] is None:
+        try:
+            with open(os.path.join(HERE, "naves.json"), encoding="utf-8") as f:
+                naves["data"] = json.load(f)
+        except (OSError, ValueError):
+            naves["data"] = {}
+        naves["data"].setdefault("ships", {}); naves["data"].setdefault("fleet", {}); naves["data"].setdefault("xfer", [])
+    return naves["data"]
+
+def _naves_save():
+    try:
+        with open(os.path.join(HERE, "naves.json"), "w", encoding="utf-8") as f:
+            json.dump(naves["data"], f, ensure_ascii=False)
+    except OSError:
+        pass
+
+def mod_name(item, slot):
+    it = (item or "").lower()
+    name = next((es for k, es in MOD_SORTED if k in it), None) or it.replace("int_", "").replace("hpt_", "").split("_size")[0].replace("_", " ").capitalize()
+    size = cls = ""
+    if "_size" in it and "_class" in it:
+        try:
+            size = it.split("_size")[1].split("_")[0]
+            cls = CLS.get(it.split("_class")[1][:1], "")
+        except IndexError:
+            pass
+    elif it.startswith("hpt_"):
+        size = {"tiny": "0", "small": "1", "medium": "2", "large": "3", "huge": "4"}.get(it.split("_")[-1], "")
+        mount = "" if it.endswith("_tiny") else {"fixed": "fijo", "gimbal": "cardán", "turret": "torreta"}.get(it.split("_")[-2], "")
+        if it.endswith("_tiny"):
+            size = ""
+        if mount:
+            name += f" ({mount})"
+    if "armour_grade" in it:
+        size = "G" + it.split("armour_grade")[1][:1]
+    return name, f"{size}{cls}"
+
+def ship_card(e):
+    mods = []
+    for m in e.get("Modules") or []:
+        slot = m.get("Slot") or ""
+        it = (m.get("Item") or "").lower()
+        if any(x in slot.lower() for x in ("paintjob", "decal", "nameplate", "shipkit", "voicepack", "weaponcolour",
+                                             "enginecolour", "cockpit", "cargohatch", "planetaryapproachsuite", "bobble",
+                                             "shipname", "shipid", "stringlights")) or not it or \
+                it.startswith(("nameplate", "bobble", "voicepack", "decal", "paintjob", "string_lights", "weaponcustomisation",
+                               "enginecustomisation")):
+            continue
+        nm, sz = mod_name(it, slot)
+        en = m.get("Engineering") or {}
+        grp = "UTILIDADES" if "tiny" in slot.lower() else \
+              "ARMAS" if "hardpoint" in slot.lower() else \
+              "NÚCLEO" if any(x in slot for x in ("Armour", "PowerPlant", "MainEngines", "FrameShiftDrive", "LifeSupport",
+                                                   "PowerDistributor", "Radar", "FuelTank")) else "INTERNOS"
+        mods.append({"g": grp, "n": nm, "s": sz, "h": round(m.get("Health", 1) * 100),
+                     "e": (en.get("BlueprintName", "").replace("_", " ") + (f" G{en.get('Level')}" if en.get("Level") else "")
+                           + (f" · {en.get('ExperimentalEffect_Localised')}" if en.get("ExperimentalEffect_Localised") else "")).strip(),
+                     "on": m.get("On", True)})
+    order = {"NÚCLEO": 0, "ARMAS": 1, "UTILIDADES": 2, "INTERNOS": 3}
+    mods.sort(key=lambda x: (order.get(x["g"], 9), -int(x["s"][:1]) if (x["s"] or "")[:1].isdigit() else 0))
+    items = [(m.get("Item") or "").lower() for m in e.get("Modules") or []]
+    srvbay = next((i for i in items if "buggybay" in i and "largebuggybay" not in i), "")
+    fbay = next((i for i in items if "fighterbay" in i), "")
+    cap = {"2": 1, "4": 2, "6": 4}.get(srvbay.split("_size")[1][:1], 1) if "_size" in srvbay else 0
+    return {"id": e.get("ShipID"), "type": (e.get("Ship") or "").lower(),
+            "ship": e.get("Ship_Localised") or (e.get("Ship") or "").replace("_", " ").title(),
+            "name": e.get("ShipName") or "", "ident": e.get("ShipIdent") or "",
+            "value": (e.get("HullValue") or 0) + (e.get("ModulesValue") or 0), "jump": e.get("MaxJumpRange"),
+            "fuel": ((e.get("FuelCapacity") or {}).get("Main")), "cargo": e.get("CargoCapacity"),
+            "mass": e.get("UnladenMass"), "hull": round((e.get("HullHealth") or 1) * 100),
+            "weapons": sum(1 for m in mods if m["g"] == "ARMAS"), "srvcap": cap, "fbay": bool(fbay),
+            "mods": mods, "t": time.time()}
+
+vehicles = {"srv": None, "srvlost": 0, "fighter": None}
+
+def handle_v088(e):
+    ev = e.get("event")
+    D = _naves()
+    if ev == "Loadout":
+        c = ship_card(e)
+        old = D["ships"].get(str(c["id"])) or {}
+        D["ships"][str(c["id"])] = c
+        _naves_save()
+        lg = naves.get("lg") or (None, 0)
+        if str(c["id"]) != str(naves.get("cur")) and naves.get("cur") is not None:
+            note("shipswap", str(c["id"]))
+        elif str(lg[0]) == str(c["id"]) and time.time() - lg[1] < 90:
+            note("shipswap", str(c["id"]))             # ya salio en la carga: se refresca con el equipamiento
+        naves["lg"] = None
+        naves["cur"] = c["id"]
+        vehicles.update(srv="A BORDO" if c["srvcap"] else None, srvlost=0, fighter="LISTO" if c["fbay"] else None)
+        bad = [m["n"] for m in c["mods"] if m["h"] < 80]
+        if bad and [m["n"] for m in old.get("mods", []) if m["h"] < 80] != bad:
+            note("moddmg", f"{len(bad)}|{', '.join(bad[:4])}")
+    elif ev == "StoredShips":
+        here = e.get("StationName") or "", e.get("StarSystem") or ""
+        fl = {}
+        for x in e.get("ShipsHere") or []:
+            fl[str(x.get("ShipID"))] = {"type": (x.get("ShipType") or "").lower(), "ship": x.get("ShipType_Localised") or (x.get("ShipType") or "").title(),
+                                        "name": x.get("Name") or "", "sys": here[1], "st": here[0], "value": x.get("Value"),
+                                        "here": True}
+        for x in e.get("ShipsRemote") or []:
+            fl[str(x.get("ShipID"))] = {"type": (x.get("ShipType") or "").lower(), "ship": x.get("ShipType_Localised") or (x.get("ShipType") or "").title(),
+                                        "name": x.get("Name") or "", "sys": x.get("StarSystem") or "", "value": x.get("Value"),
+                                        "xprice": x.get("TransferPrice"), "xtime": x.get("TransferTime"),
+                                        "transit": bool(x.get("InTransit"))}
+        D["fleet"] = fl; D["fleet_t"] = time.time()
+        _naves_save()
+    elif ev == "ShipyardTransfer":
+        ts = iso2epoch(e.get("timestamp")) or time.time()
+        D["xfer"] = [x for x in D["xfer"] if x.get("id") != e.get("ShipID")] + [{
+            "id": e.get("ShipID"), "ship": e.get("ShipType_Localised") or (e.get("ShipType") or "").title(),
+            "from": e.get("System") or "", "to": station.get("name") or "", "dist": e.get("Distance"),
+            "price": e.get("TransferPrice"), "arrive": ts + (e.get("TransferTime") or 0), "done": False}]
+        _naves_save()
+        note("shipxfer", f"{D['xfer'][-1]['ship']}|{e.get('TransferTime') or 0}")
+    elif ev == "ShipyardSwap":
+        naves["swap"] = e.get("ShipID")
+    elif ev in ("LaunchSRV",):
+        vehicles["srv"] = "FUERA"
+    elif ev == "DockSRV":
+        vehicles["srv"] = "A BORDO"
+    elif ev == "SRVDestroyed":
+        vehicles["srvlost"] += 1; vehicles["srv"] = "PERDIDO"
+    elif ev in ("RestockVehicle", "BuyVehicle"):
+        vehicles.update(srvlost=0, srv="A BORDO")
+    elif ev == "LaunchFighter":
+        vehicles["fighter"] = "FUERA"
+    elif ev == "DockFighter":
+        vehicles["fighter"] = "LISTO"
+    elif ev == "FighterDestroyed":
+        vehicles["fighter"] = "RECONSTRUYENDO"
+    elif ev == "FighterRebuilt":
+        vehicles["fighter"] = "LISTO"
+
+def xfer_check():
+    if not LIVE[0]:
+        return
+    D = _naves()
+    for x in D["xfer"]:
+        if not x.get("done") and time.time() >= x.get("arrive", 0):
+            x["done"] = True
+            note("shiparrived", f"{x['ship']}|{x.get('to') or ''}")
+            _naves_save()
+    D["xfer"] = [x for x in D["xfer"] if not x.get("done") or time.time() - x.get("arrive", 0) < 3600]
+
+def naves_pkt():
+    D = _naves()
+    cur = D["ships"].get(str(naves.get("cur")))
+    fleet = []
+    for sid, f in D["fleet"].items():
+        c = D["ships"].get(sid) or {}
+        fleet.append(dict(f, id=sid, jump=c.get("jump"), cargo=c.get("cargo"), weapons=c.get("weapons")))
+    return {"cur": cur, "fleet": fleet[:24], "fleet_t": D.get("fleet_t"),
+            "xfer": [x for x in D["xfer"] if not x.get("done")],
+            "veh": {"srv": vehicles["srv"], "srvcap": (cur or {}).get("srvcap", 0), "srvlost": vehicles["srvlost"],
+                    "fighter": vehicles["fighter"]}}
+
+
+# ---------- v0.89: transporte, totales de carrera y nave en la carga ----------
+taxi = {"st": None}
+career = {"foot": None, "bonds": None, "bounties": None}
+
+def career_add(ev, veh):
+    k = "foot" if veh == "F" and ev == "FactionKillBond" else "bonds" if ev == "FactionKillBond" else \
+        "bounties" if ev == "Bounty" else None
+    if not k or career[k] is None:
+        return ""
+    career[k] += 1
+    return career[k]
+
+def handle_v089(e):
+    ev = e.get("event")
+    ts = iso2epoch(e.get("timestamp")) or time.time()
+    if ev == "Statistics":
+        c = e.get("Combat") or {}
+        career.update(foot=c.get("OnFoot_Combat_Bonds"), bonds=c.get("Combat_Bonds"), bounties=c.get("Bounties_Claimed"))
+    elif ev in ("BookTaxi", "BookDropship"):
+        taxi.clear()
+        taxi.update(st="booked", t0=ts, planet=bool(cur_st.get("Flags2", 0) & (1 << 4)),
+                    kind="LANZADERA APEX" if ev == "BookTaxi" else "TRANSPORTE MILITAR",
+                    sys=e.get("DestinationSystem") or "", loc=e.get("DestinationLocation") or "",
+                    retreat=bool(e.get("Retreat")), cost=e.get("Cost") or 0, phase="", zone="", fac="", fstate="")
+    elif (ev == "Embark" and e.get("Taxi")) or (ev == "Location" and e.get("Taxi") and taxi.get("st") != "aboard"):
+        # en la retirada desde la zona de combate no hay Embark: el juego te pone dentro (Location con Taxi)
+        if taxi.get("st") is None:
+            taxi.update(st=None, kind="LANZADERA", sys="", loc="", retreat=False, cost=0, zone="", fac="", fstate="")
+        taxi.update(st="aboard", t1=ts, phase="EMBARQUE")
+    elif ev in ("Disembark", "DropshipDeploy", "CancelTaxi", "CancelDropship", "LoadGame", "Died") or \
+            (ev == "Embark" and not e.get("Taxi")):
+        if ev == "LoadGame" and "suit" not in str(e.get("Ship") or "").lower():
+            sid = e.get("ShipID")
+            if sid is not None and str(sid) != str(naves.get("cur")) and str(sid) in _naves()["ships"]:
+                naves["cur"] = sid; naves["lg"] = (sid, time.time())
+                note("shipswap", str(sid))             # Operations: la ficha sale ya en la pantalla de carga
+        if ev in ("Disembark", "Embark") and not e.get("Taxi") and taxi.get("st") == "aboard":
+            return
+        if taxi.get("st") is not None:
+            taxi.clear(); taxi["st"] = None
+    elif taxi.get("st") == "aboard" and e.get("Taxi") is not False:
+        ph = {"Undocked": "DESPEGUE", "Liftoff": "DESPEGUE", "SupercruiseEntry": "SUPERCRUCERO",
+              "FSDJump": "SALTO", "SupercruiseExit": "APROXIMACIÓN", "Docked": "LLEGADA", "Touchdown": "LLEGADA"}.get(ev)
+        if ph:
+            taxi["phase"] = ph
+        if ev == "ApproachSettlement":
+            sf = e.get("StationFaction") or {}
+            taxi.update(zone=e.get("Name_Localised") or e.get("Name") or "", fac=sf.get("Name") or "",
+                        fstate=sf.get("FactionState") or "")
+
+def taxi_pkt():
+    if taxi.get("st") is None:
+        return None
+    return {k: v for k, v in taxi.items()}
+
+def career_pkt():
+    return career
+
+
+# ---------- v0.92: escaneos, tipos de estacion, portanaves y mega nave ----------
+v092 = {"nofire": False, "stolen": 0}
+EDSM_TYPES = (("coriolis", "Coriolis"), ("orbis", "Orbis"), ("ocellus", "Ocellus"), ("dodec", "Dodec"),
+              ("asteroid", "AsteroidBase"), ("planetary port", "CraterPort"), ("planetary outpost", "CraterOutpost"),
+              ("mega ship", "MegaShip"), ("megaship", "MegaShip"), ("fleet carrier", "FleetCarrier"),
+              ("settlement", "OnFootSettlement"), ("outpost", "Outpost"))
+stmem = {"data": None}
+
+def _stmem():
+    if stmem["data"] is None:
+        try:
+            with open(os.path.join(HERE, "estaciones.json"), encoding="utf-8") as f:
+                stmem["data"] = json.load(f)
+        except (OSError, ValueError):
+            stmem["data"] = {}
+    return stmem["data"]
+
+def _stmem_save():
+    try:
+        with open(os.path.join(HERE, "estaciones.json"), "w", encoding="utf-8") as f:
+            json.dump(stmem["data"], f, ensure_ascii=False)
+    except OSError:
+        pass
+
+def st_remember(name, **kv):
+    if not name:
+        return
+    M = _stmem()
+    k = name.lower()
+    old = M.get(k) or {}
+    new = dict(old, **{a: b for a, b in kv.items() if b is not None})
+    if new != old:
+        M[k] = new
+        _stmem_save()
+
+def fetch_st_types(system):
+    try:
+        url = "https://www.edsm.net/api-system-v1/stations?systemName=" + urllib.parse.quote(system)
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ElitePanel"}), timeout=30) as r:
+            data = json.loads(r.read().decode("utf-8") or "{}")
+    except Exception:
+        return
+    for x in data.get("stations") or []:
+        t = (x.get("type") or "").lower()
+        typ = next((v for k, v in EDSM_TYPES if k in t), None)
+        fac = (x.get("controllingFaction") or {}).get("name")
+        old = _stmem().get((x.get("name") or "").lower()) or {}
+        if (typ and not old.get("type")) or (fac and not old.get("fac")):
+            st_remember(x.get("name"), type=old.get("type") or typ, fac=old.get("fac") or fac)
+
+def handle_v092(e):
+    ev = e.get("event")
+    if ev in ("FSSDiscoveryScan", "SAAScanComplete", "LaunchDrone", "FSSAllBodiesFound"):
+        info["scan_t"] = time.time() if LIVE[0] else 0
+    elif ev in ("DockingRequested", "DockingGranted", "Docked"):
+        st_remember(e.get("StationName"), type=e.get("StationType"),
+                    services=e.get("StationServices") if ev == "Docked" else None,
+                    fac=(e.get("StationFaction") or {}).get("Name") if ev == "Docked" else None)
+        if ev == "Docked" and LIVE[0] and e.get("MarketID") and e.get("MarketID") != market.get("mid"):
+            threading.Thread(target=fetch_market_edsm, args=(e.get("MarketID"), e.get("StationName")), daemon=True).start()
+        if ev == "Docked" and ops["on"] and (e.get("StationType") == "MegaShip" or "megaship" in (e.get("StationName") or "").lower()):
+            info["mega"] = iso2epoch(e.get("timestamp")) or time.time()
+    elif ev == "DockingDenied":
+        st_remember(e.get("StationName"), type=e.get("StationType"), denied=e.get("Reason"))
+    elif ev in ("Undocked", "LoadGame", "Died") or (ev == "GameModeChange" and not ops["on"]):
+        info["mega"] = None
+    if ev == "Embark":
+        combat["sd"] = None                               # el escudo de a pie no cuenta en la nave
+    if ev == "ReceiveText":
+        m = e.get("Message") or ""
+        if "NoFireZone_entered" in m:
+            v092["nofire"] = True
+        elif "NoFireZone_exited" in m:
+            v092["nofire"] = False
+    elif ev in ("SupercruiseEntry", "FSDJump"):
+        v092["nofire"] = False
+    elif ev == "Cargo" and e.get("Vessel") == "Ship":
+        v092["stolen"] = sum(x.get("Stolen", 0) for x in e.get("Inventory") or [])
+    elif ev == "Scanned":
+        bad = cur_st.get("LegalState") == "IllegalCargo" or v092["stolen"] > 0
+        who = (target or {}).get("pilot") or ""
+        note("scanned", f"{e.get('ScanType') or 'Unknown'}|{who}|{int(bad)}|{int(v092['nofire'])}")
+
+def dst_info(st):
+    D = st.get("Destination") or {}
+    nm = D.get("Name_Localised") or D.get("Name") or ""
+    if not nm or nm.startswith("$"):
+        return None
+    m = _stmem().get(nm.lower())
+    return dict(m, name=nm) if m else None
+
+
+# ---------- v0.93: mercado de EDSM al atracar ----------
+market_prev = {}
+market_edsm = {}
+
+def fetch_market_edsm(mid, name):
+    try:
+        url = "https://www.edsm.net/api-system-v1/stations/market?marketId=" + str(mid)
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ElitePanel"}), timeout=30) as r:
+            data = json.loads(r.read().decode("utf-8") or "{}")
+    except Exception as ex:
+        print("EDSM mercado:", ex, flush=True)
+        market_edsm.clear(); market_edsm.update(station=name, mid=mid, none=True); return
+    com = data.get("commodities") or []
+    if not com:
+        market_edsm.clear(); market_edsm.update(station=name, mid=mid, none=True); return
+    try:
+        with open(os.path.join(DIR, "Cargo.json"), encoding="utf-8") as f:
+            inv = {x.get("Name", "").lower(): x.get("Count", 0) for x in json.load(f).get("Inventory") or [] if not x.get("Stolen")}
+    except (OSError, ValueError):
+        inv = {}
+    rows, best = [], []
+    for c in com:
+        key, nm, sell = (c.get("id") or "").lower(), (c.get("name") or "?")[:26], c.get("sellPrice") or 0
+        if key in inv and sell:
+            rows.append([nm, inv[key], sell, 0, c.get("demand", 0)])
+        if sell and c.get("demand", 0) > 0:
+            best.append([nm, sell, 0])
+    rows.sort(key=lambda r: -r[1] * r[2])
+    best.sort(key=lambda r: -r[1])
+    market_edsm.clear()
+    market_edsm.update(station=name, mid=mid, src="EDSM", t=time.time(), sell=rows[:20], best=best[:8])
+    print("EDSM: mercado de", name, len(com), "productos", flush=True)
+
 print("Leyendo journals...")
 startup_scan()
 LIVE[0] = True
@@ -1875,16 +2374,20 @@ while True:
         load_backpack()
         check_missions()
         check_ops()
+        edsm_retry()
+        xfer_check()
+        menu_check()
         check_risk()
         now = time.time()
         pkt = {"Flags": st.get("Flags", 0), "Flags2": st.get("Flags2", 0), "Fuel": st.get("Fuel"),
-               "Pips": st.get("Pips"), **info, "target": target, "fighter": fighter,
-               "route": route_ahead()[:8], "balance": st.get("Balance"),
+               "Pips": st.get("Pips"), **info, "target": target_pkt(), "fighter": fighter,
+               "route": route_ahead()[:12], "routen": len(route_ahead()), "routeend": (route_ahead() or [None])[-1],
+               "curstar": cur_star[0], "sqcarrier": sqcarrier, "market_edsm": market_edsm, "market_prev": market_prev, "dstinfo": dst_info(st), "balance": st.get("Balance"),
                "explo": explo_pkt(), "orbits": orbits_pkt(), "body": st.get("BodyName"),
                "gui": st.get("GuiFocus", 0), "notes": notes, "ranks": ranks, "edsm": edsm["status"], "station": station, "mining": mining, "sess": sess,
                "bio": bio_pkt(st), "live": live_pkt(st),
                "mats": mats_pkt(), "carrier": carrier_pkt(), "market": market, "rings": rings_pkt(st), "dest": dest_pkt(st), "sysinfo": sysinfo, "ppme": ppme,
-               "pack": {k: v for k, v in pack.items() if k != "raw"}, "srvmats": srvmats_pkt(), "combat": combat_pkt(), "footcz": footcz_pkt(), "ops": ops_pkt(), "exdiary": exdiary_pkt(), "routeinfo": routeinfo_pkt(), "alien": alien_pkt(), "friends": friends_pkt(), "mycg": mycg_pkt(), "binds": binds_pkt(), "squad": squad, "inara": inara_pkt(),
+               "pack": {k: v for k, v in pack.items() if k != "raw"}, "srvmats": srvmats_pkt(), "combat": combat_pkt(), "footcz": footcz_pkt(), "ops": ops_pkt(), "exdiary": exdiary_pkt(), "routeinfo": routeinfo_pkt(), "alien": alien_pkt(), "friends": friends_pkt(), "mycg": mycg_pkt(), "binds": binds_pkt(), "squad": squad, "inara": inara_pkt(), "naves": naves_pkt(), "taxi": taxi_pkt(), "career": career_pkt(),
                "cargo": cargo[:40],
                "missions": sorted(([n[:60], d, x] for n, d, x in missions.values() if not x or x > now),
                                   key=lambda m: m[2] or 9e12)[:20]}
