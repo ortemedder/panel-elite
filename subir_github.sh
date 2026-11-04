@@ -20,5 +20,5 @@ if git diff --cached --name-only | grep -qi "inara_clave"; then
     echo "¡OJO! inara_clave.txt iba a subirse. Cancelado."; git reset -q; exit 1
 fi
 VER=$(grep -o 'PANEL_VER = "v[0-9.]*[a-z]*' panel.py | grep -o 'v[0-9.]*[a-z]*')
-git commit -q -m "Panel $VER · $(date '+%d/%m/%Y %H:%M')"
+git commit -q -m "Panel $VER · $(date '+%d/%m/%Y %H:%M')" || { echo "Fallo al hacer el commit (¿falta git config user.name / user.email?)"; exit 1; }
 git push -q && echo "Subido a GitHub: $VER" || echo "Fallo al subir (¿token caducado?)"

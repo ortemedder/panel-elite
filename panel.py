@@ -35,7 +35,7 @@ def key_ok(k):
 
 # ---------- contenido de los menus ----------
 MENU = {1: "MANDOS", 2: "PIPS", 3: "NAVEGACIÓN", 4: "CARGA/MISIÓN", 5: "SRV / RHINO / A PIE", 6: "COMBATE", 7: "EXPLORACIÓN",
-        8: "ESTACIÓN", 9: "CAZA", 10: "MINERÍA", 11: "SESIÓN", 12: "LOG / STREAM", 121: "LOG", 122: "STREAM",
+        8: "ESTACIÓN", 9: "CAZA", 10: "MINERÍA", 11: "RESUMEN DEL DÍA", 12: "LOG / STREAM", 121: "LOG", 122: "STREAM",
         71: "EXPLORACIÓN", 72: "SISTEMA", 73: "XENOBIOLOGÍA", 74: "YACIMIENTOS", 75: "DIARIO DE EXPLORACIÓN", 76: "ALIENÍGENAS", 100: "EN VIVO", 61: "REGISTRO DE COMBATE", 125: "MATERIALES", 126: "PORTANAVES", 127: "MERCADO", 1244: "PREFERENCIAS", 1245: "VERSIONES", 128: "NOTAS DE VIAJE", 129: "NOTA"}
 MENU.update({123: "RANGOS", 124: "AJUSTES"})
 PARENT = {0: 100, 71: 7, 72: 7, 73: 7, 74: 7, 75: 7, 76: 7, 121: 12, 122: 12, 123: 12, 124: 12, 1244: 124, 1245: 124, 125: 12, 126: 12, 127: 12, 128: 12, 129: 128}
@@ -255,6 +255,7 @@ def process_notes(d):
             if (kind in FIGHT_KINDS and not (kind == "hull" and star_kind(d.get("curstar")) in ("neu", "wd"))) or \
                     (kind == "scanned" and (text or "").split("|")[3:4] == ["0"]):
                 fight["t"] = time.time()
+            battle_note(kind, text, d)
             if kind == "kill":
                 track_kill()
             if kind == "pickup":
@@ -412,7 +413,7 @@ def on_tap(x, y):
         return
     if ui.get("shipcard") and time.time() < ui["shipcard"]:
         ui["shipcard"] = 0; return
-    if xa.get("a") and xa["a"].get("title") == "SESIÓN TERMINADA" and time.time() < xa["a"]["until"]:
+    if xa.get("a") and xa["a"].get("title") in ("SESIÓN TERMINADA", "BATALLA TERMINADA") and time.time() < xa["a"]["until"]:
         xa["a"] = None; return
     if ui["alert"] and time.time() < ui["alert"]["until"]:
         ui["alert"] = None; return
@@ -527,7 +528,7 @@ def on_tap(x, y):
     elif v == 12:
         tap_sub12(x, y); return
     elif v == 1244:
-        for i, k in enumerate(["auto", "alerts", "sound", "theme", "voice", "stream", "keys", "killbtn", "mkt"]):
+        for i, k in enumerate(["auto", "alerts", "sound", "theme", "voice", "stream", "keys", "killbtn", "mkt", "cmdrpics"]):
             if grid(i, 4, 3).collidepoint(x, y):
                 if k == "mkt":
                     tap_flash((124, i))
@@ -537,6 +538,8 @@ def on_tap(x, y):
                     tap_flash((124, i)); ui["view"] = 164; return
                 if k == "killbtn":
                     tap_flash((124, i)); cfg["killbtn"] = not cfg.get("killbtn", True); save_cfg(); return
+                if k == "cmdrpics":
+                    tap_flash((124, i)); cfg["cmdrpics"] = not cfg.get("cmdrpics", True); save_cfg(); return
                 tap_flash((124, i))
                 if k in ("alerts", "auto", "sound"):
                     ui["view"] = {"alerts": 161, "auto": 162, "sound": 163}[k]; return
@@ -786,6 +789,9 @@ def view_combat(surf, d, flags, now):
         bar(surf, x + half + 8, y, half, "CASCO", t.get("hull"), ORANGE)
         y += 20
         legal = t.get("legal") or ""
+        ia2_ = t.get("inara") or {}
+        tph_ = bool(cmdr and cfg.get("cmdrpics", True) and ia2_.get("ship")) and \
+            ship_photo(surf, {"ship": ia2_.get("ship")}, {}, pygame.Rect(card.right - 62, card.bottom - 34, 56, 31))
         wanted = legal.lower() == "wanted"
         put(surf, F["small"], ("BUSCADO" if wanted else legal.upper()) or "-", (x, y), RED if wanted else GREEN)
         if t.get("bounty"):
@@ -793,7 +799,7 @@ def view_combat(surf, d, flags, now):
         if t.get("subsys"):
             sh = t.get("subhealth")
             put(surf, F["small"], f"{t['subsys']}" + (f"  {sh:.0f}%" if sh is not None else ""),
-                (card.right - 8, y), ORANGE, card.w // 2 - 20, anchor="topright")
+                (card.right - (68 if tph_ else 8), y), ORANGE, card.w // 2 - 20, anchor="topright")
     for i, (txt, key) in enumerate(COMBAT_BTNS):
         draw_button(surf, c6_rect(i), txt, key.upper(), F["btn"], lit=flash.get((6, i), 0) > now, compact=True)
 
@@ -1075,15 +1081,17 @@ def view_session(surf, d, flags, now):
     if not s_:
         put(surf, F["btn"], "Sin sesión (carga la partida)", (W // 2, (H + TOP) // 2), DIM, anchor="center"); return
     e = s_.get("earn") or {}
-    left = [("TIEMPO", dur(time.time() - (s_.get("start") or time.time()))), ("SALTOS", str(s_.get("jumps", 0))),
-            ("AÑOS LUZ", f"{s_.get('ly', 0):,.0f}".replace(",", ".")), ("DERRIBOS", str(s_.get("kills", 0))),
+    play_ = (s_.get("play") or 0) + (max(0, (s_.get("lastts") or s_["seg"]) - s_["seg"]) if s_.get("seg") else 0)
+    left = [("HOY " + game_date(), dur(play_ if s_.get("day") else time.time() - (s_.get("start") or time.time()))),
+            ("SALTOS", str(s_.get("jumps", 0))),
+            ("AÑOS LUZ", f"{s_.get('ly', 0):,.0f}".replace(",", ".")), ("BAJAS  pie · nave", f"{s_.get('kfoot', 0)} · {s_.get('kills', 0) - s_.get('kfoot', 0)}"),
             ("MUERTES", str(s_.get("deaths", 0)))]
     right = [("RECOMPENSAS", e.get("bounty")), ("COMERCIO", e.get("trade")), ("EXPLORACIÓN", e.get("explo")),
              ("MISIONES", e.get("missions")), ("EXOBIOLOGÍA", e.get("bio"))]
     y = TOP + 6
     for (l1, v1), (l2, v2) in zip(left, right):
-        put(surf, F["small"], l1, (8, y + 4), DIM)
-        put(surf, F["big"], v1, (226, y), RED if l1 == "MUERTES" and v1 != "0" else ORANGE, anchor="topright")
+        put(surf, F["small"], l1, (8, y + 4), BLUE if l1.startswith("HOY") else DIM, 130)
+        put(surf, F["big"], v1, (226, y), RED if l1 == "MUERTES" and v1 != "0" else ORANGE, 90, anchor="topright")
         put(surf, F["small"], l2, (246, y + 4), DIM)
         put(surf, F["big"], cr(v2), (W - 8, y), ORANGE, anchor="topright")
         y += 32
@@ -2401,6 +2409,8 @@ CHANGES = [
     ("0.91", "Fotos de fondo de cada tipo de estación al pedir atraque"),
     ("0.92", "TE ESCANEAN, SALUDOS, mega nave 15:00, datos del portanaves y fotos en ruta y atracado"),
     ("0.93", "Mercado de la estación donde estás, fotos de naves, facción del destino, transporte 5:20 / 6:00"),
+    ("0.94", "Resumen del día, nombres de amigos, fotos de naves de CMDR, misiones primero y BATALLA TERMINADA"),
+    ("0.95", "Bajas a pie / nave, registro de combate en la mega nave y nave de investigación"),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -2595,7 +2605,9 @@ def view_session3(surf, d, flags, now):
     view_session2(surf, d, flags, now)
     n = len(((d or {}).get("friends") or {}).get("on") or [])
     paid_ = (((d or {}).get("ops") or {}).get("crew") or {}).get("paid")
-    put(surf, F["small"], f"toca para ver AMIGOS ({n} conectados)" + (f"  ·  copiloto -{crx(paid_)} cr" if paid_ else ""),
+    on_ = ((d or {}).get("friends") or {}).get("on") or []
+    put(surf, F["small"], (f"AMIGOS ({n}): " + ", ".join(on_) if on_ else "toca para ver AMIGOS (0 conectados)")
+        + (f"  ·  copiloto -{crx(paid_)} cr" if paid_ else ""),
         (8, 252), GREEN if n else DIM, W - 16)
 
 def view_sub124(surf, d, flags, now):
@@ -2689,7 +2701,7 @@ def view_ranks(surf, d, flags, now):
 def view_settings(surf, d, flags, now):
     items = [("CAMBIO AUTO", cfg["auto"]), ("ALERTAS", cfg["alerts"]), ("SONIDO", cfg["sound"]), ("COLOR", None),
              ("VOZ", cfg.get("voice", False)), ("EMITIR", cfg.get("stream", False)), ("TECLAS", None),
-             ("CERRAR JUEGO", cfg.get("killbtn", True)), ("MERCADO", None)]
+             ("CERRAR JUEGO", cfg.get("killbtn", True)), ("MERCADO", None), ("FOTOS CMDR", cfg.get("cmdrpics", True))]
     for i, (name, on) in enumerate(items):
         r = grid(i, 4, 3)
         if name == "MERCADO":
@@ -3094,6 +3106,7 @@ def _xa_notes(d, now):
         xa["hplvl"] = 0
     taxi_watch(d, now)
     mega_watch(d, now)
+    battle_watch(d, now)
     # avisos de peligro a pie y combustible del vehiculo (al empezar cada situacion)
     dg = xa.setdefault("dg", {})
     f2, fl = d.get("Flags2", 0), d.get("Flags", 0)
@@ -3370,7 +3383,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.93 · 03/11/2026 18:48"
+PANEL_VER = "v0.95 · 03/11/2026 21:08"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
@@ -3690,6 +3703,8 @@ def render_big():
         cells[cells.index(127)] = 11                 # sin carga: SESION en lugar del MERCADO
     if mode == "ATRACADO" and 4 in cells:
         cells[cells.index(4)] = atr_cell(d, now)
+    if mega_dock(d) and 133 in cells:
+        cells[cells.index(133)] = 61                 # mega nave: REGISTRO DE COMBATE en lugar de GALNET
     if mode == "SUPERFICIE" and flags & (1 << 26) and "rhino" in (d.get("srvtype") or "").lower():
         cells = [100, 74, 5, 10]
     if len(cells) == 1:
@@ -4278,10 +4293,10 @@ def draw_bye(surf):
 TABS = [[(3, "NAVEGACIÓN"), (128, "NOTAS")],
         [(4, "CARGA/MISIÓN"), (125, "MATERIALES")],
         [(8, "ESTACIÓN"), (127, "MERCADO"), (126, "PORTANAVES")],
-        [(11, "SESIÓN"), (130, "GALNET"), (132, "OBJ.COM"), (123, "RANGOS")]]
+        [(11, "DÍA"), (130, "GALNET"), (132, "OBJ.COM"), (123, "RANGOS")]]
 TAB_OF = {129: 128, 131: 130}          # pantallas de detalle -> su pestana
 GEAR = pygame.Rect(W - 50, 2, 46, TOP - 8)      # engranaje a la derecha del todo
-MENU.update({12: "AJUSTES", 11: "SESIÓN·GALNET"})
+MENU.update({12: "AJUSTES", 11: "RESUMEN DEL DÍA"})
 for _v in (123, 125, 126, 127, 128, 130, 132):
     PARENT[_v] = 0
 PARENT.update({121: 12, 122: 12, 1244: 12, 1245: 12}); MENU[1244] = "OPCIONES"
@@ -4843,6 +4858,16 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Fotos de naves (carpeta naves/ junto a panel.py): de fondo en la ficha a pantalla completa, en pequeño en NAVE y en FLOTA.
 - Transporte: 5:20 para subir en estación y 6:00 en un planeta. FPS en verde. Foto del destino más grande.
 - NAVEGACIÓN: facción de la estación de destino y tu reputación (HOSTIL en rojo y aviso ¡DESTINO HOSTIL!).
+# Novedades v0.94
+- 11 RESUMEN DEL DÍA (pestaña DÍA): suma todas las partidas del día (se pone a cero a las 00:00) con la fecha del juego y el tiempo jugado.
+- La línea de AMIGOS dice sus nombres.
+- Fotos de la nave principal (Inara) de otros CMDR: al fijarlos y en la lista del ESCUADRÓN. Se apagan en OPCIONES > FOTOS CMDR.
+- 4 CARGA/MISIÓN se abre en MISIONES si tienes; si no, en BODEGA (y así sale en la pantalla grande).
+- BATALLA TERMINADA a pie: al reservar transporte, subir a la nave o tras 2 min sin bajas, resumen de bajas, créditos, duración y consumibles (el juego no dice si ganaste).
+# Novedades v0.95
+- RESUMEN DEL DÍA: BAJAS a pie · en nave por separado.
+- Atracado en la mega nave: el cuadro de GALNET pasa a REGISTRO DE COMBATE.
+- Operations: la «Nave de investigación» (masacre en mega nave) sale con la foto de la mega nave; el Runner con la de operaciones.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -4880,7 +4905,7 @@ Con CAMBIO AUTO (OPCIONES) el panel salta solo a la pantalla útil: al atracar, 
 - 8 ESTACIÓN: atraque y ficha de la estación. Pestañas MERCADO y PORTANAVES.
 - 9 CAZA: órdenes al caza.
 - 10 MINERÍA: prospectores y refinado.
-- 11 SESIÓN·GALNET: resumen de la sesión (toca para ver AMIGOS). Pestañas GALNET, OBJ.COM y RANGOS.
+- 11 RESUMEN DEL DÍA: todo lo del día (toca para ver AMIGOS). Pestañas GALNET, OBJ.COM y RANGOS.
 - 12 AJUSTES: opciones, estilo, bordes, iconos, versiones, LOG, STREAM, PANTALLA, MANUAL y salir / reiniciar / apagar.
 @g Los botones de teclas usan las teclas de tu configuración del juego.
 """),
@@ -6104,7 +6129,8 @@ def view_squad_page(surf, d, pg):
         pygame.draw.circle(surf, GREEN if live else DIM, (14, y + 10), 5, 0 if live else 1)
         put(surf, F["btn"], o.get("name", "?"), (26, y + 2), GREEN if live else ORANGE, 140)
         bits = [o.get("ship"), inara_rank(o), o.get("squad")]
-        put(surf, F["small"], "  ·  ".join(b for b in bits if b) or "sin datos públicos", (170, y + 6), DIM, W - 178)
+        ph_ = cfg.get("cmdrpics", True) and o.get("ship") and ship_photo(surf, {"ship": o.get("ship")}, {}, pygame.Rect(W - 60, y + 3, 52, 29))
+        put(surf, F["small"], "  ·  ".join(b for b in bits if b) or "sin datos públicos", (170, y + 6), DIM, W - (240 if ph_ else 178))
         y += 36
     put(surf, F["small"], f"pág {pg + 1}/{squad_pages(d)}  ·  verde = conectado  ·  toca", (W - 8, H - 16), DIM,
         W - 16, anchor="topright")
@@ -6589,6 +6615,12 @@ def glow_watch(d):
     if GLOW.get("foot") and not foot and ui.get("alert") and "ESCUDO" in (ui["alert"].get("text") or ""):
         ui["alert"] = None
     GLOW["foot"] = foot
+    v4_ = ui["view"] == 4
+    if not v4_ or not GLOW.get("v4"):
+        ui["tab4"] = 1 if d.get("missions") else 0
+        if v4_:
+            ui["page4"] = 0
+    GLOW["v4"] = v4_
     dk = bool(fl & 1)
     if dk and GLOW.get("dk") is False:
         fight["t"] = 0.0                         # atracado (o reaparecido en estacion): fuera el modo combate
@@ -7228,6 +7260,84 @@ def view_navx(surf, d, flags, now):
 
 VIEWS[3] = view_navx
 EV_LIST.append(("dsthostil", "DESTINO HOSTIL"))
+
+
+# ---------- v0.94: BATALLA TERMINADA (el juego no apunta la victoria: se deduce) ----------
+BAT = {"on": False}
+
+def battle_note(kind, text, d):
+    p = (text or "").split("|")
+    now = time.time()
+    if kind == "kill" and len(p) > 3 and p[3] == "F":
+        if not BAT.get("on"):
+            Z = (d or {}).get("footcz") or {}
+            BAT.clear()
+            BAT.update(on=True, t0=now, k=0, cr=0, med=0, cell=0, gren=0, zone=Z.get("zone") or "", side=Z.get("side") or "")
+        BAT["k"] += 1
+        BAT["cr"] += float(p[1] or 0)
+        BAT["last"] = now
+    elif not BAT.get("on"):
+        return
+    elif kind == "usecons" and p:
+        BAT["med" if p[0] == "healthpack" else "cell"] += 1
+    elif kind == "thrown":
+        BAT["gren"] += 1
+    elif kind in ("taxi", "dropship"):
+        battle_end(now, delay=7)                     # despues del aviso del transporte
+
+def battle_watch(d, now):
+    if BATP.get("a") and now >= BATP["at"]:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "battle"
+            xa["a"] = dict(BATP["a"], until=now + 15)
+            play("ok")
+        finally:
+            XA_K[0] = k0
+        BATP["a"] = None
+    if not BAT.get("on"):
+        return
+    Z = (d or {}).get("footcz") or {}
+    if Z.get("zone"):
+        BAT["zone"] = Z["zone"]
+    if Z.get("side"):
+        BAT["side"] = Z["side"]
+    if not ((d or {}).get("Flags2", 0) & 1) or now - max(BAT.get("last", 0), fight["t"]) > 120:
+        battle_end(now)
+
+BATP = {"a": None, "at": 0}
+
+def battle_end(now, delay=0):
+    B = dict(BAT)
+    BAT.clear(); BAT["on"] = False
+    if B.get("k", 0) < 3:
+        return                                       # dos bajas sueltas no son una batalla
+    mins = max(1, round(((B.get("last") or now) - B["t0"]) / 60))
+    cons = "  ·  ".join(x for x in ((f"botiquines {B['med']}" if B["med"] else ""), (f"células {B['cell']}" if B["cell"] else ""),
+                                    (f"granadas {B['gren']}" if B["gren"] else "")) if x)
+    BATP["a"] = dict(col=GREEN, title="BATALLA TERMINADA", big=(B.get("zone") or "ZONA DE COMBATE").upper(),
+                     lines=[f"{B['k']} bajas  ·  +{crx(B['cr'])} cr sin cobrar",
+                            f"duración {mins} min  ·  {B['k'] / mins:.1f} bajas/min".replace(".", ","),
+                            cons, f"por {B['side']}" if B.get("side") else ""])
+    BATP["at"] = now + delay
+
+EV_LIST.append(("battle", "BATALLA TERMINADA"))
+
+
+# ---------- v0.95 ----------
+def mega_dock(d):
+    st = (d or {}).get("station") or {}
+    nm = ((st.get("name") or "") + " " + (st.get("sraw") or "")).lower()
+    return bool((d or {}).get("mega")) or (st.get("status") == "ATRACADO" and
+                                         (st.get("type") == "MegaShip" or "megaship" in nm or "investig" in nm))
+
+_ck1 = carrier_kind
+
+def carrier_kind(d, st):
+    nm = ((st.get("name") or "") + " " + (st.get("sraw") or "")).lower()
+    if st.get("type") == "SurfaceStation" and ("investig" in nm or "megaship" in nm):
+        return "meganave", "NAVE DE INVESTIGACIÓN", ORANGE
+    return _ck1(d, st)
 
 
 def render(surf):
