@@ -33,6 +33,7 @@ sudo tar czf "$F" --ignore-failed-read \
   --transform "s|^${TMP#/}|home/ortem/restaurar|" "${TMP#/}" 2>/dev/null
 sudo chown ortem "$F"
 rm -rf "$TMP"
+ls -1t backups/panel_*.tar.gz 2>/dev/null | tail -n +5 | xargs -r rm --      # se guardan las 4 ultimas
 echo "Copia hecha: $F ($(du -h "$F" | cut -f1))"
 echo "Contenido:"; tar tzf "$F" | grep -v '/$' | sed 's|^home/ortem/||' | head -40
 echo "..."; ls -lh backups | tail -5

@@ -157,7 +157,7 @@ EV_LIST = [("jump", "SALTO"), ("interdicted", "INTERDICCIÓN"), ("underattack", 
            ("keys", "TECLAS SIN ASIGNAR"), ("elink", "RECARGA CON ENLACE"),
            ("thargmusic", "MÚSICA THARGOIDE"), ("shipswap", "CAMBIO DE NAVE"), ("shipxfer", "TRANSFERENCIA NAVE"),
            ("shiparrived", "NAVE TRANSFERIDA"), ("moddmg", "MÓDULOS DAÑADOS"),
-           ("scanned", "TE ESCANEAN"), ("opmega", "MEGA NAVE 15 MIN")]
+           ("scanned", "TE ESCANEAN"), ("engbase", "BASE DE INGENIERO"), ("engsys", "INGENIERO EN EL SISTEMA"), ("opmega", "MEGA NAVE 15 MIN")]
 # cambio automatico de menu uno a uno: cfg["autoev"][clave] = False
 AUTO_LIST = [("docking", "ATRAQUE > ESTACIÓN"), ("market", "MERCADO"), ("interdicted", "INTERDICCIÓN > COMBATE"),
              ("underattack", "TE ATACAN > COMBATE"), ("arrsig", "SEÑAL PELIGROSA > COMBATE"),
@@ -225,7 +225,9 @@ def handle_note(kind, text):
         if ui["alert"] and ui["alert"]["kind"] == "jump":
             ui["alert"] = None
     elif kind == "interdicted":
-        set_alert("¡INTERDICCIÓN!", text, secs=4); play("alarm")
+        nm_, pl_ = ((text or "") + "|0").split("|")[:2]
+        set_alert("¡INTERDICCIÓN!", (nm_ + ("  ·  ¡COMANDANTE!" if pl_ == "1" else "  ·  NPC")) if nm_ else "", secs=6 if pl_ == "1" else 4)
+        play("alarm")
     elif kind == "underattack":
         set_alert("¡TE ATACAN!", "", secs=2); play("alarm")
     elif kind == "shields_down":
@@ -790,8 +792,9 @@ def view_combat(surf, d, flags, now):
         y += 20
         legal = t.get("legal") or ""
         ia2_ = t.get("inara") or {}
-        tph_ = bool(cmdr and cfg.get("cmdrpics", True) and ia2_.get("ship")) and \
-            ship_photo(surf, {"ship": ia2_.get("ship")}, {}, pygame.Rect(card.right - 62, card.bottom - 34, 56, 31))
+        tph_ = bool(cfg.get("cmdrpics", True)) and \
+            ship_photo(surf, {"type": t.get("stype"), "ship": t.get("ship") or ia2_.get("ship")}, {},
+                       pygame.Rect(card.right - 62, card.bottom - 34, 56, 31))
         wanted = legal.lower() == "wanted"
         put(surf, F["small"], ("BUSCADO" if wanted else legal.upper()) or "-", (x, y), RED if wanted else GREEN)
         if t.get("bounty"):
@@ -2254,7 +2257,9 @@ def view_session2(surf, d, flags, now):
     led = ((d or {}).get("footcz") or {}).get("led") or {}
     if led.get("cr"):
         b, rw = led.get("bonds") or [0, 0], led.get("bounties") or [0, 0]
-        put(surf, F["small"], "SIN COBRAR (bonos + recompensas)", (8, H - 54), DIM)
+        dd_ = int((time.time() - (d or {}).get("uncl_t0")) // 86400) if (d or {}).get("uncl_t0") else 0
+        put(surf, F["small"], "SIN COBRAR (bonos + recompensas)" + (f"  ·  desde hace {dd_} días" if dd_ else ""),
+            (8, H - 54), ORANGE if dd_ >= 2 else DIM)
         put(surf, F["big"], f"{crx(led['cr'])} cr", (8, H - 40), RED)
         put(surf, F["small"], f"{b[0]} bonos {crx(b[1])} cr  ·  {rw[0]} recompensas {crx(rw[1])} cr", (8, H - 16), DIM, 330)
     elif s_.get("pending"):
@@ -2411,6 +2416,8 @@ CHANGES = [
     ("0.93", "Mercado de la estación donde estás, fotos de naves, facción del destino, transporte 5:20 / 6:00"),
     ("0.94", "Resumen del día, nombres de amigos, fotos de naves de CMDR, misiones primero y BATALLA TERMINADA"),
     ("0.95", "Bajas a pie / nave, registro de combate en la mega nave y nave de investigación"),
+    ("0.96", "Versión del sender, foto del objetivo, sin cobrar, ingenieros, combustible, minería, Powerplay y rapidez"),
+    ("0.97", "Misiones fijas en la pantalla grande y los 38 ingenieros con su ficha"),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -3107,6 +3114,9 @@ def _xa_notes(d, now):
     taxi_watch(d, now)
     mega_watch(d, now)
     battle_watch(d, now)
+    eng_watch(d, now)
+    ver_check(d)
+    uncl_watch(d, now)
     # avisos de peligro a pie y combustible del vehiculo (al empezar cada situacion)
     dg = xa.setdefault("dg", {})
     f2, fl = d.get("Flags2", 0), d.get("Flags", 0)
@@ -3335,6 +3345,11 @@ def _xa_notes(d, now):
                                               ("¡LLEVAS CARGA ILEGAL O ROBADA!" if bad else "")) if x])
             if bad:
                 play("alarm")
+        elif kind == "engbase":
+            xa["a"] = dict(until=now + 6, col=BLUE, title="BASE DE INGENIERO", big=(text or "").upper(),
+                           lines=["mira tus materiales en 12 > MATERIALES"])
+            if auto_on("docking"):
+                ui["view"] = 125
         elif kind == "shipswap":
             ui["shipcard"] = now + 15; ui["shippage"] = 0
         elif kind == "shipxfer" and len(p) >= 2:
@@ -3383,7 +3398,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.95 · 03/11/2026 21:08"
+PANEL_VER = "v0.97 · 05/11/2026 00:18"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
@@ -4086,6 +4101,8 @@ def view_galnet_cell(surf, d, flags, now):
 ATR_ROT = [(133, 20), (4, 4), (132, 20)]     # GALNET 20 s, CARGA/MISIÓN 4 s, OBJ. COMUNITARIOS 20 s
 
 def atr_cell(d, now):
+    if (d or {}).get("missions"):
+        return 4                                     # con misiones: fijo en MISIONES
     rot = [(133, 20)]
     if (d or {}).get("cargo") or (d or {}).get("missions"):
         rot.append((4, 4))
@@ -4868,6 +4885,18 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - RESUMEN DEL DÍA: BAJAS a pie · en nave por separado.
 - Atracado en la mega nave: el cuadro de GALNET pasa a REGISTRO DE COMBATE.
 - Operations: la «Nave de investigación» (masacre en mega nave) sale con la foto de la mega nave; el Runner con la de operaciones.
+# Novedades v0.96
+- AJUSTES > VERSIONES dice la versión del panel y del sender; si no coinciden, aviso al arrancar.
+- Foto de la nave que fijas (NPC o comandante), por su tipo real.
+- Dinero sin cobrar: desde cuántos días (RESUMEN DEL DÍA) y aviso al arrancar si son 2 días o más, o más de 50 M.
+- Base de ingeniero: aviso al atracar y salta a MATERIALES.
+- NAVEGACIÓN: «combustible para ~N saltos» (rojo si quedan menos de 3).
+- Interdicción: dice si es COMANDANTE o NPC.
+- MINERÍA: toneladas por hora y créditos por hora aproximados. POWERPLAY: méritos de esta semana y cuánto falta para el corte (jueves 9:00).
+- Al tocar, el panel responde al momento. Cada 5 minutos apunta en el LOG qué pantallas tardan más en dibujarse.
+# Novedades v0.97
+- Con misiones activas, el cuadro de la pantalla grande se queda en MISIONES (sin GALNET).
+- Ingenieros (38, de nave y de a pie; carpeta ingenieros/ junto a panel.py): al llegar a su sistema, aviso INGENIERO EN EL SISTEMA con tu rango; en 7.1 EXPLORACIÓN su ficha con cara, base, planeta y lo que mejora; en NAVEGACIÓN, «ING.» si el destino de la ruta es su sistema.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -6778,7 +6807,16 @@ def draw_routeline(surf, d, y, now):
     y += 28
     nxt = route[0][0] if route else ""
     put(surf, F["small"], f"{(d.get('system') or '?')}  >  {nxt}", (8, y), ORANGE, W - 150)
+    eg_ = eng_at((end or [""])[0]) if end else None
     put(surf, F["small"], f"quedan {total}" + (f" · {end[0]}" if end and total > 1 else ""), (W - 8, y), DIM, 140, anchor="topright")
+    if eg_:
+        put(surf, F["small"], "ING. " + eg_["name"], (W - 8, y - 30), BLUE, 200, anchor="topright")
+    fj_, fm_ = d.get("fuelj"), (d.get("Fuel") or {}).get("FuelMain")
+    if fj_ and fm_ is not None:
+        n_ = int(fm_ / fj_) if fj_ > 0 else 0
+        put(surf, F["small"], f"combustible para ~{n_} saltos" + ("  ·  ¡recoge en la ruta!" if n_ < min(total, 6) else ""),
+            (8, y + 14), RED if n_ < 3 else ORANGE if n_ < min(total, 6) else GREEN, W - 16)
+        return y + 36
     return y + 22
 
 _BG = {}
@@ -7340,6 +7378,211 @@ def carrier_kind(d, st):
     return _ck1(d, st)
 
 
+# ---------- v0.96 ----------
+import threading as _thr
+PANEL_PERF_V = {}
+TAP_EV = _thr.Event()
+_on_tap96 = on_tap
+
+def on_tap(x, y):
+    try:
+        _on_tap96(x, y)
+    finally:
+        TAP_EV.set()                                 # redibuja ya, sin esperar al siguiente ciclo
+
+def perf_view(v, dt):
+    a = PANEL_PERF_V.setdefault(v, [0, 0.0, 0.0])
+    a[0] += 1; a[1] += dt; a[2] = max(a[2], dt)
+    t0 = PANEL_PERF_V.setdefault("_t", time.time())
+    if time.time() - t0 > 300:
+        top = sorted(((k, x) for k, x in PANEL_PERF_V.items() if k != "_t"), key=lambda kv: -kv[1][1] / max(1, kv[1][0]))[:5]
+        plog("TIEMPOS (5 min): " + "  ".join(f"{MENU.get(k, k)} {x[1] / max(1, x[0]) * 1000:.0f} ms (máx {x[2] * 1000:.0f})" for k, x in top)
+             + f"  ·  CPU {PERF.get('cpu') or 0:.0f}%  ·  {PERF.get('fps') or 0:.0f} FPS")
+        PANEL_PERF_V.clear(); PANEL_PERF_V["_t"] = time.time()
+
+# 1. version del sender
+VERW = {"done": False}
+
+def ver_check(d):
+    sv = (d or {}).get("sver")
+    pv = PANEL_VER.split(" · ")[0][:5]
+    if VERW["done"] or not d or "Flags" not in d:
+        return
+    VERW["done"] = True
+    if (sv or "")[:5] != pv:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "keys"
+            xa["a"] = dict(until=time.time() + 10, col=ORANGE, title="VERSIONES DISTINTAS", big=f"panel {pv} · sender {sv or 'antiguo'}",
+                           lines=["pon en el PC el elite_sender.py de la misma versión"])
+        finally:
+            XA_K[0] = k0
+
+_vcl0 = view_changelog
+
+def view_changelog(surf, d, flags, now):
+    _vcl0(surf, d, flags, now)
+    sv = (d or {}).get("sver")
+    pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+    put(surf, F["small"], f"panel {PANEL_VER.split(' · ')[0]}  ·  sender {sv or 'antiguo (sin versión)'}", (8, H - 16),
+        GREEN if (sv or '')[:5] == PANEL_VER.split(' · ')[0][:5] else ORANGE, W - 16)
+
+VIEWS[1245] = view_changelog
+
+# 3. aviso de dinero sin cobrar (una vez al arrancar)
+UNC = {"done": False}
+
+def uncl_watch(d, now):
+    if UNC["done"] or not d:
+        return
+    led = ((d.get("footcz") or {}).get("led") or {})
+    t0 = d.get("uncl_t0")
+    if not t0 or not led.get("cr"):
+        return
+    UNC["done"] = True
+    days = int((now - t0) // 86400)
+    if days >= 2 or led["cr"] >= 50e6:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "redeem"
+            xa["a"] = dict(until=now + 8, col=ORANGE, title="SIN COBRAR", big=f"{crx(led['cr'])} cr",
+                           lines=[f"desde hace {days} días" if days else "", "si te destruyen la nave, se pierden"])
+        finally:
+            XA_K[0] = k0
+
+# 7. mineria por hora
+_vmin0 = view_mining
+
+def view_mining(surf, d, flags, now):
+    _vmin0(surf, d, flags, now)
+    m = (d or {}).get("mining") or {}
+    tons = sum((m.get("refined") or {}).values())
+    if tons and m.get("t0") and m.get("t1") and m["t1"] > m["t0"]:
+        h = (m["t1"] - m["t0"]) / 3600
+        rate = tons / h if h > 0.02 else None
+        prices = {r[0].lower(): r[1] for r in (((d or {}).get("market") or {}).get("best") or [])}
+        prices.update({r[0].lower(): r[2] for r in (((d or {}).get("market") or {}).get("sell") or [])})
+        val = sum(n * prices.get(k.lower(), 0) for k, n in (m.get("refined") or {}).items())
+        pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+        put(surf, F["small"], f"{tons} t refinadas" + (f"  ·  {rate:.0f} t/hora".replace(".", ",") if rate else "")
+            + (f"  ·  ~{crx(val / h)} cr/hora" if val and h > 0.02 else ""), (8, H - 16), GREEN, W - 16)
+
+VIEWS[10] = view_mining
+
+# 8. Powerplay: meritos de la semana y corte
+_vpp0 = view_pp
+
+def view_pp(surf, d, flags, now):
+    _vpp0(surf, d, flags, now)
+    w = (d or {}).get("ppweek") or {}
+    if not w.get("end"):
+        return
+    left = max(0, int(w["end"] - time.time()))
+    pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+    put(surf, F["small"], f"ESTA SEMANA: {fnum(w.get('merits', 0), 0)} méritos  ·  corte en {left // 86400} d {left % 86400 // 3600} h",
+        (8, H - 16), BLUE, W - 16)
+
+
+# ---------- v0.97: ingenieros ----------
+_ENGDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ingenieros")
+_ENG = {"data": None}
+ENG_PROG = {"Known": "conocido", "Invited": "invitado", "Acquainted": "le conoces", "Unlocked": "desbloqueado", "Barred": "vetado"}
+
+def eng_table():
+    if _ENG["data"] is None:
+        try:
+            import json as _j
+            with open(os.path.join(_ENGDIR, "ingenieros.json"), encoding="utf-8") as f:
+                _ENG["data"] = {k: dict(v, key=k) for k, v in _j.load(f).items()}
+        except Exception as e:
+            log_exc("ingenieros.json", e)
+            _ENG["data"] = {}
+    return _ENG["data"]
+
+def eng_at(system):
+    sy = (system or "").lower()
+    return next((v for v in eng_table().values() if v.get("system", "").lower() == sy), None) if sy else None
+
+def eng_here(d):
+    return eng_at((d or {}).get("system"))
+
+def eng_status(e, d):
+    p = ((d or {}).get("engprog") or {}).get(e["name"].lower())
+    if not p:
+        return "no le conoces", DIM
+    prog, rank = p
+    if prog == "Unlocked":
+        return (f"rango {rank}" if rank is not None else "desbloqueado"), GREEN
+    return ENG_PROG.get(prog, prog.lower() or "?"), ORANGE
+
+def eng_where(e):
+    pl = e.get("planet") or ""
+    body = pl if pl and not pl[:1].isdigit() and len(pl.split()[0]) > 2 else f"{e['system']} {pl}".strip()
+    return f"{e['base']}  ·  {body}  ·  {e.get('region', '')}".strip(" ·")
+
+ENGW = {"sys": None}
+
+def eng_watch(d, now):
+    sy = (d or {}).get("system")
+    if not sy or sy == ENGW["sys"]:
+        return
+    first = ENGW["sys"] is None
+    ENGW["sys"] = sy
+    e = eng_at(sy)
+    if not e or first:
+        return
+    st, _ = eng_status(e, d)
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "engsys"
+        xa["a"] = dict(until=now + 8, col=BLUE, title="INGENIERO EN EL SISTEMA", big=e["name"].upper(),
+                       lines=[st, eng_where(e)])
+        play("ok")
+    finally:
+        XA_K[0] = k0
+
+def eng_card(surf, d, r):
+    """Ficha del ingeniero: cara, nombre y rango, donde esta y lo que mejora."""
+    e = eng_here(d)
+    if not e:
+        return False
+    pygame.draw.rect(surf, BLACK, r)
+    pygame.draw.rect(surf, BLUE, r, 1, border_radius=6)
+    ph = pygame.Rect(r.x + 6, r.y + 6, int((r.h - 12) * 240 / 210), r.h - 12)
+    real, rr = (surf.real, surf._r(ph)) if type(surf).__name__ == "ScaledSurf" else (surf, ph)
+    img = ship_img(os.path.join(_ENGDIR, f"ing_{e['key']}.jpg"), rr.w, rr.h, 255)
+    if img is not None:
+        real.blit(img, rr.topleft)
+    x = ph.right + 8
+    wd = r.right - x - 6
+    st, col = eng_status(e, d)
+    put(surf, F["btn"], e["name"].upper(), (x, r.y + 4), BLUE, wd - 110)
+    put(surf, F["small"], st, (r.right - 8, r.y + 7), col, 110, anchor="topright")
+    put(surf, F["small"], eng_where(e), (x, r.y + 26), ORANGE, wd)
+    mods = sorted(e.get("mods") or [], key=lambda m: -int(m[1]) if m[:1] == "G" and m[1:2].isdigit() else 0)
+    y = r.y + 44
+    line = ""
+    for m in mods:
+        t = (line + "  ·  " if line else "") + m
+        if F["small"].size(t)[0] > wd:
+            put(surf, F["small"], line, (x, y), WHITE, wd); y += 15; line = m
+            if y > r.bottom - 16:
+                break
+        else:
+            line = t
+    if line and y <= r.bottom - 16:
+        put(surf, F["small"], line, (x, y), WHITE, wd)
+    return True
+
+_vex0 = view_explo
+
+def view_explo(surf, d, flags, now):
+    _vex0(surf, d, flags, now)
+    eng_card(surf, d or {}, pygame.Rect(4, H - 112, W - 8, 108))
+
+VIEWS[71] = view_explo
+
+
 def render(surf):
     with lock:
         d, rx = state["data"], state["rx"]
@@ -7405,7 +7648,9 @@ def render(surf):
     fn = VIEWS.get(v)
     if fn:
         try:
+            t_ = time.perf_counter()
             fn(surf, d if online else None, flags, now)
+            perf_view(v, time.perf_counter() - t_)
         except Exception as e:
             log_exc(f"pantalla {v}", e)
             put(surf, F["btn"], "Error en esta pantalla", (W // 2, (H + TOP) // 2 - 10), RED, anchor="center")
@@ -7471,7 +7716,7 @@ def main():
             data = to_fb_bytes(surf, bpp, stride)
             if data != last:
                 fb.seek(0); fb.write(data); last = data
-            time.sleep(0.1)
+            TAP_EV.wait(0.1); TAP_EV.clear()
 
 if __name__ == "__main__":
     main()
