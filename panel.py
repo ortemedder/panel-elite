@@ -36,7 +36,7 @@ def key_ok(k):
 # ---------- contenido de los menus ----------
 MENU = {1: "MANDOS", 2: "PIPS", 3: "NAVEGACIÓN", 4: "CARGA/MISIÓN", 5: "SRV / RHINO / A PIE", 6: "COMBATE", 7: "EXPLORACIÓN",
         8: "ESTACIÓN", 9: "CAZA", 10: "MINERÍA", 11: "RESUMEN DEL DÍA", 12: "LOG / STREAM", 121: "LOG", 122: "STREAM",
-        71: "EXPLORACIÓN", 72: "SISTEMA", 73: "XENOBIOLOGÍA", 74: "YACIMIENTOS", 75: "DIARIO DE EXPLORACIÓN", 76: "ALIENÍGENAS", 100: "EN VIVO", 61: "REGISTRO DE COMBATE", 125: "MATERIALES", 126: "PORTANAVES", 127: "MERCADO", 1244: "PREFERENCIAS", 1245: "VERSIONES", 128: "NOTAS DE VIAJE", 129: "NOTA"}
+        71: "EXPLORACIÓN", 72: "SISTEMA", 73: "EXOBIOLOGÍA", 74: "YACIMIENTOS", 75: "DIARIO DE EXPLORACIÓN", 76: "ALIENÍGENAS", 100: "EN VIVO", 61: "REGISTRO DE COMBATE", 125: "MATERIALES", 126: "PORTANAVES", 127: "MERCADO", 1244: "PREFERENCIAS", 1245: "VERSIONES", 128: "NOTAS DE VIAJE", 129: "NOTA"}
 MENU.update({123: "RANGOS", 124: "AJUSTES"})
 PARENT = {0: 100, 71: 7, 72: 7, 73: 7, 74: 7, 75: 7, 76: 7, 121: 12, 122: 12, 123: 12, 124: 12, 1244: 124, 1245: 124, 125: 12, 126: 12, 127: 12, 128: 12, 129: 128}
 CMDR_NAME = "ORTEM ED DER"
@@ -1110,7 +1110,7 @@ def view_session(surf, d, flags, now):
 
 # ---------- 12 submenu ----------
 def view_sub7(surf, d, flags, now):
-    for i, (n, name) in enumerate([("1", "EXPLORACIÓN"), ("2", "SISTEMA"), ("3", "XENOBIO"), ("4", "YACIM."), ("5", "DIARIO"), ("6", "ALIEN")]):
+    for i, (n, name) in enumerate([("1", "EXPLORACIÓN"), ("2", "SISTEMA"), ("3", "EXOBIO"), ("4", "YACIM."), ("5", "DIARIO"), ("6", "ALIEN")]):
         draw_button(surf, grid(i, 3, 2), n, name, F["num"], lit=flash.get((7, i), 0) > now)
 
 # ---------- 7.2 sistema en movimiento (planetario) ----------
@@ -1755,7 +1755,7 @@ def trip_here(d):
     flags, f2 = d.get("Flags", 0), d.get("Flags2", 0)
     b = d.get("bio") or {}
     st = d.get("station") or {}
-    if b.get("species") and 0 < b.get("step", 0) < 3: tag = "XENOBIO"
+    if b.get("species") and 0 < b.get("step", 0) < 3: tag = "EXOBIO"
     elif flags & 1: tag = "ESTACIÓN"
     elif f2 & 1: tag = "A PIE"
     elif flags & (1 << 26): tag = "SRV"
@@ -1785,7 +1785,7 @@ TRIP_SAVE = pygame.Rect(8, TOP + 2, 210, 34)
 TRIP_PAGE = pygame.Rect(W - 118, TOP + 2, 110, 34)
 TRIP_DEL = pygame.Rect(W - 130, H - 42, 122, 36)
 TRIP_PER = 6
-TAG_COL = {"XENOBIO": GREEN, "ESTACIÓN": BLUE, "A PIE": GREEN, "SRV": ORANGE, "ATERRIZADO": ORANGE,
+TAG_COL = {"EXOBIO": GREEN, "ESTACIÓN": BLUE, "A PIE": GREEN, "SRV": ORANGE, "ATERRIZADO": ORANGE,
            "PLANETA": ORANGE, "ESPACIO": DIM}
 
 def trip_row(i):
@@ -2322,7 +2322,7 @@ def view_combatx(surf, d, flags, now):
 # ---------- 12.4.5 versiones: resumen de cambios ----------
 CHANGES = [
     ("base", "Panel de 12 botones, teclado USB y estado del juego por red"),
-    ("base", "7.3 Xenobiología: muestras, distancia, valor de especies y x5"),
+    ("base", "7.3 Exobiología: muestras, distancia, valor de especies y x5"),
     ("base", "Recogida de combustible en naranja y sobrecalentamiento"),
     ("base", "Brújula para volver a la nave"),
     ("base", "EN VIVO como inicio (nave/a pie/SRV) con botón MENÚ"),
@@ -2418,6 +2418,8 @@ CHANGES = [
     ("0.95", "Bajas a pie / nave, registro de combate en la mega nave y nave de investigación"),
     ("0.96", "Versión del sender, foto del objetivo, sin cobrar, ingenieros, combustible, minería, Powerplay y rapidez"),
     ("0.97", "Misiones fijas en la pantalla grande y los 38 ingenieros con su ficha"),
+    ("0.97b", "Ficha del ingeniero en NAVEGACIÓN y EXOBIOLOGÍA"),
+    ("0.97c", "BASE DE INGENIERO solo en las bases de verdad"),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -3345,9 +3347,11 @@ def _xa_notes(d, now):
                                               ("¡LLEVAS CARGA ILEGAL O ROBADA!" if bad else "")) if x])
             if bad:
                 play("alarm")
-        elif kind == "engbase":
-            xa["a"] = dict(until=now + 6, col=BLUE, title="BASE DE INGENIERO", big=(text or "").upper(),
-                           lines=["mira tus materiales en 12 > MATERIALES"])
+        elif kind == "engbase" and eng_by_base(text):
+            eb_ = eng_by_base(text)
+            st_, _ = eng_status(eb_, d)
+            xa["a"] = dict(until=now + 6, col=BLUE, title="BASE DE INGENIERO", big=eb_["name"].upper(),
+                           lines=[f"{eb_['base']}  ·  {st_}", "mira tus materiales en 12 > MATERIALES"])
             if auto_on("docking"):
                 ui["view"] = 125
         elif kind == "shipswap":
@@ -3398,7 +3402,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.97 · 05/11/2026 00:18"
+PANEL_VER = "v0.97c · 05/11/2026 02:22"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
@@ -4896,7 +4900,7 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Al tocar, el panel responde al momento. Cada 5 minutos apunta en el LOG qué pantallas tardan más en dibujarse.
 # Novedades v0.97
 - Con misiones activas, el cuadro de la pantalla grande se queda en MISIONES (sin GALNET).
-- Ingenieros (38, de nave y de a pie; carpeta ingenieros/ junto a panel.py): al llegar a su sistema, aviso INGENIERO EN EL SISTEMA con tu rango; en 7.1 EXPLORACIÓN su ficha con cara, base, planeta y lo que mejora; en NAVEGACIÓN, «ING.» si el destino de la ruta es su sistema.
+- Ingenieros (38, de nave y de a pie; carpeta ingenieros/ junto a panel.py): al llegar a su sistema, aviso INGENIERO EN EL SISTEMA con tu rango; en NAVEGACIÓN su ficha con cara (y la foto de su base si la marcas como destino), base, planeta y lo que mejora; en NAVEGACIÓN, «ING.» si el destino de la ruta es su sistema.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -4930,7 +4934,7 @@ Con CAMBIO AUTO (OPCIONES) el panel salta solo a la pantalla útil: al atracar, 
 - 4 CARGA/MISIÓN: bodega y misiones. Pestaña MATERIALES.
 - 5 SRV / RHINO / A PIE: botones del vehículo y a pie. Pestaña MAPA: tu recorrido sobre el planeta.
 - 6 COMBATE: botones de combate.
-- 7 EXPLORACIÓN: exploración (EDSM), sistema en movimiento, xenobiología, yacimientos, diario y alienígenas.
+- 7 EXPLORACIÓN: exploración (EDSM), sistema en movimiento, exobiología, yacimientos, diario y alienígenas.
 - 8 ESTACIÓN: atraque y ficha de la estación. Pestañas MERCADO y PORTANAVES.
 - 9 CAZA: órdenes al caza.
 - 10 MINERÍA: prospectores y refinado.
@@ -4941,8 +4945,8 @@ Con CAMBIO AUTO (OPCIONES) el panel salta solo a la pantalla útil: al atracar, 
 ("PANT. GRANDE", "PANTALLA GRANDE (HDMI)", """
 Muestra datos (no se toca) y elige sola el tablero según la situación:
 - VIAJE: en vivo, navegación, exploración y sistema (en la grande, el SISTEMA sale a todo lo ancho, sin botones y con la ficha del cuerpo más interesante).
-- APROXIMACIÓN (cerca de un planeta o anillo): sistema, xenobiología y yacimientos.
-- SUPERFICIE (aterrizado, SRV o a pie): xenobiología, SRV y MAPA del recorrido. En el Rhino: yacimientos y minería.
+- APROXIMACIÓN (cerca de un planeta o anillo): sistema, exobiología y yacimientos.
+- SUPERFICIE (aterrizado, SRV o a pie): exobiología, SRV y MAPA del recorrido. En el Rhino: yacimientos y minería.
 - ATRACADO: en vivo, estación, mercado y GALNET. GALNET alterna con CARGA/MISIÓN si llevas carga o misiones, y con OBJETIVOS COMUNITARIOS si hay.
 - ATRAQUE: la estación a pantalla completa al conceder el atraque. Luz roja a la izquierda y verde a la derecha, como en la entrada de la estación.
 - COMBATE: combate, registro de combate y pips.
@@ -5023,7 +5027,7 @@ Abre la página en el PC de juego y colócala en la cabina con Desktop+ (SteamVR
 @g Solo gasta CPU mientras alguien mira la imagen.
 """),
 ("EXPLORACIÓN", "EXPLORACIÓN Y MÁS", """
-- Xenobiología (7.3): especies, valor, distancia entre muestras y brújula para volver a la nave. NAVE AQUÍ corrige dónde está la nave.
+- Exobiología (7.3): especies, valor, distancia entre muestras y brújula para volver a la nave. NAVE AQUÍ corrige dónde está la nave.
 - Exploración (7.1): cuerpos del sistema con datos de EDSM; toca para pasar páginas.
 - Yacimientos (7.4): señales del planeta y anillos.
 - Rhino: franja de altura para desplegarlo; en verde (entre 40 y 7 m) está listo.
@@ -7556,9 +7560,11 @@ def eng_card(surf, d, r):
     x = ph.right + 8
     wd = r.right - x - 6
     st, col = eng_status(e, d)
-    put(surf, F["btn"], e["name"].upper(), (x, r.y + 4), BLUE, wd - 110)
-    put(surf, F["small"], st, (r.right - 8, r.y + 7), col, 110, anchor="topright")
-    put(surf, F["small"], eng_where(e), (x, r.y + 26), ORANGE, wd)
+    narrow_ = r.w < W - 100                         # ficha estrecha: el rango baja a la segunda linea
+    put(surf, F["btn"], e["name"].upper(), (x, r.y + 4), BLUE, wd if narrow_ else wd - F["small"].size(st)[0] - 12)
+    if not narrow_:
+        put(surf, F["small"], st, (r.right - 8, r.y + 7), col, 110, anchor="topright")
+    put(surf, F["small"], (st + "  ·  " if narrow_ else "") + eng_where(e), (x, r.y + 26), col if narrow_ else ORANGE, wd)
     mods = sorted(e.get("mods") or [], key=lambda m: -int(m[1]) if m[:1] == "G" and m[1:2].isdigit() else 0)
     y = r.y + 44
     line = ""
@@ -7581,6 +7587,25 @@ def view_explo(surf, d, flags, now):
     eng_card(surf, d or {}, pygame.Rect(4, H - 112, W - 8, 108))
 
 VIEWS[71] = view_explo
+
+
+# ---------- v0.97b: la ficha del ingeniero pasa a NAVEGACION ----------
+view_explo = _vex0
+VIEWS[71] = _vex0
+_navx3 = view_navx
+
+def view_navx(surf, d, flags, now):
+    _navx3(surf, d, flags, now)
+    if not (ui.get("navtab") == 2 and not NAVBIG[0]) and not nav_show_pol(d, now) and eng_here(d):
+        th = carrier_dest(d or {})[0]                 # foto de su base (destino marcado) a la derecha
+        eng_card(surf, d or {}, pygame.Rect(4, H - 112, W - (190 if th else 8), 108))
+
+VIEWS[3] = view_navx
+
+
+def eng_by_base(name):
+    n = (name or "").strip().lower()
+    return next((v for v in eng_table().values() if v.get("base", "").lower() == n), None) if n else None
 
 
 def render(surf):
