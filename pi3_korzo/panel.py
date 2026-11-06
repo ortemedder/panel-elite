@@ -35,11 +35,11 @@ def key_ok(k):
 
 # ---------- contenido de los menus ----------
 MENU = {1: "MANDOS", 2: "PIPS", 3: "NAVEGACIÓN", 4: "CARGA/MISIÓN", 5: "SRV / RHINO / A PIE", 6: "COMBATE", 7: "EXPLORACIÓN",
-        8: "ESTACIÓN", 9: "CAZA", 10: "MINERÍA", 11: "SESIÓN", 12: "LOG / STREAM", 121: "LOG", 122: "STREAM",
-        71: "EXPLORACIÓN", 72: "SISTEMA", 73: "XENOBIOLOGÍA", 74: "YACIMIENTOS", 75: "DIARIO DE EXPLORACIÓN", 76: "ALIENÍGENAS", 100: "EN VIVO", 61: "REGISTRO DE COMBATE", 125: "MATERIALES", 126: "PORTANAVES", 127: "MERCADO", 1244: "PREFERENCIAS", 1245: "VERSIONES", 128: "NOTAS DE VIAJE", 129: "NOTA"}
+        8: "ESTACIÓN", 9: "CAZA", 10: "MINERÍA", 11: "RESUMEN DEL DÍA", 12: "LOG / STREAM", 121: "LOG", 122: "STREAM",
+        71: "EXPLORACIÓN", 72: "SISTEMA", 73: "EXOBIOLOGÍA", 74: "YACIMIENTOS", 75: "DIARIO DE EXPLORACIÓN", 76: "ALIENÍGENAS", 100: "EN VIVO", 61: "REGISTRO DE COMBATE", 125: "MATERIALES", 126: "PORTANAVES", 127: "MERCADO", 1244: "PREFERENCIAS", 1245: "VERSIONES", 128: "NOTAS DE VIAJE", 129: "NOTA"}
 MENU.update({123: "RANGOS", 124: "AJUSTES"})
 PARENT = {0: 100, 71: 7, 72: 7, 73: 7, 74: 7, 75: 7, 76: 7, 121: 12, 122: 12, 123: 12, 124: 12, 1244: 124, 1245: 124, 125: 12, 126: 12, 127: 12, 128: 12, 129: 128}
-CMDR_NAME = "KORZO"
+CMDR_NAME = "ORTEM ED DER"
 
 # Menu 1 - (texto, tecla, bit de Flags o None)
 BUTTONS = [
@@ -155,7 +155,9 @@ EV_LIST = [("jump", "SALTO"), ("interdicted", "INTERDICCIÓN"), ("underattack", 
            ("settle", "ASENTAMIENTO"), ("sessend", "FIN DE SESIÓN"), ("friend", "AMIGOS"),
            ("wing", "ALA"), ("cg", "OBJ. COMUNITARIO"), ("galnet", "NOTICIA GALNET"), ("power", "BAJA TENSIÓN"),
            ("keys", "TECLAS SIN ASIGNAR"), ("elink", "RECARGA CON ENLACE"),
-           ("thargmusic", "MÚSICA THARGOIDE")]
+           ("thargmusic", "MÚSICA THARGOIDE"), ("shipswap", "CAMBIO DE NAVE"), ("shipxfer", "TRANSFERENCIA NAVE"),
+           ("shiparrived", "NAVE TRANSFERIDA"), ("moddmg", "MÓDULOS DAÑADOS"),
+           ("scanned", "TE ESCANEAN"), ("engbase", "BASE DE INGENIERO"), ("engsys", "INGENIERO EN EL SISTEMA"), ("opmega", "MEGA NAVE 15 MIN")]
 # cambio automatico de menu uno a uno: cfg["autoev"][clave] = False
 AUTO_LIST = [("docking", "ATRAQUE > ESTACIÓN"), ("market", "MERCADO"), ("interdicted", "INTERDICCIÓN > COMBATE"),
              ("underattack", "TE ATACAN > COMBATE"), ("arrsig", "SEÑAL PELIGROSA > COMBATE"),
@@ -223,7 +225,9 @@ def handle_note(kind, text):
         if ui["alert"] and ui["alert"]["kind"] == "jump":
             ui["alert"] = None
     elif kind == "interdicted":
-        set_alert("¡INTERDICCIÓN!", text, secs=4); play("alarm")
+        nm_, pl_ = ((text or "") + "|0").split("|")[:2]
+        set_alert("¡INTERDICCIÓN!", (nm_ + ("  ·  ¡COMANDANTE!" if pl_ == "1" else "  ·  NPC")) if nm_ else "", secs=6 if pl_ == "1" else 4)
+        play("alarm")
     elif kind == "underattack":
         set_alert("¡TE ATACAN!", "", secs=2); play("alarm")
     elif kind == "shields_down":
@@ -237,7 +241,7 @@ def handle_note(kind, text):
 
 FIGHT_SECS = 60
 fight = {"t": 0.0}
-FIGHT_KINDS = ("underattack", "shields_down", "kill", "deploy", "interdicted")
+FIGHT_KINDS = ("underattack", "shields_down", "kill", "deploy", "interdicted", "hull", "combatmusic")
 
 def in_fight(d, now=None):
     return bool(d) and bool(d.get("Flags2", 0) & 1) and (now or time.time()) - fight["t"] < FIGHT_SECS
@@ -250,8 +254,10 @@ def process_notes(d):
     for seq, kind, text in notes:
         if seq > ui["note_seq"]:
             ui["note_seq"] = seq
-            if kind in FIGHT_KINDS:
+            if (kind in FIGHT_KINDS and not (kind == "hull" and star_kind(d.get("curstar")) in ("neu", "wd"))) or \
+                    (kind == "scanned" and (text or "").split("|")[3:4] == ["0"]):
                 fight["t"] = time.time()
+            battle_note(kind, text, d)
             if kind == "kill":
                 track_kill()
             if kind == "pickup":
@@ -407,6 +413,10 @@ def on_tap(x, y):
         print("toque", x, y)
     if kill_tap(x, y):
         return
+    if ui.get("shipcard") and time.time() < ui["shipcard"]:
+        ui["shipcard"] = 0; return
+    if xa.get("a") and xa["a"].get("title") in ("SESIÓN TERMINADA", "BATALLA TERMINADA") and time.time() < xa["a"]["until"]:
+        xa["a"] = None; return
     if ui["alert"] and time.time() < ui["alert"]["until"]:
         ui["alert"] = None; return
     if ui["idle_on"]:
@@ -439,10 +449,23 @@ def on_tap(x, y):
                 ui["tab4"] = i; ui["page4"] = 0; return
         if y > TOP + TAB_H:
             ui["page4"] += 1
+    elif v == 51:
+        for i in range(len(EMOTES)):
+            if grid(i, 4, 2).collidepoint(x, y):
+                tap_flash((51, i))
+                k = emote_key(i)
+                if k:
+                    press_seq([k])
+                return
     elif v == 5:
+        if y < SEC_TOP and x > W // 2:
+            ui["view"] = 51; return
         for i, b in enumerate(SRV_BTNS + PIE_BTNS):
             if m5_rect(i).collidepoint(x, y):
-                tap_flash((5, i)); press_seq([b[1]]); return
+                tap_flash((5, i)); press_seq([b[1]])
+                if i >= 6 and b[0] in GLOW_LBL:            # a pie el juego no dice si estan encendidas
+                    GLOW[GLOW_LBL[b[0]]] = time.time()
+                return
     elif v == 6:
         for i, b in enumerate(COMBAT_BTNS):
             if c6_rect(i).collidepoint(x, y):
@@ -472,6 +495,10 @@ def on_tap(x, y):
                 power_tap(i); return
     elif v == 1245:
         ui['page1245'] = ui.get('page1245', 0) + 1; return
+    elif v == 100 and SHIP_NAME_R.collidepoint(x, y) and not ((state.get("data") or {}).get("Flags2", 0) & 1):
+        ui["view"] = 170; return
+    elif v in (170, 171):
+        ui["shippage"] = ui.get("shippage", 0) + 1; return
     elif (v == 100 and NAVE_BTN.collidepoint(x, y)) or (v == 73 and NAVE_BTN_BIO.collidepoint(x, y)):
         ship_here(); return
     elif v == 76:
@@ -503,12 +530,20 @@ def on_tap(x, y):
     elif v == 12:
         tap_sub12(x, y); return
     elif v == 1244:
-        for i, k in enumerate(["auto", "alerts", "sound", "theme", "voice", "stream", "keys", "killbtn"]):
-            if grid(i, 4, 2).collidepoint(x, y):
+        for i, k in enumerate(["auto", "alerts", "sound", "theme", "voice", "stream", "keys", "killbtn", "mkt", "cmdrpics", "hdmi"]):
+            if grid(i, 4, 3).collidepoint(x, y):
+                if k == "hdmi":
+                    tap_flash((124, i)); hdmi_toggle(); return
+                if k == "mkt":
+                    tap_flash((124, i))
+                    opts_ = ["CON CARGA", "SIEMPRE", "NUNCA"]
+                    cfg["mkt"] = opts_[(opts_.index(cfg.get("mkt", "CON CARGA")) + 1) % 3]; save_cfg(); return
                 if k == "keys":
                     tap_flash((124, i)); ui["view"] = 164; return
                 if k == "killbtn":
                     tap_flash((124, i)); cfg["killbtn"] = not cfg.get("killbtn", True); save_cfg(); return
+                if k == "cmdrpics":
+                    tap_flash((124, i)); cfg["cmdrpics"] = not cfg.get("cmdrpics", True); save_cfg(); return
                 tap_flash((124, i))
                 if k in ("alerts", "auto", "sound"):
                     ui["view"] = {"alerts": 161, "auto": 162, "sound": 163}[k]; return
@@ -530,19 +565,17 @@ def on_tap(x, y):
 def touch_loop():
     from evdev import InputDevice, list_devices, ecodes
     dev = None
-    for p in list_devices():
-        d = InputDevice(p)
-        if 'ADS7846' in d.name or 'touch' in d.name.lower():
-            dev = d; break
+    devs_ = [InputDevice(p) for p in list_devices()]
+    dev = next((d for d in devs_ if "ADS7846" in d.name), None)
     if not dev:
-        print("No encuentro el tactil"); return
+        return   # sin pantalla pequena: el tactil HDMI lo lleva touch_loop2
     ax, ay = dev.absinfo(ecodes.ABS_X), dev.absinfo(ecodes.ABS_Y)
     rx = ry = 0; down = False; pending = False
     for ev in dev.read_loop():
         if ev.type == ecodes.EV_ABS:
             if ev.code == ecodes.ABS_X: rx = ev.value
             elif ev.code == ecodes.ABS_Y: ry = ev.value
-        elif ev.type == ecodes.EV_KEY and ev.code == ecodes.BTN_TOUCH:
+        elif ev.type == ecodes.EV_KEY and ev.code in (ecodes.BTN_TOUCH, ecodes.BTN_LEFT):
             down = ev.value == 1
             if down: pending = True
         elif ev.type == ecodes.EV_SYN and pending and down:
@@ -609,7 +642,7 @@ def view_menu(surf, d, flags, now):
 def view_mandos(surf, d, flags, now):
     for i, (txt, key, bit) in enumerate(BUTTONS):
         draw_button(surf, grid(i), txt, key.upper(), F["btn"],
-                    filled=bit is not None and bool(flags & (1 << bit)), lit=flash.get((1, i), 0) > now)
+                    filled=bit is not None and bool(flags & (1 << bit)), lit=flash.get((1, i), 0) > now or glow(txt))
 
 def view_pips(surf, d, flags, now):
     pips = (d or {}).get("Pips") or [0, 0, 0]
@@ -644,16 +677,17 @@ def view_nav(surf, d, flags, now):
     cls = nav.get("star") or (route[0][1] if route else "")
     ok = star_ok(cls)
     x = 8 + put(surf, F["btn"], f"Estrella {cls or '?'}   ", (8, y), ORANGE)
-    put(surf, F["btn"], "RECOGIBLE" if ok else "NO RECOGIBLE", (x, y), GREEN if ok else RED); y += 26
+    put(surf, F["btn"], "RECOLECTABLE" if ok else "NO RECOLECTABLE", (x, y), NEON_G if ok else RED); y += 26
     jumps = nav.get("jumps")
     last = nav.get("last")
     put(surf, F["btn"], f"Saltos restantes: {jumps if jumps is not None else len(route)}", (8, y))
     if last:
         put(surf, F["btn"], f"Último salto: {last:.1f} al", (W - 8, y), ORANGE, anchor="topright")
     y += 30
+    y = draw_routeline(surf, d or {}, y, time.time())
     pygame.draw.line(surf, DIM, (8, y - 4), (W - 8, y - 4))
     if route:
-        put(surf, F["small"], f"RUTA  -  destino: {route[-1][0]}", (8, y), DIM, W - 210)
+        put(surf, F["small"], f"RUTA  -  destino: {((d or {}).get('routeend') or route[-1])[0]}", (8, y), DIM, W - 210)
         RI = (d or {}).get("routeinfo") or {}
         bits = []
         if RI.get("eta"):
@@ -663,10 +697,11 @@ def view_nav(surf, d, flags, now):
         if bits:
             put(surf, F["small"], "  ·  ".join(bits), (W - 8, y), BLUE, anchor="topright")
         y += 18
-        for n, (name, c) in enumerate(route[:5]):
+        for n, (name, c) in enumerate(route[:3]):
             col = ORANGE if star_ok(c) else RED
-            put(surf, F["btn"], f"{n + 1}. {name}", (8, y), col, W - 90)
-            put(surf, F["btn"], c or "?", (W - 8, y), col, anchor="topright")
+            tw_ = 182 if carrier_dest(d or {})[0] else 0
+            put(surf, F["btn"], f"{n + 1}. {name}", (8, y), col, W - 90 - tw_)
+            put(surf, F["btn"], c or "?", (W - 8 - tw_, y), col, anchor="topright")
             y += 22
 
 def view_carga(surf, d, flags, now):
@@ -710,13 +745,14 @@ def view_srv(surf, d, flags, now):
     flags2 = (d or {}).get("Flags2", 0)
     in_srv, on_foot = bool(flags & (1 << 26)), bool(flags2 & 1)
     for label, cx, act in ((("RHINO" if "rhino" in ((d or {}).get("srvtype") or "").lower() else "SRV"), W // 4, in_srv), ("A PIE", 3 * W // 4, on_foot)):
-        put(surf, F["small"], label + ("  (ACTIVO)" if act else ""), (cx, TOP + 9), GREEN if act else DIM, anchor="center")
+        put(surf, F["small"], label + ("  (ACTIVO)" if act else "") + ("   ·   SALUDOS >" if label == "A PIE" else ""),
+            (cx, TOP + 9), GREEN if act else (ORANGE if label == "A PIE" else DIM), anchor="center")
     pygame.draw.line(surf, DIM, (W // 2, TOP + 2), (W // 2, H - 4))
     for i, (txt, key, bit) in enumerate(SRV_BTNS + PIE_BTNS):
         dim = (i < 6 and on_foot) or (i >= 6 and in_srv)
         draw_button(surf, m5_rect(i), txt, key.upper(), F["btn"], dim=dim,
                     filled=bit is not None and in_srv and i < 6 and bool(flags & (1 << bit)),
-                    lit=flash.get((5, i), 0) > now)
+                    lit=flash.get((5, i), 0) > now or glow(txt))
 
 def bar(surf, x, y, w, label, pct, col):
     put(surf, F["small"], label, (x, y + 1), DIM)
@@ -742,13 +778,23 @@ def view_combat(surf, d, flags, now):
             w_ = put(surf, F["btn"], t["pilot"], (x, y), BLUE if cmdr else ORANGE, card.w - 170)
             if cmdr:
                 put(surf, F["small"], " COMANDANTE", (x + w_ + 4, y + 4), BLUE)
-            put(surf, F["small"], t.get("rank") or "", (card.right - 8, y + 4), DIM, anchor="topright")
+            ia_ = t.get("inara") or {}
+            if cmdr and ia_ and not ia_.get("none"):
+                ally = my_squad(d) and ia_.get("squad", "").lower() == my_squad(d).lower()
+                put(surf, F["small"], ("ALIADO · " if ally else "INARA: ") + inara_line(ia_, d, short=True),
+                    (card.right - 8, y + 4), GREEN if ally else ORANGE, card.w - w_ - 120, anchor="topright")
+            else:
+                put(surf, F["small"], t.get("rank") or "", (card.right - 8, y + 4), DIM, anchor="topright")
         y += 24
         half = (card.w - 24) // 2
         bar(surf, x, y, half, "ESCUDO", t.get("shield"), BLUE)
         bar(surf, x + half + 8, y, half, "CASCO", t.get("hull"), ORANGE)
         y += 20
         legal = t.get("legal") or ""
+        ia2_ = t.get("inara") or {}
+        tph_ = bool(cfg.get("cmdrpics", True)) and \
+            ship_photo(surf, {"type": t.get("stype"), "ship": t.get("ship") or ia2_.get("ship")}, {},
+                       pygame.Rect(card.right - 62, card.bottom - 34, 56, 31))
         wanted = legal.lower() == "wanted"
         put(surf, F["small"], ("BUSCADO" if wanted else legal.upper()) or "-", (x, y), RED if wanted else GREEN)
         if t.get("bounty"):
@@ -756,7 +802,7 @@ def view_combat(surf, d, flags, now):
         if t.get("subsys"):
             sh = t.get("subhealth")
             put(surf, F["small"], f"{t['subsys']}" + (f"  {sh:.0f}%" if sh is not None else ""),
-                (card.right - 8, y), ORANGE, card.w // 2 - 20, anchor="topright")
+                (card.right - (68 if tph_ else 8), y), ORANGE, card.w // 2 - 20, anchor="topright")
     for i, (txt, key) in enumerate(COMBAT_BTNS):
         draw_button(surf, c6_rect(i), txt, key.upper(), F["btn"], lit=flash.get((6, i), 0) > now, compact=True)
 
@@ -824,6 +870,10 @@ def view_explo(surf, d, flags, now):
     put(surf, F["small"], "MAPEADOS", (W - 8, y), DIM, anchor="topright")
     if ex.get("edsm_n"):
         put(surf, F["small"], f"EDSM: {ex['edsm_n']} cuerpos", (150, y), BLUE)
+    elif ex.get("edsm_st") == "bloqueado":
+        put(surf, F["small"], "EDSM bloqueado", (165, y), RED)
+    elif ex.get("edsm_st") == "error":
+        put(surf, F["small"], "EDSM sin respuesta", (165, y), ORANGE)
     y += 14
     done = total is not None and scanned >= total
     put(surf, F["big"], f"{scanned} / {total if total is not None else '?'}", (8, y), GREEN if done else ORANGE)
@@ -841,7 +891,8 @@ def view_explo(surf, d, flags, now):
     top = ex.get("top") or []
     sysname = ex.get("system") or ""
     if not top:
-        msg = "Consultando EDSM..." if ex.get("edsm_st") == "consultando" else "Nada destacable escaneado aún"
+        msg = {"consultando": "Consultando EDSM...", "bloqueado": "EDSM bloqueado (¿fútbol?) · reintento cada 10 min"}.get(
+            ex.get("edsm_st"), "Nada destacable escaneado aún")
         put(surf, F["btn"], msg, (W // 2, y + 60), DIM, anchor="center")
     per = 7
     pages = max(1, (len(top) + per - 1) // per)
@@ -900,6 +951,7 @@ def view_station(surf, d, flags, now):
         put(surf, F["big"], "Sin solicitud de atraque", (W // 2, (H + TOP) // 2), DIM, anchor="center")
         return
     pad, stype = st.get("pad"), st.get("type")
+    carrier_bg(surf, d or {}, st)
     cx, cy, rad = 118, (H + TOP) // 2 + 4, 108
     x0 = 248
     if pad and stype in STARPORTS:
@@ -1032,15 +1084,17 @@ def view_session(surf, d, flags, now):
     if not s_:
         put(surf, F["btn"], "Sin sesión (carga la partida)", (W // 2, (H + TOP) // 2), DIM, anchor="center"); return
     e = s_.get("earn") or {}
-    left = [("TIEMPO", dur(time.time() - (s_.get("start") or time.time()))), ("SALTOS", str(s_.get("jumps", 0))),
-            ("AÑOS LUZ", f"{s_.get('ly', 0):,.0f}".replace(",", ".")), ("DERRIBOS", str(s_.get("kills", 0))),
+    play_ = (s_.get("play") or 0) + (max(0, (s_.get("lastts") or s_["seg"]) - s_["seg"]) if s_.get("seg") else 0)
+    left = [("HOY " + game_date(), dur(play_ if s_.get("day") else time.time() - (s_.get("start") or time.time()))),
+            ("SALTOS", str(s_.get("jumps", 0))),
+            ("AÑOS LUZ", f"{s_.get('ly', 0):,.0f}".replace(",", ".")), ("BAJAS  pie · nave", f"{s_.get('kfoot', 0)} · {s_.get('kills', 0) - s_.get('kfoot', 0)}"),
             ("MUERTES", str(s_.get("deaths", 0)))]
     right = [("RECOMPENSAS", e.get("bounty")), ("COMERCIO", e.get("trade")), ("EXPLORACIÓN", e.get("explo")),
              ("MISIONES", e.get("missions")), ("EXOBIOLOGÍA", e.get("bio"))]
     y = TOP + 6
     for (l1, v1), (l2, v2) in zip(left, right):
-        put(surf, F["small"], l1, (8, y + 4), DIM)
-        put(surf, F["big"], v1, (226, y), RED if l1 == "MUERTES" and v1 != "0" else ORANGE, anchor="topright")
+        put(surf, F["small"], l1, (8, y + 4), BLUE if l1.startswith("HOY") else DIM, 130)
+        put(surf, F["big"], v1, (226, y), RED if l1 == "MUERTES" and v1 != "0" else ORANGE, 90, anchor="topright")
         put(surf, F["small"], l2, (246, y + 4), DIM)
         put(surf, F["big"], cr(v2), (W - 8, y), ORANGE, anchor="topright")
         y += 32
@@ -1056,7 +1110,7 @@ def view_session(surf, d, flags, now):
 
 # ---------- 12 submenu ----------
 def view_sub7(surf, d, flags, now):
-    for i, (n, name) in enumerate([("1", "EXPLORACIÓN"), ("2", "SISTEMA"), ("3", "XENOBIO"), ("4", "YACIM."), ("5", "DIARIO"), ("6", "ALIEN")]):
+    for i, (n, name) in enumerate([("1", "EXPLORACIÓN"), ("2", "SISTEMA"), ("3", "EXOBIO"), ("4", "YACIM."), ("5", "DIARIO"), ("6", "ALIEN")]):
         draw_button(surf, grid(i, 3, 2), n, name, F["num"], lit=flash.get((7, i), 0) > now)
 
 # ---------- 7.2 sistema en movimiento (planetario) ----------
@@ -1425,6 +1479,8 @@ def chips(surf, items, y, cols=4):
     cw = (W - 16) // cols
     for k, (txt, on, col) in enumerate(items):
         r = pygame.Rect(8 + (k % cols) * cw, y + (k // cols) * 24, cw - 4, 20)
+        if on and glow(txt):
+            col = WHITE
         if on:
             pygame.draw.rect(surf, col, r, border_radius=4)
             put(surf, F["small"], txt, r.center, BLACK, cw - 8, anchor="center")
@@ -1494,8 +1550,11 @@ def view_live(surf, d, flags, now):
             put(surf, F["small"], zt, (8, y + 2), BLUE, W - 16)
             put(surf, F["btn"], f"{Z['n']} BAJAS", (8, y + 18), GREEN)
             put(surf, F["btn"], f"{crx(led.get('cr', 0))} cr sin cobrar", (120, y + 18), ORANGE, 230)
-            if Z.get("rate"):
-                put(surf, F["small"], f"{str(Z['rate']).replace('.', ',')} / min", (W - 8, y + 22), DIM, anchor="topright")
+            tf_ = ((d.get("career") or {}).get("foot"))
+            rt_ = "  ·  ".join(t_ for t_ in ((f"{str(Z['rate']).replace('.', ',')} / min" if Z.get("rate") else ""),
+                                             (f"total {fnum(tf_, 0)}" if tf_ is not None else "")) if t_)
+            if rt_:
+                put(surf, F["small"], rt_, (W - 8, y + 22), DIM, anchor="topright")
         if Z.get("n"):
             y += 40
         draw_cons_row(surf, d, 8, y + 2, F["btn"], 12)
@@ -1561,7 +1620,7 @@ def view_live(surf, d, flags, now):
         y += 26
         rh = sh.get("rhino")
         rcol = GREEN if rh == "A BORDO" else RED if rh == "SIN RHINO" else ORANGE
-        chips(surf, ([(f"RHINO {rh}" if rh != "SIN RHINO" else rh, rh in ("A BORDO", "SIN RHINO", "FUERA"), rcol)] if rh else []) + [("ATRACADO", flags & 1, BLUE), ("ATERRIZADO", flags & 2, BLUE), ("TREN", flags & 4, ORANGE),
+        chips(surf, ([(f"RHINO {rh}" if rh != "SIN RHINO" else rh, rh in ("A BORDO", "SIN RHINO", "FUERA"), rcol)] if rh else []) + veh_chips(d, rh) + [("ATRACADO", flags & 1, BLUE), ("ATERRIZADO", flags & 2, BLUE), ("TREN", flags & 4, ORANGE),
                      ("ESCUDOS", flags & 8, BLUE), ("SUPERCRUCERO", flags & 16, BLUE), ("FA OFF", flags & 32, RED),
                      ("ARMAS", flags & 64, RED), ("LUCES", flags & 256, ORANGE), ("RECOGEDOR", flags & 512, ORANGE),
                      ("SILENCIOSO", flags & 1024, BLUE), ("RECOG. COMB.", flags & 2048, ORANGE),
@@ -1671,7 +1730,7 @@ def view_market(surf, d, flags, now):
         put(surf, F["btn"], f"VENDIENDO TODO: {cr(tot)} cr", (8, H - 36), GREEN)
 
 # ---------- 12.8 notas de viaje ----------
-NOTES_FILE = "/home/elite/notas.json"
+NOTES_FILE = "/home/ortem/notas.json"
 
 def trip_load():
     try:
@@ -1696,7 +1755,7 @@ def trip_here(d):
     flags, f2 = d.get("Flags", 0), d.get("Flags2", 0)
     b = d.get("bio") or {}
     st = d.get("station") or {}
-    if b.get("species") and 0 < b.get("step", 0) < 3: tag = "XENOBIO"
+    if b.get("species") and 0 < b.get("step", 0) < 3: tag = "EXOBIO"
     elif flags & 1: tag = "ESTACIÓN"
     elif f2 & 1: tag = "A PIE"
     elif flags & (1 << 26): tag = "SRV"
@@ -1726,7 +1785,7 @@ TRIP_SAVE = pygame.Rect(8, TOP + 2, 210, 34)
 TRIP_PAGE = pygame.Rect(W - 118, TOP + 2, 110, 34)
 TRIP_DEL = pygame.Rect(W - 130, H - 42, 122, 36)
 TRIP_PER = 6
-TAG_COL = {"XENOBIO": GREEN, "ESTACIÓN": BLUE, "A PIE": GREEN, "SRV": ORANGE, "ATERRIZADO": ORANGE,
+TAG_COL = {"EXOBIO": GREEN, "ESTACIÓN": BLUE, "A PIE": GREEN, "SRV": ORANGE, "ATERRIZADO": ORANGE,
            "PLANETA": ORANGE, "ESPACIO": DIM}
 
 def trip_row(i):
@@ -2116,8 +2175,9 @@ def view_navx(surf, d, flags, now):
         put(surf, F["big"], txt, (66, H - 56), GREEN)
         put(surf, F["btn"], f"rumbo {brg:.0f}°", (W - 8, H - 52), ORANGE, anchor="topright")
     src = D.get("src")
-    put(surf, F["small"], f"datos: {src}" if src else "sin datos: no escaneado (o es una estación/señal)",
-        (8, H - 16), DIM if src else ORANGE)
+    if src or not (d or {}).get("dstinfo"):
+        put(surf, F["small"], f"datos: {src}" if src else "sin datos: no escaneado (o es una estación/señal)",
+            (8, H - 16), DIM if src else ORANGE, W - 190)
 
 # ---------- 8 estacion: a los 15 s de atracar, ficha de la estacion y facciones ----------
 stdock = {"key": None, "t": 0}
@@ -2139,6 +2199,7 @@ def view_stationx(surf, d, flags, now):
     return view_station(surf, d, flags, now)
 
 def view_station_info(surf, d, st):
+    carrier_bg(surf, d or {}, st, dark=55, label=False)
     S = (d or {}).get("sysinfo") or {}
     y = TOP + 4
     put(surf, F["big"], (st.get("name") or "?").upper(), (8, y), ORANGE, W - 16); y += 27
@@ -2196,7 +2257,9 @@ def view_session2(surf, d, flags, now):
     led = ((d or {}).get("footcz") or {}).get("led") or {}
     if led.get("cr"):
         b, rw = led.get("bonds") or [0, 0], led.get("bounties") or [0, 0]
-        put(surf, F["small"], "SIN COBRAR (bonos + recompensas)", (8, H - 54), DIM)
+        dd_ = int((time.time() - (d or {}).get("uncl_t0")) // 86400) if (d or {}).get("uncl_t0") else 0
+        put(surf, F["small"], "SIN COBRAR (bonos + recompensas)" + (f"  ·  desde hace {dd_} días" if dd_ else ""),
+            (8, H - 54), ORANGE if dd_ >= 2 else DIM)
         put(surf, F["big"], f"{crx(led['cr'])} cr", (8, H - 40), RED)
         put(surf, F["small"], f"{b[0]} bonos {crx(b[1])} cr  ·  {rw[0]} recompensas {crx(rw[1])} cr", (8, H - 16), DIM, 330)
     elif s_.get("pending"):
@@ -2215,6 +2278,11 @@ def view_combatlog(surf, d, flags, now):
         put(surf, F["big"], f"CAÍDOS  {el // 60:02d}:{el % 60:02d}", (80, y), RED if int(now * 2) % 2 else WHITE)
     else:
         put(surf, F["big"], "ACTIVOS" if flags & 8 else "SIN ESCUDOS", (80, y), BLUE if flags & 8 else DIM)
+    car_ = (d or {}).get("career") or {}
+    if car_.get("bonds") is not None:
+        put(surf, F["small"], f"bonos {fnum(car_['bonds'], 0)}", (W - 8, y), BLUE, anchor="topright")
+    if car_.get("bounties") is not None:
+        put(surf, F["small"], f"recompensas {fnum(car_['bounties'], 0)}", (W - 8, y + 15), ORANGE, anchor="topright")
     y += 32
     pygame.draw.line(surf, DIM, (8, y), (W - 8, y)); y += 4
     kills = C.get("kills") or []
@@ -2254,7 +2322,7 @@ def view_combatx(surf, d, flags, now):
 # ---------- 12.4.5 versiones: resumen de cambios ----------
 CHANGES = [
     ("base", "Panel de 12 botones, teclado USB y estado del juego por red"),
-    ("base", "7.3 Xenobiología: muestras, distancia, valor de especies y x5"),
+    ("base", "7.3 Exobiología: muestras, distancia, valor de especies y x5"),
     ("base", "Recogida de combustible en naranja y sobrecalentamiento"),
     ("base", "Brújula para volver a la nave"),
     ("base", "EN VIVO como inicio (nave/a pie/SRV) con botón MENÚ"),
@@ -2338,6 +2406,29 @@ CHANGES = [
     ("0.84", "Cierre de emergencia del juego, ESCUADRÓN en AMIGOS, MENÚ PRINCIPAL en verde y arreglos"),
     ("0.85", "Cierre de emergencia: zona más grande en la barra de arriba y aviso de toques 1/3, 2/3"),
     ("0.86", "Salud < 30 %: pantalla roja; cierre en 3 s; copiloto en azul; arreglo del falso MENÚ PRINCIPAL al morir"),
+    ("0.87", "Objetivos CERRADOS, bajas en un cuadro, combate de nave manda, Inara del CMDR fijado, EDSM y arreglos"),
+    ("0.88", "Fichas NAVE y FLOTA, nave nueva a pantalla completa, transferencias, módulos dañados, SRV y caza"),
+    ("0.89", "Transporte reservado y a bordo, totales de carrera, destello de luces, nave en la carga de Operations"),
+    ("0.90", "Línea de saltos, fondos de portanaves, portanaves de escuadrón y arreglos"),
+    ("0.90c", "Neutrones sin modo combate y foto del portanaves en la ruta"),
+    ("0.91", "Fotos de fondo de cada tipo de estación al pedir atraque"),
+    ("0.92", "TE ESCANEAN, SALUDOS, mega nave 15:00, datos del portanaves y fotos en ruta y atracado"),
+    ("0.93", "Mercado de la estación donde estás, fotos de naves, facción del destino, transporte 5:20 / 6:00"),
+    ("0.94", "Resumen del día, nombres de amigos, fotos de naves de CMDR, misiones primero y BATALLA TERMINADA"),
+    ("0.95", "Bajas a pie / nave, registro de combate en la mega nave y nave de investigación"),
+    ("0.96", "Versión del sender, foto del objetivo, sin cobrar, ingenieros, combustible, minería, Powerplay y rapidez"),
+    ("0.97", "Misiones fijas en la pantalla grande y los 38 ingenieros con su ficha"),
+    ("0.97b", "Ficha del ingeniero en NAVEGACIÓN y EXOBIOLOGÍA"),
+    ("0.97c", "BASE DE INGENIERO solo en las bases de verdad"),
+    ("0.98", "Pantalla HDMI táctil: PANEL o 4 CUADROS"),
+    ("0.98b", "La HDMI táctil siempre responde; toques al LOG"),
+    ("0.99", "Voz con Piper y COMBATE solo con las armas sacadas"),
+    ("0.99b", "Nave fijada sin armas: ficha OBJETIVO en la pantalla grande"),
+    ("0.99c", "Fotos de los cazas"),
+    ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
+    ("0.99e", "Sin los toques de prueba en el LOG"),
+    ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("0.99g", "Solo pantalla de 10\": táctil HDMI sin la pequeña de 3.5\""),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -2355,7 +2446,7 @@ def view_changelog(surf, d, flags, now):
         y += 22
 
 # ---------- menu principal con iconos (12.4 -> 7 ICONOS) ----------
-ICONS_FILE = "/home/elite/iconos.txt"
+ICONS_FILE = "/home/ortem/iconos.txt"
 try:
     ICONS_ON = [open(ICONS_FILE).read().strip() == "si"]
 except OSError:
@@ -2532,7 +2623,9 @@ def view_session3(surf, d, flags, now):
     view_session2(surf, d, flags, now)
     n = len(((d or {}).get("friends") or {}).get("on") or [])
     paid_ = (((d or {}).get("ops") or {}).get("crew") or {}).get("paid")
-    put(surf, F["small"], f"toca para ver AMIGOS ({n} conectados)" + (f"  ·  copiloto -{crx(paid_)} cr" if paid_ else ""),
+    on_ = ((d or {}).get("friends") or {}).get("on") or []
+    put(surf, F["small"], (f"AMIGOS ({n}): " + ", ".join(on_) if on_ else "toca para ver AMIGOS (0 conectados)")
+        + (f"  ·  copiloto -{crx(paid_)} cr" if paid_ else ""),
         (8, 252), GREEN if n else DIM, W - 16)
 
 def view_sub124(surf, d, flags, now):
@@ -2611,15 +2704,32 @@ def view_ranks(surf, d, flags, now):
         pygame.draw.rect(surf, DIM, bx, 1)
         pygame.draw.rect(surf, BLUE, (bx.x + 2, bx.y + 2, int((bx.w - 4) * min(p_ or 0, 100) / 100), bx.h - 4))
         put(surf, F["small"], f"{p_ or 0}%", (W - 6, y + 3), WHITE, anchor="topright")
-        y += 35
+        y += 31
+    car_ = (d or {}).get("career") or {}
+    if any(car_.get(k) is not None for k in ("foot", "bonds", "bounties")):
+        pygame.draw.line(surf, DIM, (8, H - 26), (W - 8, H - 26))
+        x_ = 8
+        for k, lab, col in (("foot", "bajas a pie", GREEN), ("bonds", "bonos nave", BLUE), ("bounties", "recompensas", ORANGE)):
+            if car_.get(k) is None:
+                continue
+            x_ += put(surf, F["btn"], fnum(car_[k], 0), (x_, H - 22), col)
+            x_ += put(surf, F["small"], " " + lab, (x_, H - 18), DIM) + 14
 
 # ---------- 12.4 ajustes ----------
 def view_settings(surf, d, flags, now):
     items = [("CAMBIO AUTO", cfg["auto"]), ("ALERTAS", cfg["alerts"]), ("SONIDO", cfg["sound"]), ("COLOR", None),
              ("VOZ", cfg.get("voice", False)), ("EMITIR", cfg.get("stream", False)), ("TECLAS", None),
-             ("CERRAR JUEGO", cfg.get("killbtn", True))]
+             ("CERRAR JUEGO", cfg.get("killbtn", True)), ("MERCADO", None), ("FOTOS CMDR", cfg.get("cmdrpics", True)), ("PANTALLA HDMI", None)]
     for i, (name, on) in enumerate(items):
-        r = grid(i, 4, 2)
+        r = grid(i, 4, 3)
+        if name == "PANTALLA HDMI":
+            draw_button(surf, r, "HDMI", "PANEL" if hdmi_panel() else "4 CUADROS", F["btn"], filled=True,
+                        lit=flash.get((124, i), 0) > now)
+            continue
+        if name == "MERCADO":
+            mk_ = cfg.get("mkt", "CON CARGA")
+            draw_button(surf, r, name, mk_, F["btn"], filled=mk_ != "NUNCA", lit=flash.get((124, i), 0) > now)
+            continue
         if name == "TECLAS":
             miss = len(BINDS["missing"])
             draw_button(surf, r, name, (f"{miss} SIN TECLA  >" if miss else "TODAS  >") if BINDS["file"] else "DE FÁBRICA  >",
@@ -2679,7 +2789,7 @@ CMDR_IMG = [None]
 def cmdr_img():
     if CMDR_IMG[0] is None:
         try:
-            CMDR_IMG[0] = pygame.image.load("/home/elite/cmdr.jpg")
+            CMDR_IMG[0] = pygame.image.load("/home/ortem/cmdr.jpg")
         except Exception as e:
             print("foto:", e); CMDR_IMG[0] = False
     return CMDR_IMG[0]
@@ -3016,6 +3126,12 @@ def _xa_notes(d, now):
         xa["hplvl"] = 0 if lvl == 0 else max(prev, lvl)
     else:
         xa["hplvl"] = 0
+    taxi_watch(d, now)
+    mega_watch(d, now)
+    battle_watch(d, now)
+    eng_watch(d, now)
+    ver_check(d)
+    uncl_watch(d, now)
     # avisos de peligro a pie y combustible del vehiculo (al empezar cada situacion)
     dg = xa.setdefault("dg", {})
     f2, fl = d.get("Flags2", 0), d.get("Flags", 0)
@@ -3048,7 +3164,7 @@ def _xa_notes(d, now):
         p = (text or "").split("|")
         if kind == "fuelroute" and len(p) >= 5:
             here = p[0] == "here"
-            dest = f"{p[3]} saltos hasta {p[4]}" if p[4] else f"{p[3]} saltos y no hay estrellas recogibles"
+            dest = f"{p[3]} saltos hasta {p[4]}" if p[4] else f"{p[3]} saltos y no hay estrellas recolectables"
             xa["a"] = dict(until=now + 8, col=ORANGE if here else RED,
                            title="RECOGE COMBUSTIBLE AQUÍ" if here else "¡NO LLEGAS A REPOSTAR!",
                            big=f"{p[1].replace('.', ',')} t / ~{p[2].replace('.', ',')} t",
@@ -3083,7 +3199,7 @@ def _xa_notes(d, now):
         elif kind == "sessend" and len(p) >= 9:
             v = [float(x) for x in p]
             secs = int(v[1])
-            xa["a"] = dict(until=now + 90, col=(90, 200, 255), title="SESIÓN TERMINADA", big=f"+{cr(v[0])} cr",
+            xa["a"] = dict(until=now + 20, col=(90, 200, 255), title="SESIÓN TERMINADA", big=f"+{cr(v[0])} cr",
                            lines=[f"{secs // 3600}h {secs % 3600 // 60:02d}m  ·  {int(v[2])} saltos  ·  {int(v[3])} al",
                                   f"Expl. {cr(v[4])} · Bio {cr(v[5])} · Comercio {cr(v[6])} · Recomp. {cr(v[7])}",
                                   f"Refinado: {int(v[8])} t" if v[8] else ""])
@@ -3111,6 +3227,11 @@ def _xa_notes(d, now):
             lines = [p[0]]
             if len(p) > 6 and p[6] not in ("", "0"):
                 lines.append(f"{p[5]} sin cobrar  ·  {crx(float(p[6]))} cr")
+            tot_ = p[7] if len(p) > 7 and p[7].isdigit() else ""
+            if tot_:
+                lab_ = "total" if veh == "F" else "bonos" if p[2] in ("B", "T") else "recompensas"
+                name = (f"{name} nº {num}" if num else name) + f" · {lab_} {fnum(int(tot_), 0)}"
+                num = ""
             xa["a"] = dict(until=now + 3, col=col, title=f"{name} nº {num}" if num else name,
                            big=f"+{crx(rew)} cr" if rew else "PvP", lines=lines)
         elif kind == "dropship":
@@ -3179,15 +3300,17 @@ def _xa_notes(d, now):
             xa["a"] = dict(until=now + 15, col=RED, title="NAVE DESTRUIDA", big=p[0] or "?",
                            lines=[" · ".join(x for x in (p[1].replace("_", " ").title(), p[2]) if x), f"rebuy {cr(float(p[3] or 0))} cr"])
         elif kind == "cmdrtarget" and len(p) >= 3:
-            xa["a"] = dict(until=now + 5, col=ORANGE, title="COMANDANTE FIJADO", big=p[0],
-                           lines=[" · ".join(x for x in (p[1], p[2]) if x), "posible PvP"])
+            ia_ = ((d or {}).get("target") or {}).get("inara") or {}
+            l2_ = inara_line(ia_, d) if ia_ and not ia_.get("none") else "posible PvP"
+            xa["a"] = dict(until=now + 6, col=ORANGE, title="COMANDANTE FIJADO", big=p[0],
+                           lines=[" · ".join(x for x in (p[1], p[2]) if x), l2_])
         elif kind == "arrive" and len(p) >= 4:
             cur = xa.get("a")
             if not (cur and cur.get("title") == "SISTEMA SIN EXPLORAR" and now < cur["until"]):
                 ui["alert"] = None
                 scoop = p[2] == "1"
                 xa["a"] = dict(until=now + 3, col=GREEN if scoop else ORANGE, title="LLEGADA", big=p[0].upper(),
-                               lines=[f"{p[1]}  ·  {'RECOGIBLE' if scoop else 'NO RECOGIBLE'}",
+                               lines=[f"{p[1]}  ·  {'RECOLECTABLE' if scoop else 'NO RECOLECTABLE'}",
                                       f"EDSM: {p[3]} cuerpos conocidos" if p[3] not in ("", "0") else "SIN DATOS EN EDSM"])
         elif kind == "newsys" and len(p) >= 1:
             ui["alert"] = None
@@ -3229,6 +3352,34 @@ def _xa_notes(d, now):
             xa["a"] = dict(until=now + 6, col=(120, 230, 120), title="ENCUENTRO THARGOIDE",
                            big="MÚSICA DE ALERTA", lines=["el juego ha puesto la música thargoide"])
             play("alarm")
+        elif kind == "scanned" and len(p) >= 4:
+            bad = p[2] == "1"
+            xa["a"] = dict(until=now + 5, col=RED if bad else ORANGE, title="TE ESCANEAN",
+                           big=SCAN_ES.get(p[0], p[0].upper()),
+                           lines=[x for x in ((f"probablemente {p[1]}" if p[1] else ""),
+                                              ("¡LLEVAS CARGA ILEGAL O ROBADA!" if bad else "")) if x])
+            if bad:
+                play("alarm")
+        elif kind == "engbase" and eng_by_base(text):
+            eb_ = eng_by_base(text)
+            st_, _ = eng_status(eb_, d)
+            xa["a"] = dict(until=now + 6, col=BLUE, title="BASE DE INGENIERO", big=eb_["name"].upper(),
+                           lines=[f"{eb_['base']}  ·  {st_}", "mira tus materiales en 12 > MATERIALES"])
+            if auto_on("docking"):
+                ui["view"] = 125
+        elif kind == "shipswap":
+            ui["shipcard"] = now + 15; ui["shippage"] = 0
+        elif kind == "shipxfer" and len(p) >= 2:
+            sec = int(p[1] or 0)
+            xa["a"] = dict(until=now + 6, col=BLUE, title="TRANSFERENCIA EN CAMINO", big=p[0].upper(),
+                           lines=[f"llega en {sec // 3600} h {sec % 3600 // 60} min" if sec >= 3600 else f"llega en {sec // 60} min"])
+        elif kind == "shiparrived" and len(p) >= 2:
+            xa["a"] = dict(until=now + 8, col=GREEN, title="NAVE TRANSFERIDA", big=f"TU {p[0].upper()} YA ESTÁ",
+                           lines=[f"en {p[1]}" if p[1] else ""])
+            play("ok")
+        elif kind == "moddmg" and len(p) >= 2:
+            xa["a"] = dict(until=now + 8, col=ORANGE, title="MÓDULOS DAÑADOS (< 80 %)", big=f"{p[0]} MÓDULO" + ("S" if p[0] != "1" else ""),
+                           lines=[p[1], "repara en una estación"])
         elif kind == "gravity" and len(p) >= 2:
             g = float(p[0])
             xa["a"] = dict(until=now + 7, col=RED if g >= 2 else ORANGE, title="GRAVEDAD ALTA",
@@ -3264,10 +3415,10 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.86 · 01/11/2026 12:47"
+PANEL_VER = "v0.99g · 06/11/2026 13:47"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
-STYLE_FILE = "/home/elite/estilo.txt"
+STYLE_FILE = "/home/ortem/estilo.txt"
 
 def style_load():
     try:
@@ -3442,6 +3593,7 @@ BIG_ROT = 10          # segundos por cuadro en modo GRANDE
 BIGMODES = {"4": "4 CUADROS", "MIXTO": "MIXTO", "GRANDE": "GRANDE"}
 
 def big_cell(S, cell, v, d, flags, now, r, font, how, extra=""):
+    BIG.setdefault("rects", []).append((v, r))
     if v in (72, 150):
         BIG["fast"] = True          # mapa del sistema o plano a pie: se mueven
     if v == 150:
@@ -3498,6 +3650,8 @@ def big_mode(d, flags):
     f2 = d.get("Flags2", 0)
     if in_fight(d):
         return "COMBATE A PIE"
+    if not f2 & 1 and hp_out(d, flags) and time.time() - fight["t"] < FIGHT_SECS:
+        return "COMBATE"                     # combate de nave: manda aunque el juego diga atracado
     if flags & 1:
         return "ATRACADO"
     if (d.get("station") or {}).get("status") == "CONCEDIDO":
@@ -3506,7 +3660,7 @@ def big_mode(d, flags):
         return "SUPERFICIE"
     if (d.get("body") or "").endswith(" Ring"):
         return "APROXIMACIÓN"
-    if d.get("target") or flags & 64:
+    if hp_out(d, flags):
         return "COMBATE"
     if flags & (1 << 21):
         return "APROXIMACIÓN"
@@ -3515,6 +3669,7 @@ def big_mode(d, flags):
 def render_big():
     S, cell = BIG["surf"], BIG["cell"]
     BIG["fast"] = False
+    BIG["rects"] = []
     if hdmi_panel() and not ui.get("bye") and render_big_panel(S):
         return
     if ui.get("bye"):
@@ -3532,7 +3687,7 @@ def render_big():
     full = None
     if ui.get("alert") and now < ui["alert"]["until"]:
         full = "alert"
-    elif xa.get("a") and now < xa["a"]["until"]:
+    elif xa.get("a") and now < xa["a"]["until"] and not kill_in_cell(xa["a"]):
         full = "xa"
     elif online and (flags & (1 << 11) or now < scoop["full_until"]):
         full = "scoop"
@@ -3576,8 +3731,17 @@ def render_big():
     cells = list(BIG_SETS[mode])
     if 74 in cells and not ((d.get("rings") or {}).get("rings") or (d.get("rings") or {}).get("signals")):
         cells[cells.index(74)] = 128
+    if 127 in cells and not mkt_show(d):
+        cells[cells.index(127)] = 11                 # sin carga: SESION en lugar del MERCADO
     if mode == "ATRACADO" and 4 in cells:
         cells[cells.index(4)] = atr_cell(d, now)
+    if mega_dock(d) and 133 in cells:
+        cells[cells.index(133)] = 61                 # mega nave: REGISTRO DE COMBATE en lugar de GALNET
+    if mode != "COMBATE" and len(cells) >= 3 and 10 not in cells and mining_active(d, now) and not (d.get("Flags2", 0) & 1):
+        cells[2] = 10                                # minando: MINERIA en el cuadro 3
+    if d.get("target") and mode != "COMBATE" and len(cells) >= 3:
+        k_ = next((c for c in (71, 72) if c in cells), cells[2])
+        cells[cells.index(k_)] = 177                  # nave fijada sin armas: su ficha
     if mode == "SUPERFICIE" and flags & (1 << 26) and "rhino" in (d.get("srvtype") or "").lower():
         cells = [100, 74, 5, 10]
     if len(cells) == 1:
@@ -3632,6 +3796,11 @@ def big_frame():
     try:
         PERF["frames"] += 1
         render_big()
+        draw_kill_cell(time.time())
+        draw_shipcard(BIG["surf"], time.time())
+        with lock:
+            dm_ = state["data"]
+        draw_mega(BIG["surf"], dm_, time.time())
         draw_hpcrit(BIG["surf"], time.time())
         decorate_big(BIG["surf"])
         draw_borders(BIG["surf"])
@@ -3753,7 +3922,7 @@ def decorate_big(S):
 
 # ---------- bordes de situacion (rojo, naranja, marron, azul) ----------
 BROWN = (150, 90, 40)
-BORDERS_FILE = "/home/elite/bordes.txt"
+BORDERS_FILE = "/home/ortem/bordes.txt"
 try:
     style["borders"] = open(BORDERS_FILE).read().strip() != "no"
 except OSError:
@@ -3801,7 +3970,7 @@ def draw_borders(surf):
 import re
 GALNET_URL = ("https://cms.zaonce.net/es-ES/jsonapi/node/galnet_article"
               "?sort=-published_at&page%5Blimit%5D=20")
-GALNET_FILE = "/home/elite/galnet.json"
+GALNET_FILE = "/home/ortem/galnet.json"
 GALNET_EVERY = 1800
 galnet = {"list": [], "t": 0, "err": "", "page": 0, "sel": None, "apage": 0, "new": set(), "lines": None}
 
@@ -3954,6 +4123,8 @@ def view_galnet_cell(surf, d, flags, now):
 ATR_ROT = [(133, 20), (4, 4), (132, 20)]     # GALNET 20 s, CARGA/MISIÓN 4 s, OBJ. COMUNITARIOS 20 s
 
 def atr_cell(d, now):
+    if (d or {}).get("missions"):
+        return 4                                     # con misiones: fijo en MISIONES
     rot = [(133, 20)]
     if (d or {}).get("cargo") or (d or {}).get("missions"):
         rot.append((4, 4))
@@ -4020,10 +4191,49 @@ def cg_loop():
 
 threading.Thread(target=cg_loop, daemon=True).start()
 
+def cg_secs(exp):
+    import calendar
+    e = (exp or "").replace("Z", "")
+    for txt, fmt in ((e[:19], "%Y-%m-%dT%H:%M:%S"), (e[:19], "%Y-%m-%d %H:%M:%S"), (e[:10], "%Y-%m-%d")):
+        try:
+            return calendar.timegm(time.strptime(txt, fmt)) - time.time()
+        except ValueError:
+            continue
+    return None
+
+CG_KEEP = 2 * 86400            # los cerrados se ven 2 dias y desaparecen
+
 def cg_all(d):
     mine = [dict(g, me=True) for g in ((d or {}).get("mycg") or [])]
     names = {g["title"].lower() for g in mine}
-    return mine + [g for g in cgoals["list"] if g["title"].lower() not in names]
+    done = cgoals.setdefault("done", {})
+    out = []
+    for g in mine + [g for g in cgoals["list"] if g["title"].lower() not in names]:
+        sec = cg_secs(g.get("expiry", ""))
+        closed = bool(g.get("complete")) or (sec is not None and sec <= 0)
+        if closed:
+            t0 = done.setdefault(g["title"].lower(), time.time())
+            gone = (-sec if sec is not None and sec <= 0 else time.time() - t0)
+            if gone > CG_KEEP:
+                continue
+        out.append(dict(g, closed=closed))
+    return [g for g in out if not g["closed"]] + [g for g in out if g["closed"]]
+
+_CGF = {}
+
+def cg_band(surf, r, g):
+    """Ficha cerrada: velo oscuro y banda oblicua roja CERRADO."""
+    veil = pygame.Surface((r.w, r.h)); veil.set_alpha(150); veil.fill(BLACK)
+    surf.blit(veil, r.topleft)
+    f = _CGF.get("f") or _CGF.setdefault("f", pygame.font.Font(None, 30))
+    band = pygame.Surface((int(r.w * 0.7), 30), pygame.SRCALPHA)
+    band.fill(RED)
+    tx = f.render("CERRADO", True, WHITE)
+    band.blit(tx, tx.get_rect(center=band.get_rect().center))
+    band = pygame.transform.rotate(band, 10)
+    surf.blit(band, band.get_rect(center=r.center).topleft)
+    if g.get("me"):
+        put(surf, F["small"], "cobra la recompensa", (r.centerx, r.bottom - 16), GREEN, anchor="center")
 
 def cg_left(exp):
     import calendar
@@ -4056,7 +4266,8 @@ def view_cgoals(surf, d, flags, now):
     if cgoals["err"] and not L:
         info, col = cgoals["err"], RED
     elif cgoals["t"]:
-        info, col = f"{len(L)} activo{'s' if len(L) != 1 else ''} · actualizado " + time.strftime("%H:%M", time.localtime(cgoals["t"])), DIM
+        na = sum(1 for g in L if not g.get("closed"))
+        info, col = f"{na} activo{'s' if na != 1 else ''} · actualizado " + time.strftime("%H:%M", time.localtime(cgoals["t"])), DIM
     else:
         info, col = "descargando...", DIM
     put(surf, F["small"], info, (8, TOP + 9), col, W - 140)
@@ -4097,6 +4308,8 @@ def view_cgoals(surf, d, flags, now):
             put(surf, F["small"], mine, (r.x + 8, r.y + 82), GREEN, r.w - 16)
         elif g.get("text"):
             put(surf, F["small"], g["text"].replace("\n", " "), (r.x + 8, r.y + 82), DIM, r.w - 16)
+        if g.get("closed"):
+            cg_band(surf, r, g)
 
 VIEWS[132] = view_cgoals
 MENU[132] = "OBJETIVOS COMUNITARIOS"
@@ -4119,10 +4332,10 @@ def draw_bye(surf):
 TABS = [[(3, "NAVEGACIÓN"), (128, "NOTAS")],
         [(4, "CARGA/MISIÓN"), (125, "MATERIALES")],
         [(8, "ESTACIÓN"), (127, "MERCADO"), (126, "PORTANAVES")],
-        [(11, "SESIÓN"), (130, "GALNET"), (132, "OBJ.COM"), (123, "RANGOS")]]
+        [(11, "DÍA"), (130, "GALNET"), (132, "OBJ.COM"), (123, "RANGOS")]]
 TAB_OF = {129: 128, 131: 130}          # pantallas de detalle -> su pestana
 GEAR = pygame.Rect(W - 50, 2, 46, TOP - 8)      # engranaje a la derecha del todo
-MENU.update({12: "AJUSTES", 11: "SESIÓN·GALNET"})
+MENU.update({12: "AJUSTES", 11: "RESUMEN DEL DÍA"})
 for _v in (123, 125, 126, 127, 128, 130, 132):
     PARENT[_v] = 0
 PARENT.update({121: 12, 122: 12, 1244: 12, 1245: 12}); MENU[1244] = "OPCIONES"
@@ -4268,9 +4481,9 @@ def power_box(surf, r):
         put(surf, F["small"], sub, (r.centerx, r.bottom - 22), DIM, r.w - 8, anchor="midtop")
 
 
-# ---------- registro de errores: /home/elite/panel.log y pantalla LOG ----------
+# ---------- registro de errores: /home/ortem/panel.log y pantalla LOG ----------
 import builtins, traceback, os as _os
-PANEL_LOG = "/home/elite/panel.log"
+PANEL_LOG = "/home/ortem/panel.log"
 _err_seen = {}
 
 def plog(*a, **k):
@@ -4642,6 +4855,75 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Se desactiva en AJUSTES > OPCIONES > CERRAR JUEGO.
 # Salud crítica
 - A pie, si la salud baja del 30 %: las dos pantallas en rojo parpadeando deprisa 3 segundos con ¡SALUD XX %! ¡BOTIQUÍN YA!, y luego un borde rojo parpadeando hasta que te cures. Se apaga en ALERTAS > SALUD BAJA (A PIE).
+# Novedades v0.87
+- Objetivos comunitarios cerrados: al final, tapados con una banda roja CERRADO («cobra la recompensa» si participaste); desaparecen a los 2 días.
+- En la pantalla grande, las bajas a pie salen en el cuadro SRV / A PIE y los derribos en nave en el cuadro 3, sin tapar los demás.
+- En combate de nave la pantalla grande pasa a COMBATE (sin MERCADO ni GALNET), también en Operations.
+- CMDR fijado: con Inara salen su escuadrón, rango de combate y nave (ALIADO en verde si es de tu escuadrón). Se guarda 72 horas.
+- EDSM: si no responde por los bloqueos de LaLiga sale «EDSM bloqueado (¿fútbol?)» y el sender lo reintenta cada 10 minutos.
+# Naves (v0.88, con el sender v0.88)
+- Toca el nombre de la nave en EN VIVO: pestañas NAVE (salto, combustible, carga, masa, valor y todos los módulos con su ingeniería y salud; los dañados arriba en rojo) y FLOTA (dónde está cada nave, traer: tiempo y precio, y salto, carga y armas para comparar).
+- Al cambiar de nave salen todos sus datos a pantalla completa 15 segundos (toca para cerrar).
+- Avisos: transferencia en camino, NAVE TRANSFERIDA al llegar y módulos por debajo del 80 %.
+- En EN VIVO nave: SRV A BORDO 2/2, SRV FUERA, CAZA LISTO, CAZA RECONSTRUYENDO...
+- El sender guarda tus naves en naves.json (junto a elite_sender.py); la FLOTA se actualiza al abrir el astillero.
+# Novedades v0.89
+- Transporte: al reservar la lanzadera o el transporte militar, EN VIVO muestra TRANSPORTE RESERVADO con 5:00 para subir (verde; naranja con menos de 2 min; rojo parpadeando en el último). Al minuto: «¡SUBE A LA LANZADERA!»; si se acaba, TRANSPORTE PERDIDO.
+- A bordo: fase (embarque, despegue, supercrucero, aproximación, llegada), altitud y gravedad; en el transporte militar, la zona de combate, la facción y su estado.
+- Totales de carrera (de las estadísticas del juego más lo de la partida): en RANGOS abajo; «total» de bajas a pie en EN VIVO y EN COMBATE; bonos y recompensas en el REGISTRO DE COMBATE; y en los avisos «BAJA nº X · total N», «DERRIBO nº X · bonos N».
+- LUCES y VISIÓN NOCTURNA destellan en blanco al encenderlas y luego cogen su color.
+- Operations: la ficha de la nave sale ya en la pantalla de carga y se refresca al llegar el equipamiento.
+# Novedades v0.90
+- NAVEGACIÓN: línea de saltos con hasta 10 estrellas (amarillo recolectable, rojo no, azul parpadeando neutrones, blanco parpadeando enana blanca), con la actual → la siguiente y los saltos que quedan. Avanza con cada salto.
+- Atraque en un portanaves: su foto de fondo (fondo_portanaves.jpg o fondo_escuadron.jpg junto a panel.py) y el rótulo TU PORTANAVES / PORTANAVES DE ESCUADRÓN / PORTANAVES.
+- PORTANAVES: tu portanaves ya no sale en el sistema del de escuadrón; abajo, el sistema del PORTANAVES DE ESCUADRÓN.
+- MENÚ PRINCIPAL abajo en la pantalla de inicio; al atracar se quita el modo combate; SESIÓN TERMINADA 20 s (toca para quitarla); RECOLECTABLE en verde neón; la ficha de nave no enseña valor 0.
+# Novedades v0.90c
+- El daño del chorro de una estrella de neutrones o enana blanca ya no pone la pantalla en COMBATE.
+- Si el destino es un portanaves (marcado en el mapa o la ruta acaba en el sistema del tuyo o del de escuadrón), sale su foto en pequeño en NAVEGACIÓN y en el cuadro 2 de la pantalla grande.
+# Novedades v0.91
+- Al pedir atraque sale la foto de cada tipo de sitio de fondo: Coriolis, Orbis, Ocellus, Dodec, base asteroide, puesto avanzado, mega nave, puerto y puesto planetario y asentamiento (fondo_*.jpg junto a panel.py).
+# Novedades v0.92
+- El escáner del sistema, el de superficie y lanzar drones ya no ponen la pantalla en COMBATE.
+- Aviso TE ESCANEAN (bodega, delitos, pasajeros...) con quien tengas fijado; en rojo si llevas carga ilegal o robada. Fuera de la zona de no disparar de una estación también activa el modo combate.
+- La foto de la estación sale también atracado (más oscura) y en pequeño en la ruta al marcar una estación como destino (tipo sacado de EDSM o de donde ya has estado: estaciones.json junto al sender).
+- 5 A PIE: toca «SALUDOS >» arriba a la derecha: los 8 gestos (asígnales tecla en el juego: Gesto 1 a 8).
+- Operations: el portanaves de operaciones con su foto (fondo_operaciones.jpg); al atracar en la mega nave, cuenta atrás de 15:00 abajo a la derecha (aviso al último minuto).
+- Al embarcar se quita la alerta de escudos de a pie.
+- Destino a un portanaves: el tuyo con saldo, gastos aproximados y semanas, servicios, atraque y salto; los de otros, sus servicios de la última vez y si te denegaron el atraque.
+# Novedades v0.93
+- MERCADO: solo el de la estación donde estás atracado; si no lo has abierto, sus precios de EDSM, o «abre su mercado». En un portanaves alterna cada 10 s con el último mercado de otra estación del sistema.
+- AJUSTES > OPCIONES > MERCADO: CON CARGA (de fábrica: en la pantalla grande solo sale si llevas carga; si no, SESIÓN), SIEMPRE o NUNCA.
+- Fotos de naves (carpeta naves/ junto a panel.py): de fondo en la ficha a pantalla completa, en pequeño en NAVE y en FLOTA.
+- Transporte: 5:20 para subir en estación y 6:00 en un planeta. FPS en verde. Foto del destino más grande.
+- NAVEGACIÓN: facción de la estación de destino y tu reputación (HOSTIL en rojo y aviso ¡DESTINO HOSTIL!).
+# Novedades v0.94
+- 11 RESUMEN DEL DÍA (pestaña DÍA): suma todas las partidas del día (se pone a cero a las 00:00) con la fecha del juego y el tiempo jugado.
+- La línea de AMIGOS dice sus nombres.
+- Fotos de la nave principal (Inara) de otros CMDR: al fijarlos y en la lista del ESCUADRÓN. Se apagan en OPCIONES > FOTOS CMDR.
+- 4 CARGA/MISIÓN se abre en MISIONES si tienes; si no, en BODEGA (y así sale en la pantalla grande).
+- BATALLA TERMINADA a pie: al reservar transporte, subir a la nave o tras 2 min sin bajas, resumen de bajas, créditos, duración y consumibles (el juego no dice si ganaste).
+# Novedades v0.95
+- RESUMEN DEL DÍA: BAJAS a pie · en nave por separado.
+- Atracado en la mega nave: el cuadro de GALNET pasa a REGISTRO DE COMBATE.
+- Operations: la «Nave de investigación» (masacre en mega nave) sale con la foto de la mega nave; el Runner con la de operaciones.
+# Novedades v0.96
+- AJUSTES > VERSIONES dice la versión del panel y del sender; si no coinciden, aviso al arrancar.
+- Foto de la nave que fijas (NPC o comandante), por su tipo real.
+- Dinero sin cobrar: desde cuántos días (RESUMEN DEL DÍA) y aviso al arrancar si son 2 días o más, o más de 50 M.
+- Base de ingeniero: aviso al atracar y salta a MATERIALES.
+- NAVEGACIÓN: «combustible para ~N saltos» (rojo si quedan menos de 3).
+- Interdicción: dice si es COMANDANTE o NPC.
+- MINERÍA: toneladas por hora y créditos por hora aproximados. POWERPLAY: méritos de esta semana y cuánto falta para el corte (jueves 9:00).
+- Al tocar, el panel responde al momento. Cada 5 minutos apunta en el LOG qué pantallas tardan más en dibujarse.
+# Novedades v0.97
+- Con misiones activas, el cuadro de la pantalla grande se queda en MISIONES (sin GALNET).
+- Ingenieros (38, de nave y de a pie; carpeta ingenieros/ junto a panel.py): al llegar a su sistema, aviso INGENIERO EN EL SISTEMA con tu rango; en NAVEGACIÓN su ficha con cara (y la foto de su base si la marcas como destino), base, planeta y lo que mejora; en NAVEGACIÓN, «ING.» si el destino de la ruta es su sistema.
+# Novedades v0.98
+- Pantalla HDMI táctil (por ejemplo una de 7" con táctil USB), junto a la pequeña: en modo PANEL se maneja tocando igual que la pequeña; en 4 CUADROS, tocar un cuadro lo abre en grande y una pulsación larga (más de 1 segundo) vuelve a 4 CUADROS. También en AJUSTES > OPCIONES > PANTALLA HDMI.
+# Novedades v0.99
+- VOZ con Piper (voz natural): carpeta piper/ junto a panel.py con piper/piper y es.onnx. Las frases ya dichas se guardan en piper/cache y suenan al momento. Si no está Piper, se usa espeak-ng.
+- La pantalla grande solo pasa a COMBATE en nave con las armas sacadas; al guardarlas se quita (los avisos siguen saliendo).
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -4675,19 +4957,19 @@ Con CAMBIO AUTO (OPCIONES) el panel salta solo a la pantalla útil: al atracar, 
 - 4 CARGA/MISIÓN: bodega y misiones. Pestaña MATERIALES.
 - 5 SRV / RHINO / A PIE: botones del vehículo y a pie. Pestaña MAPA: tu recorrido sobre el planeta.
 - 6 COMBATE: botones de combate.
-- 7 EXPLORACIÓN: exploración (EDSM), sistema en movimiento, xenobiología, yacimientos, diario y alienígenas.
+- 7 EXPLORACIÓN: exploración (EDSM), sistema en movimiento, exobiología, yacimientos, diario y alienígenas.
 - 8 ESTACIÓN: atraque y ficha de la estación. Pestañas MERCADO y PORTANAVES.
 - 9 CAZA: órdenes al caza.
 - 10 MINERÍA: prospectores y refinado.
-- 11 SESIÓN·GALNET: resumen de la sesión (toca para ver AMIGOS). Pestañas GALNET, OBJ.COM y RANGOS.
+- 11 RESUMEN DEL DÍA: todo lo del día (toca para ver AMIGOS). Pestañas GALNET, OBJ.COM y RANGOS.
 - 12 AJUSTES: opciones, estilo, bordes, iconos, versiones, LOG, STREAM, PANTALLA, MANUAL y salir / reiniciar / apagar.
 @g Los botones de teclas usan las teclas de tu configuración del juego.
 """),
 ("PANT. GRANDE", "PANTALLA GRANDE (HDMI)", """
 Muestra datos (no se toca) y elige sola el tablero según la situación:
 - VIAJE: en vivo, navegación, exploración y sistema (en la grande, el SISTEMA sale a todo lo ancho, sin botones y con la ficha del cuerpo más interesante).
-- APROXIMACIÓN (cerca de un planeta o anillo): sistema, xenobiología y yacimientos.
-- SUPERFICIE (aterrizado, SRV o a pie): xenobiología, SRV y MAPA del recorrido. En el Rhino: yacimientos y minería.
+- APROXIMACIÓN (cerca de un planeta o anillo): sistema, exobiología y yacimientos.
+- SUPERFICIE (aterrizado, SRV o a pie): exobiología, SRV y MAPA del recorrido. En el Rhino: yacimientos y minería.
 - ATRACADO: en vivo, estación, mercado y GALNET. GALNET alterna con CARGA/MISIÓN si llevas carga o misiones, y con OBJETIVOS COMUNITARIOS si hay.
 - ATRAQUE: la estación a pantalla completa al conceder el atraque. Luz roja a la izquierda y verde a la derecha, como en la entrada de la estación.
 - COMBATE: combate, registro de combate y pips.
@@ -4768,7 +5050,7 @@ Abre la página en el PC de juego y colócala en la cabina con Desktop+ (SteamVR
 @g Solo gasta CPU mientras alguien mira la imagen.
 """),
 ("EXPLORACIÓN", "EXPLORACIÓN Y MÁS", """
-- Xenobiología (7.3): especies, valor, distancia entre muestras y brújula para volver a la nave. NAVE AQUÍ corrige dónde está la nave.
+- Exobiología (7.3): especies, valor, distancia entre muestras y brújula para volver a la nave. NAVE AQUÍ corrige dónde está la nave.
 - Exploración (7.1): cuerpos del sistema con datos de EDSM; toca para pasar páginas.
 - Yacimientos (7.4): señales del planeta y anillos.
 - Rhino: franja de altura para desplegarlo; en verde (entre 40 y 7 m) está listo.
@@ -5311,6 +5593,8 @@ def threat_col(t):
 
 # EN VIVO en la nave: operacion en curso y Merc Coin
 def view_live_v071(surf, d, flags, now):
+    if draw_taxi(surf, d or {}, now):
+        return
     view_live(surf, d, flags, now)
     d = d or {}
     if d.get("Flags2", 0) & 1 or flags & (1 << 26):
@@ -5648,6 +5932,8 @@ BIGFPS = ["AUTO", "3", "5", "10"]
 
 def panel_hi():
     """El panel (pantalla pequena) dibujado a tamano grande: para la HDMI en modo PANEL y la web /panel."""
+    if ui.get("bye"):
+        return None
     if PHI["n"] == BIG["n"] and PHI["surf"] is not None:
         return PHI["surf"]
     if time.time() - PHI["fail"] < 60:
@@ -5833,7 +6119,7 @@ def perf_parts():
         out.append((f"CPU {c:.0f} %", GREEN if c < 30 else ORANGE if c < 60 else RED))
     if t is not None:
         out.append((f"{t:.0f} °C", GREEN if t < 70 else ORANGE if t < 80 else RED))
-    out.append((f"{PERF['fps']:.0f} FPS", DIM))
+    out.append((f"{PERF['fps']:.0f} FPS", GREEN))
     return out
 
 def perf_draw(S, x, y):
@@ -5899,7 +6185,8 @@ def view_squad_page(surf, d, pg):
         pygame.draw.circle(surf, GREEN if live else DIM, (14, y + 10), 5, 0 if live else 1)
         put(surf, F["btn"], o.get("name", "?"), (26, y + 2), GREEN if live else ORANGE, 140)
         bits = [o.get("ship"), inara_rank(o), o.get("squad")]
-        put(surf, F["small"], "  ·  ".join(b for b in bits if b) or "sin datos públicos", (170, y + 6), DIM, W - 178)
+        ph_ = cfg.get("cmdrpics", True) and o.get("ship") and ship_photo(surf, {"ship": o.get("ship")}, {}, pygame.Rect(W - 60, y + 3, 52, 29))
+        put(surf, F["small"], "  ·  ".join(b for b in bits if b) or "sin datos públicos", (170, y + 6), DIM, W - (240 if ph_ else 178))
         y += 36
     put(surf, F["small"], f"pág {pg + 1}/{squad_pages(d)}  ·  verde = conectado  ·  toca", (W - 8, H - 16), DIM,
         W - 16, anchor="topright")
@@ -5962,7 +6249,7 @@ def cons_kind(name):
     n = (name or "").lower()
     if "frag" in n:
         return "frag"
-    if "emp" in n or "disrup" in n:
+    if "emp" in n or "disrup" in n or "supres" in n:
         return "emp"
     if "proyect" in n or "project" in n or "grenade_shield" in n:
         return "shield"
@@ -6056,6 +6343,9 @@ def draw_fight_big(surf, d, now):
     # bajas y consumibles en grande
     put(surf, F["num"], str(Z.get("n") or 0), (8, y), GREEN)
     put(surf, F["small"], "BAJAS", (12 + F["num"].size(str(Z.get("n") or 0))[0], y + 26), GREEN)
+    tf_ = (d.get("career") or {}).get("foot")
+    if tf_ is not None:
+        put(surf, F["small"], f"total {fnum(tf_, 0)}", (12 + F["num"].size(str(Z.get("n") or 0))[0], y + 8), DIM)
     c = cons_count(d)
     x = W - 8
     for k in ("cell", "med"):
@@ -6190,12 +6480,1362 @@ def draw_hpcrit(surf, now):
         pygame.draw.rect(surf, RED, (0, 0, w, h), t)
 
 
+# ---------- v0.87: avisos de bajas en un cuadro e Inara del CMDR fijado ----------
+def kill_in_cell(a):
+    return a.get("ev") == "kill" and cfg.get("bigmode", "4") != "GRANDE"
+
+def draw_kill_cell(now):
+    """Baja a pie -> en el cuadro SRV / A PIE; derribo en nave -> en el cuadro 3. El resto de cuadros, a la vista."""
+    a = xa.get("a")
+    rects = BIG.get("rects") or []
+    if not a or now > a["until"] or not kill_in_cell(a) or not rects or hdmi_panel():
+        return
+    foot = str(a.get("title", "")).startswith("BAJA")
+    r = next((rr for v, rr in rects if v == 5), None) if foot else None
+    if r is None:
+        r = rects[2][1] if len(rects) >= 3 else rects[-1][1]
+    S, cell = BIG["surf"], BIG["cell"]
+    pygame.draw.rect(S, BLACK, r)
+    cell.fill(BLACK)
+    draw_xa(cell, now)
+    big_blit(S, cell, r.inflate(-6, -6))
+
+def my_squad(d):
+    d = d or {}
+    return (d.get("squad") or {}).get("name") or ((d.get("inara") or {}).get("me") or {}).get("squad") or ""
+
+def inara_line(ia, d, short=False):
+    bits = [ia.get("squad"), inara_rank(ia), None if short else ia.get("ship"), None if short else ia.get("power")]
+    return "  ·  ".join(b for b in bits if b) or "sin datos públicos"
+
+
+# ---------- v0.88: NAVE, FLOTA y cambio de nave ----------
+SHIP_NAME_R = pygame.Rect(W - 260, TOP, 260, 34)
+SHIP_PER = 8
+
+def veh_chips(d, rh):
+    v = ((d or {}).get("naves") or {}).get("veh") or {}
+    out = []
+    if v.get("srvcap") and not rh and v.get("srv"):
+        n = max(0, v["srvcap"] - (v.get("srvlost") or 0))
+        st = v["srv"]
+        lab = f"SRV A BORDO {n}/{v['srvcap']}" if st == "A BORDO" else ("SIN SRV" if n == 0 else f"SRV {st}")
+        out.append((lab, True, GREEN if st == "A BORDO" and n else RED if n == 0 else ORANGE))
+    if v.get("fighter"):
+        f = v["fighter"]
+        out.append((f"CAZA {f}", True, GREEN if f == "LISTO" else RED if f == "RECONSTRUYENDO" else ORANGE))
+    return out
+
+def _mod_col(h):
+    return RED if h < 80 else ORANGE if h < 95 else GREEN
+
+def view_ship(surf, d, flags, now):
+    N = (d or {}).get("naves") or {}
+    c = N.get("cur")
+    if not c:
+        put(surf, F["btn"], "Sin datos de la nave", (W // 2, (H + TOP) // 2 - 10), DIM, anchor="center")
+        put(surf, F["small"], "llegan al cargar la partida o al equiparla (sender v0.88)", (W // 2, (H + TOP) // 2 + 12), DIM, anchor="center")
+        return
+    y = TOP + 4
+    ph_ = ship_photo(surf, c, d or {}, pygame.Rect(W - 104, TOP + 2, 96, 54))
+    put(surf, F["big"], (c.get("ship") or "?").upper(), (8, y), ORANGE, W // 2)
+    put(surf, F["small"], " · ".join(x for x in (c.get("name"), c.get("ident")) if x), (W - (112 if ph_ else 8), y + 6), DIM,
+        W // 2 - (110 if ph_ else 10), anchor="topright")
+    y += 28
+    stats = [("SALTO", f"{c['jump']:.1f} al" if c.get("jump") else "-"), ("COMB.", f"{c.get('fuel') or 0:g} t"),
+             ("CARGA", f"{c.get('cargo') or 0} t"), ("MASA", f"{c.get('mass') or 0:.0f} t"), ("VALOR", f"{crx(c.get('value') or 0)}")]
+    stats = [x for x in stats if x[0] != "VALOR" or c.get("value")]
+    cw = (W - (128 if ph_ else 16)) // len(stats)
+    for i, (k, v) in enumerate(stats):
+        put(surf, F["small"], k, (8 + i * cw, y), DIM)
+        put(surf, F["btn"], v.replace(".", ","), (8 + i * cw, y + 12), WHITE, cw - 4)
+    y += 36
+    fb = c.get("fbay")
+    if fb:
+        crew = ((d.get("ops") or {}).get("crew") or {})
+        fs = (N.get("veh") or {}).get("fighter") or "-"
+        put(surf, F["small"], f"HANGAR DE CAZAS · caza {fs}" + (f" · piloto {crew.get('name')}" if crew.get("name") else ""),
+            (8, y), BLUE, W - 16); y += 16
+    mods = sorted(c.get("mods") or [], key=lambda m: m["h"] >= 80)          # danados arriba
+    pages = max(1, (len(mods) + SHIP_PER - 1) // SHIP_PER)
+    pg = ui.get("shippage", 0) % pages
+    for m in mods[pg * SHIP_PER:(pg + 1) * SHIP_PER]:
+        put(surf, F["small"], m.get("s") or "", (8, y + 1), DIM)
+        w_ = put(surf, F["btn"], m["n"], (34, y - 2), RED if m["h"] < 80 else ORANGE, 220)
+        if m.get("e"):
+            put(surf, F["small"], m["e"], (40 + max(w_, 0), y + 1), BLUE, W - 100 - w_)
+        put(surf, F["small"], f"{m['h']}%", (W - 8, y + 1), _mod_col(m["h"]), anchor="topright")
+        y += 20
+    put(surf, F["small"], f"pág {pg + 1}/{pages}  ·  toca para pasar" if pages > 1 else f"{len(mods)} módulos",
+        (W - 8, H - 16), DIM, anchor="topright")
+
+def view_fleet(surf, d, flags, now):
+    N = (d or {}).get("naves") or {}
+    y = TOP + 4
+    for x in N.get("xfer") or []:
+        left = max(0, int(x.get("arrive", now) - time.time()))
+        put(surf, F["small"], f"EN CAMINO: {x.get('ship', '?')} > {x.get('to') or '?'}  ·  quedan "
+                              f"{left // 3600} h {left % 3600 // 60} min" if left >= 3600 else
+                              f"EN CAMINO: {x.get('ship', '?')} > {x.get('to') or '?'}  ·  quedan {left // 60} min {left % 60} s",
+            (8, y), BLUE, W - 16); y += 16
+    fl = N.get("fleet") or []
+    if not fl:
+        put(surf, F["btn"], "Abre el astillero en una estación", (W // 2, (H + TOP) // 2 - 10), DIM, anchor="center")
+        put(surf, F["small"], "y el panel guardará dónde están tus naves", (W // 2, (H + TOP) // 2 + 12), DIM, anchor="center")
+        return
+    t = N.get("fleet_t")
+    put(surf, F["small"], f"{len(fl)} naves guardadas" + (f" · astillero del {time.strftime('%d/%m %H:%M', time.localtime(t))}" if t else ""),
+        (8, y), DIM, W - 16); y += 16
+    put(surf, F["small"], "SALTO  CARGA  ARMAS", (W - 8, y), DIM, anchor="topright"); y += 14
+    per = 6
+    pages = max(1, (len(fl) + per - 1) // per)
+    pg = ui.get("shippage", 0) % pages
+    fl = sorted(fl, key=lambda f: (not f.get("here"), f.get("transit", False), f.get("sys") or ""))
+    for f in fl[pg * per:(pg + 1) * per]:
+        nm = f.get("name") or ""
+        ph_ = ship_photo(surf, f, d or {}, pygame.Rect(8, y + 1, 54, 30))
+        x_ = 68 if ph_ else 8
+        put(surf, F["btn"], (f.get("ship") or "?") + (f" «{nm}»" if nm and nm != f.get("ship") else ""), (x_, y), ORANGE, W - 170 - x_ + 8)
+        sub = "AQUÍ" if f.get("here") else ("en tránsito" if f.get("transit") else f.get("sys") or "?")
+        if not f.get("here") and f.get("xtime"):
+            sec = int(f["xtime"])
+            sub += f"  ·  traer: {sec // 3600} h {sec % 3600 // 60} min · {crx(f.get('xprice') or 0)} cr"
+        put(surf, F["small"], sub, (x_, y + 18), GREEN if f.get("here") else DIM, W - 8 - x_)
+        cols = [f"{f['jump']:.0f}" if f.get("jump") else "-", f"{f['cargo']}" if f.get("cargo") is not None else "-",
+                f"{f['weapons']}" if f.get("weapons") is not None else "-"]
+        put(surf, F["btn"], "   ".join(cols), (W - 8, y), WHITE, 160, anchor="topright")
+        y += 34
+    if pages > 1:
+        put(surf, F["small"], f"pág {pg + 1}/{pages}  ·  toca", (W - 8, H - 16), DIM, anchor="topright")
+
+VIEWS[170] = view_ship
+VIEWS[171] = view_fleet
+MENU[170] = "NAVE"
+MENU[171] = "FLOTA"
+PARENT[170] = 100
+PARENT[171] = 100
+TABS.append([(170, "NAVE"), (171, "FLOTA")])
+_SCF = {}
+
+def draw_shipcard(surf, now):
+    """Al cambiar de nave: todos sus datos a pantalla completa sobre fondo negro (15 s o hasta tocar)."""
+    if not ui.get("shipcard") or now > ui["shipcard"]:
+        return
+    with lock:
+        c = ((state["data"] or {}).get("naves") or {}).get("cur")
+    if not c:
+        return
+    w, h = surf.get_size()
+    k = h / 320
+    key = round(k, 2)
+    if key not in _SCF:
+        _SCF[key] = [pygame.font.Font(None, int(n * k)) for n in (52, 26, 20, 16)]
+    f1, f2, f3, f4 = _SCF[key] if type(surf).__name__ != "ScaledSurf" else (F["num"], F["big"], F["btn"], F["small"])
+    surf.fill(BLACK)
+    ship_bg(surf, c, (d_sc_() or {}))
+    m_ = int(8 * k)
+    y = m_
+    put(surf, f1, (c.get("ship") or "?").upper(), (m_, y), ORANGE, w - 2 * m_); y += f1.get_height()
+    put(surf, f2, " · ".join(x for x in (c.get("name"), c.get("ident")) if x), (m_, y), WHITE, w - 2 * m_); y += f2.get_height() + int(4 * k)
+    stats = [("SALTO", f"{c['jump']:.1f} al" if c.get("jump") else "-"), ("COMBUSTIBLE", f"{c.get('fuel') or 0:g} t"),
+             ("CARGA", f"{c.get('cargo') or 0} t"), ("MASA", f"{c.get('mass') or 0:.0f} t"), ("VALOR", f"{crx(c.get('value') or 0)} cr")]
+    stats = [x for x in stats if x[0] != "VALOR" or c.get("value")]
+    cw = (w - 2 * m_) // len(stats)
+    for i, (a, b) in enumerate(stats):
+        put(surf, f4, a, (m_ + i * cw, y), DIM)
+        put(surf, f2, b.replace(".", ","), (m_ + i * cw, y + f4.get_height()), GREEN, cw - 4)
+    y += f4.get_height() + f2.get_height() + int(6 * k)
+    pygame.draw.line(surf, DIM, (m_, y), (w - m_, y)); y += int(4 * k)
+    mods = c.get("mods") or []
+    col_w = (w - 3 * m_) // 2
+    lh = f3.get_height() + 1
+    rows = max(1, (h - y - f4.get_height() - m_) // lh)
+    for i, md in enumerate(mods[:rows * 2]):
+        x = m_ + (i // rows) * (col_w + m_)
+        yy = y + (i % rows) * lh
+        tw = put(surf, f3, f"{md.get('s') or ''} {md['n']}".strip(), (x, yy), RED if md["h"] < 80 else ORANGE, int(col_w * 0.55))
+        if md.get("e"):
+            put(surf, f4, md["e"], (x + tw + int(6 * k), yy + int(3 * k)), BLUE, col_w - tw - int(50 * k))
+        put(surf, f4, f"{md['h']}%", (x + col_w, yy + int(3 * k)), _mod_col(md["h"]), anchor="topright")
+    put(surf, f4, "NAVE NUEVA  ·  toca para cerrar", (w - m_, h - m_ - f4.get_height()), DIM, anchor="topright")
+
+
+# ---------- v0.89: transporte, carrera y destello de luces ----------
+GLOW = {"luz": 0.0, "nv": 0.0, "prev": None}
+GLOW_LBL = {"LUCES": "luz", "LINTERNA": "luz", "FAROS": "luz", "LUCES LARGAS": "luz",
+            "VISIÓN NOC": "nv", "VISIÓN NOCT.": "nv"}
+
+def glow_watch(d):
+    fl = d.get("Flags", 0)
+    foot = bool(d.get("Flags2", 0) & 1)
+    if GLOW.get("foot") and not foot and ui.get("alert") and "ESCUDO" in (ui["alert"].get("text") or ""):
+        ui["alert"] = None
+    GLOW["foot"] = foot
+    v4_ = ui["view"] == 4
+    if not v4_ or not GLOW.get("v4"):
+        ui["tab4"] = 1 if d.get("missions") else 0
+        if v4_:
+            ui["page4"] = 0
+    GLOW["v4"] = v4_
+    dk = bool(fl & 1)
+    if dk and GLOW.get("dk") is False:
+        fight["t"] = 0.0                         # atracado (o reaparecido en estacion): fuera el modo combate
+    GLOW["dk"] = dk
+    st = (bool(fl & (1 << 8) or fl & (1 << 31)), bool(fl & (1 << 28)))
+    pv = GLOW["prev"]
+    if pv is not None:
+        if st[0] and not pv[0]:
+            GLOW["luz"] = time.time()
+        if st[1] and not pv[1]:
+            GLOW["nv"] = time.time()
+    GLOW["prev"] = st
+
+def glow(txt):
+    """Al encender: 4 destellos blancos en menos de 1 s y luego su color."""
+    k = GLOW_LBL.get(txt)
+    if not k:
+        return False
+    el = time.time() - GLOW[k]
+    return el < 0.9 and int(el * 9) % 2 == 0
+
+TAXI_SECS = 300            # tiempo para subir al transporte reservado
+TAXI_LOST = 60             # el aviso de perdido se ve 1 minuto
+
+def taxi_left(t, now):
+    return (t.get("t0") or now) + (360 if t.get("planet") else 320) - now
+
+def taxi_watch(d, now):
+    t = (d or {}).get("taxi") or {}
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "taxi"
+        if t.get("st") != "booked":
+            return
+        left = taxi_left(t, now)
+        key = t.get("t0")
+        if 0 < left <= 60 and xa.get("taxi60") != key:
+            xa["taxi60"] = key
+            xa["a"] = dict(until=now + 6, col=RED, title=t.get("kind") or "TRANSPORTE", big="¡SUBE A LA LANZADERA!",
+                           lines=["queda 1 minuto"])
+            play("alarm")
+        elif -TAXI_LOST < left <= 0 and xa.get("taxilost") != key:
+            xa["taxilost"] = key
+            xa["a"] = dict(until=now + 6, col=RED, title=t.get("kind") or "TRANSPORTE", big="TRANSPORTE PERDIDO",
+                           lines=["se acabó el tiempo para subir"])
+    finally:
+        XA_K[0] = k0
+
+FSTATE_ES = {"War": "EN GUERRA", "CivilWar": "EN GUERRA CIVIL", "Boom": "AUGE", "Bust": "QUIEBRA",
+             "Election": "ELECCIONES", "Expansion": "EXPANSIÓN", "Lockdown": "CONFINAMIENTO", "Outbreak": "EPIDEMIA",
+             "CivilUnrest": "DISTURBIOS", "Famine": "HAMBRUNA", "Retreat": "RETIRADA", "Investment": "INVERSIÓN",
+             "PirateAttack": "ATAQUE PIRATA", "Terrorism": "TERRORISMO", "Blight": "PLAGA", "Drought": "SEQUÍA"}
+
+def draw_taxi(surf, d, now):
+    """Transporte reservado (cuenta atras para subir) o a bordo (fase, altitud, gravedad y zona)."""
+    t = d.get("taxi") or {}
+    st = t.get("st")
+    if st not in ("booked", "aboard"):
+        return False
+    if st == "booked" and taxi_left(t, now) <= -TAXI_LOST:
+        return False
+    w_, h_ = surf.get_size()
+    military = "MILITAR" in (t.get("kind") or "")
+    kind = ("RETIRADA · " if t.get("retreat") else "") + (t.get("kind") or "TRANSPORTE")
+    dest = t.get("loc") or t.get("sys") or ""
+    y = TOP + 4
+    put(surf, F["small"], kind, (8, y), BLUE if not military else ORANGE, W - 16); y += 18
+    if st == "booked":
+        left = taxi_left(t, now)
+        if left <= 0:
+            on_ = int(now * 3) % 2 == 0
+            put(surf, F["big"], "TRANSPORTE PERDIDO", (W // 2, y + 30), RED if on_ else ORANGE, anchor="center")
+            put(surf, F["small"], "se acabó el tiempo para subir", (W // 2, y + 58), DIM, anchor="center")
+            return True
+        put(surf, F["big"], "TRANSPORTE RESERVADO", (8, y), GREEN); y += 30
+        col = GREEN if left > 120 else ORANGE if left > 60 else (RED if int(now * 4) % 2 == 0 else BLACK)
+        m_, s_ = int(left) // 60, int(left) % 60
+        put(surf, F["num"], f"{m_}:{s_:02d}", (W // 2, y + 26), col, anchor="center"); y += 58
+        put(surf, F["btn"], "para subir" if left > 60 else "¡SUBE YA!", (W // 2, y), DIM if left > 60 else RED, anchor="center"); y += 26
+        if dest:
+            put(surf, F["small"], "DESTINO", (8, y + 4), DIM)
+            put(surf, F["btn"], dest.upper(), (80, y), ORANGE, W - 88); y += 24
+        if t.get("cost"):
+            put(surf, F["small"], f"coste {cr(t['cost'])} cr", (8, y), DIM)
+        return True
+    put(surf, F["big"], "A BORDO", (8, y), GREEN)
+    ph = t.get("phase") or ""
+    put(surf, F["big"], ph, (W - 8, y), BLUE, W // 2, anchor="topright"); y += 32
+    if dest:
+        put(surf, F["small"], "DESTINO", (8, y + 4), DIM)
+        put(surf, F["btn"], dest.upper(), (80, y), ORANGE, W - 88); y += 26
+    L = d.get("live") or {}
+    alt, g = L.get("alt"), L.get("grav")
+    if alt is not None or g is not None:
+        if alt is not None:
+            put(surf, F["small"], "ALTITUD", (8, y + 4), DIM)
+            put(surf, F["btn"], f"{alt / 1000:.1f} km".replace(".", ",") if alt >= 1000 else f"{alt:.0f} m", (80, y), ORANGE)
+        if g is not None:
+            put(surf, F["small"], "GRAVEDAD", (250, y + 4), DIM)
+            put(surf, F["btn"], f"{g:.2f} G".replace(".", ","), (W - 8, y), RED if g > 2 else ORANGE, anchor="topright")
+        y += 26
+    if military and (t.get("zone") or t.get("fac")):
+        pygame.draw.line(surf, DIM, (8, y), (W - 8, y)); y += 6
+        put(surf, F["small"], "ZONA DE COMBATE", (8, y), DIM); y += 16
+        put(surf, F["btn"], (t.get("zone") or "").upper(), (8, y), RED, W - 16); y += 24
+        fst = FSTATE_ES.get(t.get("fstate") or "", t.get("fstate") or "")
+        put(surf, F["small"], "  ·  ".join(x for x in (t.get("fac"), fst) if x), (8, y), ORANGE, W - 16)
+    return True
+
+
+# ---------- v0.90: linea de ruta, fondos de portanaves y portanaves de escuadron ----------
+NEON_G = (57, 255, 20)
+
+def star_kind(c):
+    c = c or ""
+    if c == "N":
+        return "neu"
+    if c.startswith("D"):
+        return "wd"
+    if not c:
+        return "?"
+    return "ok" if star_ok(c) else "no"
+
+def draw_routeline(surf, d, y, now):
+    """Circulos de la ruta: amarillo recolectable, rojo no, azul parpadeando neutrones, blanco parpadeando enana blanca."""
+    route = d.get("route") or []
+    if not route:
+        return y
+    total = d.get("routen") or len(route)
+    end = d.get("routeend") or route[-1]
+    nodes = [[d.get("system") or "?", d.get("curstar")]] + [list(r) for r in route[:9]]
+    gap = total > 9
+    if gap:
+        nodes = nodes[:9] + [list(end)]
+    on = int(now * 3) % 2 == 0
+    x0, x1, cy = 20, W - 20, y + 12
+    n = len(nodes)
+    step = (x1 - x0) / max(1, n - 1)
+    xs = [int(x0 + i * step) for i in range(n)] if n > 1 else [x0]
+    for i in range(n - 1):
+        if gap and i == n - 2:
+            for k in range(xs[i] + 8, xs[i + 1] - 6, 6):
+                pygame.draw.line(surf, DIM, (k, cy), (k + 2, cy), 2)
+        else:
+            pygame.draw.line(surf, DIM, (xs[i], cy), (xs[i + 1], cy), 2)
+    for i, (name, c) in enumerate(nodes):
+        k = star_kind(c)
+        col = {"ok": YELLOW, "no": RED, "neu": BLUE if on else DIM, "wd": WHITE if on else DIM, "?": DIM}[k]
+        r = 9 if i == 0 else 7 if i < n - 1 or not gap else 8
+        pygame.draw.circle(surf, col, (xs[i], cy), r)
+        if i == 0:
+            pygame.draw.circle(surf, ORANGE, (xs[i], cy), r + 4, 2)
+        if i == n - 1:
+            pygame.draw.circle(surf, GREEN, (xs[i], cy), r + 4, 2)
+    y += 28
+    nxt = route[0][0] if route else ""
+    put(surf, F["small"], f"{(d.get('system') or '?')}  >  {nxt}", (8, y), ORANGE, W - 150)
+    eg_ = eng_at((end or [""])[0]) if end else None
+    put(surf, F["small"], f"quedan {total}" + (f" · {end[0]}" if end and total > 1 else ""), (W - 8, y), DIM, 140, anchor="topright")
+    if eg_:
+        put(surf, F["small"], "ING. " + eg_["name"], (W - 8, y - 30), BLUE, 200, anchor="topright")
+    fj_, fm_ = d.get("fuelj"), (d.get("Fuel") or {}).get("FuelMain")
+    if fj_ and fm_ is not None:
+        n_ = int(fm_ / fj_) if fj_ > 0 else 0
+        put(surf, F["small"], f"combustible para ~{n_} saltos" + ("  ·  ¡recoge en la ruta!" if n_ < min(total, 6) else ""),
+            (8, y + 14), RED if n_ < 3 else ORANGE if n_ < min(total, 6) else GREEN, W - 16)
+        return y + 36
+    return y + 22
+
+_BG = {}
+BG_FILES = {"fc": "fondo_portanaves.jpg", "sq": "fondo_escuadron.jpg"}
+ST_BG = {"Coriolis": "coriolis", "Orbis": "orbis", "Ocellus": "ocellus", "Bernal": "ocellus", "Dodec": "dodec",
+         "AsteroidBase": "asteroide", "Outpost": "outpost", "MegaShip": "meganave", "CraterPort": "craterport",
+         "SurfaceStation": "craterport", "CraterOutpost": "crateroutpost", "OnFootSettlement": "asentamiento"}
+BG_FILES.update({v: f"fondo_{v}.jpg" for v in set(ST_BG.values())})
+
+def carrier_kind(d, st):
+    stype = (st.get("type") or "")
+    mid = st.get("mid")
+    sq, own = d.get("sqcarrier") or {}, d.get("carrier") or {}
+    if "squadron" in stype.lower() or (mid and mid == sq.get("id")):
+        return "sq", "PORTANAVES DE ESCUADRÓN", BLUE
+    if stype == "FleetCarrier":
+        return "fc", ("TU PORTANAVES" if mid and mid == own.get("id") else "PORTANAVES"), ORANGE
+    if stype in ST_BG:
+        return ST_BG[stype], ST_TYPE.get(stype, stype).upper(), ORANGE
+    return None, "", None
+
+def carrier_bg(surf, d, st):
+    """Al pedir atraque en un portanaves: su foto de fondo (oscurecida) y el rotulo."""
+    if st.get("status") not in ("SOLICITADO", "CONCEDIDO"):
+        return
+    k, label, col = carrier_kind(d, st)
+    if not k:
+        return
+    real = surf.real if type(surf).__name__ == "ScaledSurf" else surf
+    w, h = real.get_size()
+    top = int(TOP * h / H)
+    key = (k, w, h)
+    if key not in _BG:
+        img = None
+        try:
+            src = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), BG_FILES[k]))
+            sw, sh = src.get_size()
+            sc = max(w / sw, (h - top) / sh)
+            img = pygame.transform.smoothscale(src, (int(sw * sc) + 1, int(sh * sc) + 1))
+            img = img.subsurface(pygame.Rect((img.get_width() - w) // 2, (img.get_height() - (h - top)) // 2, w, h - top)).copy()
+            img.fill((95, 95, 95), special_flags=pygame.BLEND_MULT)
+        except Exception as e:
+            log_exc("fondo portanaves", e)
+        _BG[key] = img
+    if _BG[key] is not None:
+        real.blit(_BG[key], (0, top))
+    put(surf, F["big"], label, (W - 8, H - 30), col, W // 2 + 20, anchor="topright")
+
+def view_carrier90(surf, d, flags, now):
+    view_carrier(surf, d, flags, now)
+    sq = (d or {}).get("sqcarrier") or {}
+    if sq.get("system"):
+        pygame.draw.rect(surf, BLACK, (0, H - 24, W, 24))
+        pygame.draw.line(surf, DIM, (8, H - 24), (W - 8, H - 24))
+        put(surf, F["small"], "PORTANAVES DE ESCUADRÓN", (8, H - 18), BLUE)
+        put(surf, F["btn"], sq["system"], (W - 8, H - 21), BLUE, W - 200, anchor="topright")
+
+VIEWS[126] = view_carrier90
+
+
+# ---------- v0.90c: miniatura del portanaves de destino ----------
+import re as _re
+CALLSIGN = _re.compile(r"\b[A-Z0-9]{3}-[A-Z0-9]{3}\b")
+
+def carrier_dest(d):
+    """(tipo de foto, rotulo) si el destino es un portanaves: por el destino marcado o por el sistema final de la ruta."""
+    own, sq = d.get("carrier") or {}, d.get("sqcarrier") or {}
+    D = d.get("dest") or {}
+    nm = (D.get("name") or "").upper()
+    if nm and CALLSIGN.search(nm):
+        if own.get("callsign") and own["callsign"].upper() in nm:
+            return "fc", "TU PORTANAVES"
+        if sq.get("system") and sq["system"] == d.get("system"):
+            return "sq", "PORTANAVES DE ESCUADRÓN"
+        return "fc", "PORTANAVES"
+    end = d.get("routeend") or ((d.get("route") or [None])[-1])
+    if d.get("route") and end:
+        if own.get("system") and end[0] == own["system"]:
+            return "fc", "TU PORTANAVES"
+        if sq.get("system") and end[0] == sq["system"]:
+            return "sq", "PORTANAVES DE ESCUADRÓN"
+    return None, ""
+
+def bg_img(k, w, h, dark=95):
+    key = (k, w, h, dark)
+    if key not in _BG:
+        img = None
+        try:
+            src = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), BG_FILES[k]))
+            sw, sh = src.get_size()
+            sc = max(w / sw, h / sh)
+            img = pygame.transform.smoothscale(src, (int(sw * sc) + 1, int(sh * sc) + 1))
+            img = img.subsurface(pygame.Rect((img.get_width() - w) // 2, (img.get_height() - h) // 2, w, h)).copy()
+            if dark < 255:
+                img.fill((dark, dark, dark), special_flags=pygame.BLEND_MULT)
+        except Exception as e:
+            log_exc("foto " + k, e)
+        _BG[key] = img
+    return _BG[key]
+
+def route_thumb(surf, d):
+    k, label = carrier_dest(d)
+    if not k:
+        return
+    r = pygame.Rect(W - 178, H - 102, 170, 96)
+    if type(surf).__name__ == "ScaledSurf":
+        real, rr = surf.real, surf._r(r)
+    else:
+        real, rr = surf, r
+    img = bg_img(k, rr.w, rr.h, 230)
+    if img is not None:
+        real.blit(img, rr.topleft)
+    pygame.draw.rect(surf, BLUE if k == "sq" else ORANGE, r, 2, border_radius=4)
+    pygame.draw.rect(surf, BLACK, (r.x + 2, r.bottom - 16, r.w - 4, 14))
+    put(surf, F["small"], label.replace("PORTANAVES DE ESCUADRÓN", "ESCUADRÓN"), (r.centerx, r.bottom - 9),
+        BLUE if k == "sq" else ORANGE, r.w - 6, anchor="center")
+
+_navx0 = view_navx
+
+def view_navx(surf, d, flags, now):
+    _navx0(surf, d, flags, now)
+    if not (ui.get("navtab") == 2 and not NAVBIG[0]) and not nav_show_pol(d, now):
+        route_thumb(surf, d or {})
+
+VIEWS[3] = view_navx
+
+
+# ---------- v0.92 ----------
+SCAN_ES = {"Cargo": "BODEGA", "Crime": "DELITOS", "Cabin": "PASAJEROS", "Data": "DATOS", "Unknown": "DESCONOCIDO",
+           "Tourist": "TURISTAS"}
+
+# fotos: portanaves de operaciones y SurfaceStation solo en Operations
+ST_BG.pop("SurfaceStation", None)
+BG_FILES["op"] = "fondo_operaciones.jpg"
+
+def carrier_kind(d, st):
+    stype = (st.get("type") or "")
+    mid = st.get("mid")
+    sq, own = d.get("sqcarrier") or {}, d.get("carrier") or {}
+    if stype == "SurfaceStation" or (st.get("name") or "").startswith("$Operations"):
+        return ("op", "PORTANAVES DE OPERACIONES", BLUE) if (d.get("ops") or {}).get("on") or \
+            (st.get("name") or "").startswith("$Operations") else (None, "", None)
+    if "squadron" in stype.lower() or (mid and mid == sq.get("id")):
+        return "sq", "PORTANAVES DE ESCUADRÓN", BLUE
+    if stype == "FleetCarrier":
+        return "fc", ("TU PORTANAVES" if mid and mid == own.get("id") else "PORTANAVES"), ORANGE
+    if stype in ST_BG:
+        return ST_BG[stype], ST_TYPE.get(stype, stype).upper(), ORANGE
+    return None, "", None
+
+def carrier_bg(surf, d, st, dark=95, label=True):
+    """Foto de fondo: pidiendo atraque (con rotulo) o atracado (mas oscura, sin rotulo)."""
+    if st.get("status") not in ("SOLICITADO", "CONCEDIDO", "ATRACADO"):
+        return
+    k, lab, col = carrier_kind(d, st)
+    if not k:
+        return
+    real = surf.real if type(surf).__name__ == "ScaledSurf" else surf
+    w, h = real.get_size()
+    top = int(TOP * h / H)
+    img = bg_img(k, w, h - top, dark)
+    if img is not None:
+        real.blit(img, (0, top))
+    if label and st.get("status") != "ATRACADO":
+        put(surf, F["big"], lab, (W - 8, H - 30), col, W - 16 if k == "op" else W // 2 + 20, anchor="topright")
+
+# miniatura en la ruta: portanaves y ahora tambien estaciones (tipo de EDSM o recordado)
+_cd0 = carrier_dest
+
+def carrier_dest(d):
+    k, lab = _cd0(d)
+    if k:
+        return k, lab
+    D = d.get("dest") or {}
+    di = d.get("dstinfo") or {}
+    t = di.get("type")
+    if D.get("name") and t:
+        if t == "FleetCarrier":
+            return "fc", "PORTANAVES"
+        if "squadron" in t.lower():
+            return "sq", "ESCUADRÓN"
+        if t in ST_BG:
+            return ST_BG[t], ST_TYPE.get(t, t).upper()
+    return None, ""
+
+CREW_ES = {"Refuel": "COMBUSTIBLE", "Repair": "REPARAR", "Rearm": "REARMAR", "Commodities": "MERCADO",
+           "BlackMarket": "MERCADO NEGRO", "Shipyard": "ASTILLERO", "Outfitting": "EQUIPAMIENTO",
+           "Exploration": "CARTOGRAFÍA", "VoucherRedemption": "CANJE", "VistaGenomics": "VISTA GENOMICS",
+           "PioneerSupplies": "PIONEER", "Bartender": "BAR", "CarrierFuel": "TRITIO"}
+CREW_COST = {"Refuel": 1.5e6, "Repair": 1.5e6, "Rearm": 1.5e6, "Shipyard": 6.5e6, "Outfitting": 5e6,
+             "BlackMarket": 2e6, "Exploration": 1.85e6, "VoucherRedemption": 1.85e6, "VistaGenomics": 1.5e6,
+             "PioneerSupplies": 5e6, "Bartender": 1.75e6}
+ACCESS_ES = {"all": "TODOS", "none": "NADIE", "friends": "AMIGOS", "squadron": "ESCUADRÓN",
+             "squadronfriends": "ESCUADRÓN Y AMIGOS"}
+SVC_ES = dict((k.lower(), v) for k, v in CREW_ES.items())
+SVC_ES.update({k.lower(): v for k, v in SERVICES})
+
+def carrier_info(surf, d):
+    """Pantalla de destino con un portanaves marcado: sus datos en el hueco libre."""
+    k, lab = carrier_dest(d)
+    if k not in ("fc", "sq"):
+        return
+    y, x, wd = TOP + 58, 8, W - 190
+    own = d.get("carrier") or {}
+    if lab == "TU PORTANAVES" and own.get("callsign"):
+        av = own.get("avail")
+        up = 5e6 + sum(CREW_COST.get(c, 0) for c in own.get("crew") or [])
+        if av is not None:
+            wk = av / up if up else 99
+            put(surf, F["small"], "SALDO DISPONIBLE", (x, y), DIM)
+            put(surf, F["btn"], f"{crx(av)} cr", (x + 130, y - 3), ORANGE); y += 18
+            put(surf, F["small"], f"gastos ~{crx(up)} cr/semana  ·  da para {wk:.0f} semanas".replace(".", ","),
+                (x, y), RED if wk < 2 else ORANGE if wk < 4 else DIM, wd); y += 20
+        if own.get("crew"):
+            put(surf, F["small"], "SERVICIOS: " + ", ".join(CREW_ES.get(c, c) for c in own["crew"] if c in CREW_ES),
+                (x, y), BLUE, wd); y += 18
+        if own.get("access"):
+            put(surf, F["small"], f"ATRAQUE: {ACCESS_ES.get(own['access'], own['access'].upper())}"
+                + ("  ·  admite buscados" if own.get("notorious") else ""), (x, y), GREEN, wd); y += 18
+        if own.get("jump"):
+            put(surf, F["small"], f"SALTO: {own['jump']} al", (x, y), WHITE, wd)
+        return
+    di = d.get("dstinfo") or {}
+    sv = [SVC_ES.get(v.lower()) for v in di.get("services") or []]
+    sv = [v for v in sv if v]
+    if sv:
+        put(surf, F["small"], "SERVICIOS (última vez): " + ", ".join(dict.fromkeys(sv)), (x, y), BLUE, wd); y += 18
+    if di.get("denied"):
+        put(surf, F["small"], f"TE DENEGARON EL ATRAQUE: {di['denied']}", (x, y), RED, wd); y += 18
+    if not sv and not di.get("denied"):
+        put(surf, F["small"], "sin datos: los verás al atracar una vez", (x, y), DIM, wd)
+
+_navx1 = view_navx
+
+def view_navx(surf, d, flags, now):
+    _navx1(surf, d, flags, now)
+    if (d or {}).get("dest") and not (ui.get("navtab") == 2 and not NAVBIG[0]) and not nav_show_pol(d, now):
+        carrier_info(surf, d or {})
+
+VIEWS[3] = view_navx
+
+# SALUDOS (gestos a pie): teclas Gesto 1..8 de tus controles
+EMOTES = ["SEÑALAR", "SALUDO INFORMAL", "DE ACUERDO", "EN DESACUERDO", "VAMOS", "ALTO", "APLAUSO", "SALUDO MILITAR"]
+MENU[51] = "SALUDOS"
+PARENT[51] = 5
+
+def emote_key(i):
+    with lock:
+        keys = (((state["data"] or {}).get("binds") or {}).get("keys")) or {}
+    k = keys.get(f"HumanoidEmoteSlot{i + 1}")
+    return k if k and key_ok(k) else None
+
+def view_emotes(surf, d, flags, now):
+    for i, name in enumerate(EMOTES):
+        k = emote_key(i)
+        draw_button(surf, grid(i, 4, 2), name, k or SIN, F["btn"] if F["btn"].size(name)[0] < W // 4 - 14 else F["small"],
+                    lit=flash.get((51, i), 0) > now, dim=k is None)
+
+VIEWS[51] = view_emotes
+
+# mega nave de Operations: 15 minutos desde que atracas
+MEGA_SECS = 15 * 60
+_MGF = {}
+
+def mega_left(d, now):
+    t0 = (d or {}).get("mega")
+    return None if not t0 else t0 + MEGA_SECS - now
+
+def mega_watch(d, now):
+    left = mega_left(d, now)
+    if left is None:
+        return
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "opmega"
+        key = (d or {}).get("mega")
+        if 0 < left <= 60 and xa.get("mega60") != key:
+            xa["mega60"] = key
+            xa["a"] = dict(until=now + 6, col=RED, title="MEGA NAVE", big="¡QUEDA 1 MINUTO!", lines=["despega ya"])
+            play("alarm")
+    finally:
+        XA_K[0] = k0
+
+def draw_mega(surf, d, now):
+    left = mega_left(d, now)
+    if left is None or left < -30:
+        return
+    w, h = surf.get_size()
+    k = h / H
+    key = round(k, 2)
+    if key not in _MGF:
+        _MGF[key] = (pygame.font.Font(None, int(40 * k)), pygame.font.Font(None, int(18 * k)))
+    f1, f2 = _MGF[key] if type(surf).__name__ != "ScaledSurf" else (F["big"], F["small"])
+    r = pygame.Rect(w - int(140 * k), h - int(52 * k), int(132 * k), int(46 * k))
+    col = GREEN if left > 300 else ORANGE if left > 60 else (RED if int(now * 3) % 2 == 0 else WHITE)
+    pygame.draw.rect(surf, BLACK, r, border_radius=6)
+    pygame.draw.rect(surf, col, r, 2, border_radius=6)
+    put(surf, f2, "MEGA NAVE", (r.centerx, r.y + int(10 * k)), DIM, anchor="center")
+    l_ = max(0, int(left))
+    put(surf, f1, f"{l_ // 60}:{l_ % 60:02d}", (r.centerx, r.y + int(30 * k)), col, anchor="center")
+
+
+# ---------- v0.93 ----------
+def d_sc_():
+    with lock:
+        return state["data"]
+
+# --- fotos de naves (carpeta naves/, nave_<tipo interno>.jpg) ---
+SHIP_ALIAS = {"sidewindermki": "sidewinder", "eaglemkii": "eagle", "imperialeagle": "empire_eagle", "vipermkiii": "viper",
+    "cobramkiii": "cobramkiii", "vipermkiv": "viper_mkiv", "diamondbackscout": "diamondback", "cobramkiv": "cobramkiv",
+    "type6transporter": "type6", "diamondbackexplorer": "diamondbackxl", "imperialcourier": "empire_courier",
+    "keelback": "independant_trader", "aspscout": "asp_scout", "aspexplorer": "asp", "federaldropship": "federation_dropship",
+    "type7transporter": "type7", "alliancechieftain": "typex", "federalassaultship": "federation_dropship_mkii",
+    "imperialclipper": "empire_trader", "alliancecrusader": "typex_3", "alliancechallenger": "typex_2",
+    "federalgunship": "federation_gunship", "kraitphantom": "krait_light", "kraitmkii": "krait_mkii", "ferdelance": "ferdelance",
+    "type9heavy": "type9", "belugaliner": "belugaliner", "type10defender": "type9_military", "federalcorvette": "federation_corvette",
+    "imperialcutter": "cutter", "cobramkv": "cobramkv", "pythonmkii": "python_nx", "type8transporter": "type8",
+    "caspianexplorer": "explorer_nx", "pantherclippermkii": "panthermkii", "type11prospector": "lakonminer",
+    "kestrelmkii": "kestrel", "lynxhighliner": "lynx", "anacondamkii": "anaconda_mkii",
+    "f63condor": "federation_fighter", "condor": "federation_fighter", "gu97": "empire_fighter",
+    "taipan": "independent_fighter", "xg7trident": "gdn_hybrid_fighter_v1", "trident": "gdn_hybrid_fighter_v1",
+    "xg8javelin": "gdn_hybrid_fighter_v2", "javelin": "gdn_hybrid_fighter_v2", "xg9lance": "gdn_hybrid_fighter_v3",
+    "lance": "gdn_hybrid_fighter_v3"}
+_SHIPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "naves")
+_SHIPF = {}
+
+def _norm(t):
+    return "".join(ch for ch in (t or "").lower() if ch.isalnum())
+
+def ship_file(c, d):
+    """Fichero de la foto: por tipo interno, por nombre o por el nombre que da el astillero."""
+    if not os.path.isdir(_SHIPDIR):
+        return None
+    if not _SHIPF:
+        for f in os.listdir(_SHIPDIR):
+            if f.startswith("nave_") and f.endswith(".jpg"):
+                _SHIPF[_norm(f[5:-4])] = os.path.join(_SHIPDIR, f)
+    names = [c.get("type"), c.get("ship")]
+    fl = [x for x in ((d.get("naves") or {}).get("fleet") or []) if str(x.get("id")) == str(c.get("id"))]
+    if fl:
+        names += [fl[0].get("type"), fl[0].get("ship")]
+    for n in names:
+        k = _norm(n)
+        if k in _SHIPF:
+            return _SHIPF[k]
+        if k in SHIP_ALIAS and _norm(SHIP_ALIAS[k]) in _SHIPF:
+            return _SHIPF[_norm(SHIP_ALIAS[k])]
+    return None
+
+def ship_img(path, w, h, dark):
+    key = (path, w, h, dark)
+    if key not in _BG:
+        img = None
+        try:
+            src = pygame.image.load(path)
+            sw, sh = src.get_size()
+            sc = max(w / sw, h / sh)
+            img = pygame.transform.smoothscale(src, (int(sw * sc) + 1, int(sh * sc) + 1))
+            img = img.subsurface(pygame.Rect((img.get_width() - w) // 2, (img.get_height() - h) // 2, w, h)).copy()
+            if dark < 255:
+                img.fill((dark, dark, dark), special_flags=pygame.BLEND_MULT)
+        except Exception as e:
+            log_exc("foto nave", e)
+        _BG[key] = img
+    return _BG[key]
+
+def ship_photo(surf, c, d, r):
+    p = ship_file(c, d)
+    if not p:
+        return False
+    if type(surf).__name__ == "ScaledSurf":
+        real, rr = surf.real, surf._r(r)
+    else:
+        real, rr = surf, r
+    img = ship_img(p, rr.w, rr.h, 235)
+    if img is None:
+        return False
+    real.blit(img, rr.topleft)
+    pygame.draw.rect(surf, DIM, r, 1, border_radius=3)
+    return True
+
+def ship_bg(surf, c, d):
+    p = ship_file(c, d)
+    if not p:
+        return
+    real = surf.real if type(surf).__name__ == "ScaledSurf" else surf
+    img = ship_img(p, real.get_width(), real.get_height(), 70)
+    if img is not None:
+        real.blit(img, (0, 0))
+
+# --- mercado: el de la estacion donde estas ---
+def mkt_show(d):
+    m = cfg.get("mkt", "CON CARGA")
+    if m == "NUNCA":
+        return False
+    return m == "SIEMPRE" or any(c for _, c in ((d or {}).get("cargo") or []))
+
+def market_pick(d, now):
+    st = (d or {}).get("station") or {}
+    m = (d or {}).get("market") or {}
+    if st.get("status") != "ATRACADO" or not st.get("name"):
+        return m
+    here = st["name"]
+    me = (d or {}).get("market_edsm") or {}
+    if m.get("station") == here:
+        cur = m
+    elif me.get("station") == here and not me.get("none"):
+        cur = me
+    else:
+        return {"missing": here, "edsm": me.get("station") == here}
+    mp = (d or {}).get("market_prev") or {}
+    stype = st.get("type") or ""
+    if (stype == "FleetCarrier" or "squadron" in stype.lower()) and mp.get("station") and mp.get("station") != here \
+            and mp.get("sys") and mp.get("sys") == (d or {}).get("system") and int(now / 10) % 2:
+        return dict(mp, other=True)
+    return cur
+
+_vm0 = view_market
+
+def view_market(surf, d, flags, now):
+    m = market_pick(d, now)
+    if m.get("missing"):
+        put(surf, F["btn"], m["missing"].upper(), (W // 2, (H + TOP) // 2 - 22), ORANGE, W - 16, anchor="center")
+        put(surf, F["btn"], "abre su mercado para ver los precios", (W // 2, (H + TOP) // 2 + 4), DIM, anchor="center")
+        put(surf, F["small"], "EDSM no tiene sus precios" if m.get("edsm") else "consultando EDSM...",
+            (W // 2, (H + TOP) // 2 + 28), DIM, anchor="center")
+        return
+    _vm0(surf, dict(d or {}, market=m), flags, now)
+    tag = "EDSM" if m.get("src") == "EDSM" else ("OTRA ESTACIÓN DEL SISTEMA" if m.get("other") else "")
+    if tag:
+        put(surf, F["small"], tag, (W - 8, H - 16), BLUE, 260, anchor="topright")
+
+VIEWS[127] = view_market
+
+# --- faccion y reputacion de la estacion de destino ---
+def rep_level(r):
+    if r is None:
+        return None, DIM
+    for lim, txt, col in ((-90, "HOSTIL", RED), (-35, "POCO AMISTOSO", ORANGE), (4, "NEUTRAL", DIM),
+                          (35, "CORDIAL", WHITE), (90, "AMISTOSO", GREEN)):
+        if r < lim:
+            return txt, col
+    return "ALIADO", GREEN
+
+def dest_faction(d):
+    di = d.get("dstinfo") or {}
+    fac = di.get("fac")
+    if not fac:
+        return None
+    f = next((x for x in ((d.get("sysinfo") or {}).get("facs") or []) if x[0] == fac[:30]), None)
+    return fac, (f[3] if f and len(f) > 3 else None), (f[2] if f and len(f) > 2 else "")
+
+def draw_dest_faction(surf, d, now):
+    r_ = dest_faction(d)
+    if not r_:
+        return
+    fac, rep, state_ = r_
+    lvl, col = rep_level(rep)
+    y = TOP + 58 if carrier_dest(d)[0] not in ("fc", "sq") else H - 40
+    put(surf, F["small"], "FACCIÓN", (8, y), DIM)
+    put(surf, F["btn"], fac, (8, y + 14), WHITE, W - 196)
+    bits = [x for x in (lvl, state_) if x]
+    if bits:
+        put(surf, F["btn"], "  ·  ".join(bits), (8, y + 36), col, W - 196)
+    nm = (d.get("dest") or {}).get("name")
+    if lvl == "HOSTIL" and nm and DSTH.get("name") != nm:
+        DSTH["name"] = nm
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "dsthostil"
+            xa["a"] = dict(until=now + 6, col=RED, title="¡DESTINO HOSTIL!", big=nm.upper(), lines=[fac])
+            play("alarm")
+        finally:
+            XA_K[0] = k0
+DSTH = {"name": None}
+
+_navx2 = view_navx
+
+def view_navx(surf, d, flags, now):
+    _navx2(surf, d, flags, now)
+    if (d or {}).get("dest") and not (ui.get("navtab") == 2 and not NAVBIG[0]) and not nav_show_pol(d, now):
+        draw_dest_faction(surf, d or {}, now)
+
+VIEWS[3] = view_navx
+EV_LIST.append(("dsthostil", "DESTINO HOSTIL"))
+
+
+# ---------- v0.94: BATALLA TERMINADA (el juego no apunta la victoria: se deduce) ----------
+BAT = {"on": False}
+
+def battle_note(kind, text, d):
+    p = (text or "").split("|")
+    now = time.time()
+    if kind == "kill" and len(p) > 3 and p[3] == "F":
+        if not BAT.get("on"):
+            Z = (d or {}).get("footcz") or {}
+            BAT.clear()
+            BAT.update(on=True, t0=now, k=0, cr=0, med=0, cell=0, gren=0, zone=Z.get("zone") or "", side=Z.get("side") or "")
+        BAT["k"] += 1
+        BAT["cr"] += float(p[1] or 0)
+        BAT["last"] = now
+    elif not BAT.get("on"):
+        return
+    elif kind == "usecons" and p:
+        BAT["med" if p[0] == "healthpack" else "cell"] += 1
+    elif kind == "thrown":
+        BAT["gren"] += 1
+    elif kind in ("taxi", "dropship"):
+        battle_end(now, delay=7)                     # despues del aviso del transporte
+
+def battle_watch(d, now):
+    if BATP.get("a") and now >= BATP["at"]:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "battle"
+            xa["a"] = dict(BATP["a"], until=now + 15)
+            play("ok")
+        finally:
+            XA_K[0] = k0
+        BATP["a"] = None
+    if not BAT.get("on"):
+        return
+    Z = (d or {}).get("footcz") or {}
+    if Z.get("zone"):
+        BAT["zone"] = Z["zone"]
+    if Z.get("side"):
+        BAT["side"] = Z["side"]
+    if not ((d or {}).get("Flags2", 0) & 1) or now - max(BAT.get("last", 0), fight["t"]) > 120:
+        battle_end(now)
+
+BATP = {"a": None, "at": 0}
+
+def battle_end(now, delay=0):
+    B = dict(BAT)
+    BAT.clear(); BAT["on"] = False
+    if B.get("k", 0) < 3:
+        return                                       # dos bajas sueltas no son una batalla
+    mins = max(1, round(((B.get("last") or now) - B["t0"]) / 60))
+    cons = "  ·  ".join(x for x in ((f"botiquines {B['med']}" if B["med"] else ""), (f"células {B['cell']}" if B["cell"] else ""),
+                                    (f"granadas {B['gren']}" if B["gren"] else "")) if x)
+    BATP["a"] = dict(col=GREEN, title="BATALLA TERMINADA", big=(B.get("zone") or "ZONA DE COMBATE").upper(),
+                     lines=[f"{B['k']} bajas  ·  +{crx(B['cr'])} cr sin cobrar",
+                            f"duración {mins} min  ·  {B['k'] / mins:.1f} bajas/min".replace(".", ","),
+                            cons, f"por {B['side']}" if B.get("side") else ""])
+    BATP["at"] = now + delay
+
+EV_LIST.append(("battle", "BATALLA TERMINADA"))
+
+
+# ---------- v0.95 ----------
+def mega_dock(d):
+    st = (d or {}).get("station") or {}
+    nm = ((st.get("name") or "") + " " + (st.get("sraw") or "")).lower()
+    return bool((d or {}).get("mega")) or (st.get("status") == "ATRACADO" and
+                                         (st.get("type") == "MegaShip" or "megaship" in nm or "investig" in nm))
+
+_ck1 = carrier_kind
+
+def carrier_kind(d, st):
+    nm = ((st.get("name") or "") + " " + (st.get("sraw") or "")).lower()
+    if st.get("type") == "SurfaceStation" and ("investig" in nm or "megaship" in nm):
+        return "meganave", "NAVE DE INVESTIGACIÓN", ORANGE
+    return _ck1(d, st)
+
+
+# ---------- v0.96 ----------
+import threading as _thr
+PANEL_PERF_V = {}
+TAP_EV = _thr.Event()
+_on_tap96 = on_tap
+
+def on_tap(x, y):
+    try:
+        _on_tap96(x, y)
+    finally:
+        TAP_EV.set()                                 # redibuja ya, sin esperar al siguiente ciclo
+
+def perf_view(v, dt):
+    a = PANEL_PERF_V.setdefault(v, [0, 0.0, 0.0])
+    a[0] += 1; a[1] += dt; a[2] = max(a[2], dt)
+    t0 = PANEL_PERF_V.setdefault("_t", time.time())
+    if time.time() - t0 > 300:
+        top = sorted(((k, x) for k, x in PANEL_PERF_V.items() if k != "_t"), key=lambda kv: -kv[1][1] / max(1, kv[1][0]))[:5]
+        plog("TIEMPOS (5 min): " + "  ".join(f"{MENU.get(k, k)} {x[1] / max(1, x[0]) * 1000:.0f} ms (máx {x[2] * 1000:.0f})" for k, x in top)
+             + f"  ·  CPU {PERF.get('cpu') or 0:.0f}%  ·  {PERF.get('fps') or 0:.0f} FPS")
+        PANEL_PERF_V.clear(); PANEL_PERF_V["_t"] = time.time()
+
+# 1. version del sender
+VERW = {"done": False}
+
+def ver_check(d):
+    sv = (d or {}).get("sver")
+    pv = PANEL_VER.split(" · ")[0][:5]
+    if VERW["done"] or not d or "Flags" not in d:
+        return
+    VERW["done"] = True
+    if (sv or "")[:5] != pv:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "keys"
+            xa["a"] = dict(until=time.time() + 10, col=ORANGE, title="VERSIONES DISTINTAS", big=f"panel {pv} · sender {sv or 'antiguo'}",
+                           lines=["pon en el PC el elite_sender.py de la misma versión"])
+        finally:
+            XA_K[0] = k0
+
+_vcl0 = view_changelog
+
+def view_changelog(surf, d, flags, now):
+    _vcl0(surf, d, flags, now)
+    sv = (d or {}).get("sver")
+    pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+    put(surf, F["small"], f"panel {PANEL_VER.split(' · ')[0]}  ·  sender {sv or 'antiguo (sin versión)'}", (8, H - 16),
+        GREEN if (sv or '')[:5] == PANEL_VER.split(' · ')[0][:5] else ORANGE, W - 16)
+
+VIEWS[1245] = view_changelog
+
+# 3. aviso de dinero sin cobrar (una vez al arrancar)
+UNC = {"done": False}
+
+def uncl_watch(d, now):
+    if UNC["done"] or not d:
+        return
+    led = ((d.get("footcz") or {}).get("led") or {})
+    t0 = d.get("uncl_t0")
+    if not t0 or not led.get("cr"):
+        return
+    UNC["done"] = True
+    days = int((now - t0) // 86400)
+    if days >= 2 or led["cr"] >= 50e6:
+        k0 = XA_K[0]
+        try:
+            XA_K[0] = "redeem"
+            xa["a"] = dict(until=now + 8, col=ORANGE, title="SIN COBRAR", big=f"{crx(led['cr'])} cr",
+                           lines=[f"desde hace {days} días" if days else "", "si te destruyen la nave, se pierden"])
+        finally:
+            XA_K[0] = k0
+
+# 7. mineria por hora
+_vmin0 = view_mining
+
+def view_mining(surf, d, flags, now):
+    _vmin0(surf, d, flags, now)
+    m = (d or {}).get("mining") or {}
+    tons = sum((m.get("refined") or {}).values())
+    if tons and m.get("t0") and m.get("t1") and m["t1"] > m["t0"]:
+        h = (m["t1"] - m["t0"]) / 3600
+        rate = tons / h if h > 0.02 else None
+        prices = {r[0].lower(): r[1] for r in (((d or {}).get("market") or {}).get("best") or [])}
+        prices.update({r[0].lower(): r[2] for r in (((d or {}).get("market") or {}).get("sell") or [])})
+        val = sum(n * prices.get(k.lower(), 0) for k, n in (m.get("refined") or {}).items())
+        put(surf, F["small"], f"{rate:.0f} t/h".replace(".", ",") + (f"  ·  ~{crx(val / h)} cr/h" if val and h > 0.02 else "")
+            if rate else f"{tons} t refinadas", (W - 8, H - 42), GREEN, W - 236, anchor="topright")
+
+VIEWS[10] = view_mining
+
+def mining_cargo_bar(surf, d, now):
+    """Barra de la bodega en MINERIA: naranja desde el 90 %, roja parpadeando llena."""
+    cap = (d or {}).get("cargocap")
+    used = sum(c for _, c in ((d or {}).get("cargo") or []))
+    if not cap:
+        return
+    pct = min(1.0, used / cap)
+    full = used >= cap
+    col = RED if full else ORANGE if pct >= 0.9 else BLUE
+    r = pygame.Rect(8, H - 44, 220, 16)
+    pygame.draw.rect(surf, BLACK, r.inflate(4, 4))
+    pygame.draw.rect(surf, DIM, r, 1)
+    if not full or int(now * 3) % 2 == 0:
+        pygame.draw.rect(surf, col, (r.x + 2, r.y + 2, int((r.w - 4) * pct), r.h - 4))
+    txt = "¡BODEGA LLENA!" if full else (f"BODEGA {pct * 100:.0f} %" + (f"  ·  {used}/{cap} t" if pct < 0.9 else "  ·  casi llena"))
+    put(surf, F["small"], txt, r.center, WHITE if full or pct >= 0.9 else WHITE, r.w - 8, anchor="center")
+
+_vmin1 = view_mining
+
+def view_mining(surf, d, flags, now):
+    _vmin1(surf, d, flags, now)
+    if "rhino" not in ((d or {}).get("srvtype") or "").lower():
+        mining_cargo_bar(surf, d, now)
+
+VIEWS[10] = view_mining
+
+MINE = {"sig": None, "t": 0.0}
+
+def mining_active(d, now):
+    """Se esta minando: prospector, recolector, roca prospectada o tonelada refinada en los ultimos 10 min."""
+    m = (d or {}).get("mining") or {}
+    sig = (m.get("prospectors"), m.get("collectors"), m.get("t1"), str(m.get("last"))[:200])
+    if MINE["sig"] is None:
+        MINE["sig"] = sig
+    elif sig != MINE["sig"]:
+        MINE["sig"] = sig; MINE["t"] = now
+    return now - MINE["t"] < 600
+
+# 8. Powerplay: meritos de la semana y corte
+_vpp0 = view_pp
+
+def view_pp(surf, d, flags, now):
+    _vpp0(surf, d, flags, now)
+    w = (d or {}).get("ppweek") or {}
+    if not w.get("end"):
+        return
+    left = max(0, int(w["end"] - time.time()))
+    pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+    put(surf, F["small"], f"ESTA SEMANA: {fnum(w.get('merits', 0), 0)} méritos  ·  corte en {left // 86400} d {left % 86400 // 3600} h",
+        (8, H - 16), BLUE, W - 16)
+
+
+# ---------- v0.97: ingenieros ----------
+_ENGDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ingenieros")
+_ENG = {"data": None}
+ENG_PROG = {"Known": "conocido", "Invited": "invitado", "Acquainted": "le conoces", "Unlocked": "desbloqueado", "Barred": "vetado"}
+
+def eng_table():
+    if _ENG["data"] is None:
+        try:
+            import json as _j
+            with open(os.path.join(_ENGDIR, "ingenieros.json"), encoding="utf-8") as f:
+                _ENG["data"] = {k: dict(v, key=k) for k, v in _j.load(f).items()}
+        except Exception as e:
+            log_exc("ingenieros.json", e)
+            _ENG["data"] = {}
+    return _ENG["data"]
+
+def eng_at(system):
+    sy = (system or "").lower()
+    return next((v for v in eng_table().values() if v.get("system", "").lower() == sy), None) if sy else None
+
+def eng_here(d):
+    return eng_at((d or {}).get("system"))
+
+def eng_status(e, d):
+    p = ((d or {}).get("engprog") or {}).get(e["name"].lower())
+    if not p:
+        return "no le conoces", DIM
+    prog, rank = p
+    if prog == "Unlocked":
+        return (f"rango {rank}" if rank is not None else "desbloqueado"), GREEN
+    return ENG_PROG.get(prog, prog.lower() or "?"), ORANGE
+
+def eng_where(e):
+    pl = e.get("planet") or ""
+    body = pl if pl and not pl[:1].isdigit() and len(pl.split()[0]) > 2 else f"{e['system']} {pl}".strip()
+    return f"{e['base']}  ·  {body}  ·  {e.get('region', '')}".strip(" ·")
+
+ENGW = {"sys": None}
+
+def eng_watch(d, now):
+    sy = (d or {}).get("system")
+    if not sy or sy == ENGW["sys"]:
+        return
+    first = ENGW["sys"] is None
+    ENGW["sys"] = sy
+    e = eng_at(sy)
+    if not e or first:
+        return
+    st, _ = eng_status(e, d)
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "engsys"
+        xa["a"] = dict(until=now + 8, col=BLUE, title="INGENIERO EN EL SISTEMA", big=e["name"].upper(),
+                       lines=[st, eng_where(e)])
+        play("ok")
+    finally:
+        XA_K[0] = k0
+
+def eng_card(surf, d, r):
+    """Ficha del ingeniero: cara, nombre y rango, donde esta y lo que mejora."""
+    e = eng_here(d)
+    if not e:
+        return False
+    pygame.draw.rect(surf, BLACK, r)
+    pygame.draw.rect(surf, BLUE, r, 1, border_radius=6)
+    ph = pygame.Rect(r.x + 6, r.y + 6, int((r.h - 12) * 240 / 210), r.h - 12)
+    real, rr = (surf.real, surf._r(ph)) if type(surf).__name__ == "ScaledSurf" else (surf, ph)
+    img = ship_img(os.path.join(_ENGDIR, f"ing_{e['key']}.jpg"), rr.w, rr.h, 255)
+    if img is not None:
+        real.blit(img, rr.topleft)
+    x = ph.right + 8
+    wd = r.right - x - 6
+    st, col = eng_status(e, d)
+    narrow_ = r.w < W - 100                         # ficha estrecha: el rango baja a la segunda linea
+    put(surf, F["btn"], e["name"].upper(), (x, r.y + 4), BLUE, wd if narrow_ else wd - F["small"].size(st)[0] - 12)
+    if not narrow_:
+        put(surf, F["small"], st, (r.right - 8, r.y + 7), col, 110, anchor="topright")
+    put(surf, F["small"], (st + "  ·  " if narrow_ else "") + eng_where(e), (x, r.y + 26), col if narrow_ else ORANGE, wd)
+    mods = sorted(e.get("mods") or [], key=lambda m: -int(m[1]) if m[:1] == "G" and m[1:2].isdigit() else 0)
+    y = r.y + 44
+    line = ""
+    for m in mods:
+        t = (line + "  ·  " if line else "") + m
+        if F["small"].size(t)[0] > wd:
+            put(surf, F["small"], line, (x, y), WHITE, wd); y += 15; line = m
+            if y > r.bottom - 16:
+                break
+        else:
+            line = t
+    if line and y <= r.bottom - 16:
+        put(surf, F["small"], line, (x, y), WHITE, wd)
+    return True
+
+_vex0 = view_explo
+
+def view_explo(surf, d, flags, now):
+    _vex0(surf, d, flags, now)
+    eng_card(surf, d or {}, pygame.Rect(4, H - 112, W - 8, 108))
+
+VIEWS[71] = view_explo
+
+
+# ---------- v0.97b: la ficha del ingeniero pasa a NAVEGACION ----------
+view_explo = _vex0
+VIEWS[71] = _vex0
+_navx3 = view_navx
+
+def view_navx(surf, d, flags, now):
+    _navx3(surf, d, flags, now)
+    if not (ui.get("navtab") == 2 and not NAVBIG[0]) and not nav_show_pol(d, now) and eng_here(d):
+        th = carrier_dest(d or {})[0]                 # foto de su base (destino marcado) a la derecha
+        eng_card(surf, d or {}, pygame.Rect(4, H - 112, W - (190 if th else 8), 108))
+
+VIEWS[3] = view_navx
+
+
+def eng_by_base(name):
+    n = (name or "").strip().lower()
+    return next((v for v in eng_table().values() if v.get("base", "").lower() == n), None) if n else None
+
+
+# ---------- v0.98: tactil de la pantalla HDMI ----------
+def is_touch2(d):
+    n = (d.name or "")
+    if "ADS7846" in n or "touch" in n.lower() or "触控" in n or "qdtech" in n.lower() or "ilitek" in n.lower():
+        return True
+    try:
+        from evdev import ecodes as ec_
+        caps = d.capabilities()
+        abs_ = [a[0] if isinstance(a, tuple) else a for a in caps.get(ec_.EV_ABS, [])]
+        return ec_.ABS_X in abs_ and ec_.ABS_Y in abs_ and ec_.EV_REL not in caps
+    except Exception:
+        return False
+
+BIGTAP_N = [0]
+
+def big_tap(xn, yn):
+    """Toque en la HDMI (coordenadas 0..1)."""
+    bw, bh = BIG.get("w") or 1024, BIG.get("h") or 600
+    if hdmi_panel():
+        sc = min(bw / W, bh / H)
+        ox, oy = (bw - W * sc) / 2, (bh - H * sc) / 2
+        px, py = (xn * bw - ox) / sc, (yn * bh - oy) / sc
+        if 0 <= px < W and 0 <= py < H:
+            on_tap(int(px), int(py))
+        return
+    for v, r in BIG.get("rects") or []:
+        if r.collidepoint(xn * bw, yn * bh):
+            ui["view"] = v if v in VIEWS else ui["view"]
+            cfg["hdmi"] = "panel"; save_cfg(); TAP_EV.set()
+            return
+    cfg["hdmi"] = "panel"; save_cfg(); TAP_EV.set()      # sin cuadros (espera, atraque...): pasa a PANEL
+
+def touch_loop2():
+    """Segundo tactil (el de la HDMI) cuando tambien esta la pantalla pequena."""
+    try:
+        from evdev import InputDevice, list_devices, ecodes as ec
+    except ImportError:
+        return
+    while True:
+        try:
+            devs_ = [InputDevice(p) for p in list_devices()]
+        except Exception:
+            time.sleep(5); continue
+        dev = next((d for d in devs_ if "ADS7846" not in d.name and is_touch2(d)), None)
+        if not dev:
+            time.sleep(5); continue
+        print("Tactil HDMI:", dev.name)
+        try:
+            ax, ay = dev.absinfo(ec.ABS_X), dev.absinfo(ec.ABS_Y)
+            rx = ry = 0; t_down = None; pos = None
+            for ev in dev.read_loop():
+                if ev.type == ec.EV_ABS:
+                    if ev.code == ec.ABS_X: rx = ev.value
+                    elif ev.code == ec.ABS_Y: ry = ev.value
+                elif ev.type == ec.EV_KEY and ev.code in (ec.BTN_TOUCH, ec.BTN_LEFT):
+                    if ev.value == 1:
+                        t_down, pos = time.time(), None
+                    elif t_down is not None:
+                        dur = time.time() - t_down; t_down = None
+                        if pos is None:
+                            continue
+                        if dur >= 1.2:
+                            hdmi_toggle(); TAP_EV.set()          # pulsacion larga: PANEL <-> 4 CUADROS
+                        else:
+                            big_tap(*pos)
+                elif ev.type == ec.EV_SYN and t_down is not None and pos is None:
+                    pos = ((rx - ax.min) / max(1, ax.max - ax.min), (ry - ay.min) / max(1, ay.max - ay.min))
+        except OSError:
+            time.sleep(2)                                # desconectado: se vuelve a buscar
+        except Exception as e:
+            log_exc("tactil HDMI", e); time.sleep(5)
+
+
+# ---------- v0.99: voz con Piper y combate solo con armas fuera ----------
+def hp_out(d, flags):
+    """Armas sacadas de verdad (no el escaner en modo analisis ni justo despues de escanear o lanzar drones)."""
+    return bool(flags & 64) and not flags & (1 << 27) and time.time() - ((d or {}).get("scan_t") or 0) > 20
+
+PIPER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "piper")
+PIPER_BIN = os.path.join(PIPER_DIR, "piper", "piper")
+PIPER_MODEL = os.path.join(PIPER_DIR, "es.onnx")
+PIPER_PRE = ["TE ATACAN", "ESCUDOS CAÍDOS", "ESCUDOS ARRIBA", "Voz de la nave activada"]
+
+def piper_ok():
+    return os.path.exists(PIPER_BIN) and os.path.exists(PIPER_MODEL)
+
+def _piper_wav(t, low=False):
+    d = os.path.join(PIPER_DIR, "cache")
+    os.makedirs(d, exist_ok=True)
+    f = os.path.join(d, hashlib.md5(t.encode("utf-8")).hexdigest()[:16] + ".wav")
+    if not os.path.exists(f):
+        cmd = (["nice", "-n", "19"] if low else []) + [PIPER_BIN, "--model", PIPER_MODEL, "--output_file", f + ".tmp"]
+        subprocess.run(cmd, input=t.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        os.replace(f + ".tmp", f)
+    return f
+
+def _piper_play(t):
+    try:
+        f = _piper_wav(t)
+        voice["proc"] = subprocess.Popen(["aplay", "-q", f], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        log_exc("voz piper", e)
+    finally:
+        voice["busy"] = False
+
+def _piper_pre():
+    time.sleep(30)                                   # tras el arranque, sin prisa
+    for t in PIPER_PRE:
+        try:
+            _piper_wav(t, low=True)
+        except Exception:
+            pass
+
+_voice_ok0 = voice_ok
+
+def voice_ok():
+    return piper_ok() or _voice_ok0()
+
+_voice_say0 = voice_say
+
+def voice_say(text):
+    if not cfg.get("voice") or not piper_ok():
+        return _voice_say0(text)
+    t = re.sub(r"[¡!¿?>|·_]", " ", text or "")
+    t = re.sub(r"\s+", " ", t).strip(" .")
+    if not t or time.time() - voice["last"].get(t, 0) < 30:
+        return
+    p_ = voice["proc"]
+    if voice.get("busy") or (p_ and p_.poll() is None):
+        return
+    voice["last"][t] = time.time()
+    voice["busy"] = True
+    threading.Thread(target=_piper_play, args=(t,), daemon=True).start()
+
+if piper_ok():
+    threading.Thread(target=_piper_pre, daemon=True).start()
+
+
+# ---------- v0.99b: ficha del objetivo en la pantalla grande ----------
+def view_target(surf, d, flags, now):
+    view_combat(surf, d, flags, now)
+    pygame.draw.rect(surf, BLACK, (0, CARD6, W, H - CARD6))
+    t = (d or {}).get("target") or {}
+    r = pygame.Rect(W // 2 - 122, CARD6 + 6, 244, H - CARD6 - 12)
+    if not (cfg.get("cmdrpics", True) and ship_photo(surf, {"type": t.get("stype"), "ship": t.get("ship")}, {}, r)):
+        put(surf, F["small"], "sin foto de esta nave", r.center, DIM, anchor="center")
+
+VIEWS[177] = view_target
+MENU[177] = "OBJETIVO"
+
+
+# ---------- v0.99d: depositos de construccion ----------
+ST_BG.update({"SpaceConstructionDepot": "deposito_espacial", "PlanetaryConstructionDepot": "deposito_planetario"})
+BG_FILES.update({"deposito_espacial": "fondo_deposito_espacial.jpg", "deposito_planetario": "fondo_deposito_planetario.jpg"})
+ST_TYPE.update({"SpaceConstructionDepot": "Depósito de construcción", "PlanetaryConstructionDepot": "Depósito planetario"})
+
+
 def render(surf):
     with lock:
         d, rx = state["data"], state["rx"]
     now = time.time()
     online = d is not None and now - rx < 5
     if online and not HI_PASS[0]:
+        glow_watch(d)
         binds_check(d)
         process_notes(d)
         track_update(d, now)
@@ -6209,7 +7849,9 @@ def render(surf):
         draw_idle(surf, now)
         if menu_:
             draw_xa(surf, now)
-            put(surf, F["big"], "MENÚ PRINCIPAL", (W // 2, H - 44), GREEN, anchor="center")
+            pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
+            put(surf, F["btn"], "MENÚ PRINCIPAL", (W // 2, H - 9), NEON_G, anchor="center")
+        draw_shipcard(surf, now)
         return
     if False:
         draw_idle(surf, now); return
@@ -6252,7 +7894,9 @@ def render(surf):
     fn = VIEWS.get(v)
     if fn:
         try:
+            t_ = time.perf_counter()
             fn(surf, d if online else None, flags, now)
+            perf_view(v, time.perf_counter() - t_)
         except Exception as e:
             log_exc(f"pantalla {v}", e)
             put(surf, F["btn"], "Error en esta pantalla", (W // 2, (H + TOP) // 2 - 10), RED, anchor="center")
@@ -6264,6 +7908,8 @@ def render(surf):
         xa_notes(d if online else None, now)
     draw_xa(surf, now)
     draw_toast(surf, now)
+    draw_shipcard(surf, now)
+    draw_mega(surf, d if online else None, now)
     draw_hpcrit(surf, now)
     draw_kill(surf, now)
     if (cfg.get("voice") or cfg.get("stream")) and not HI_PASS[0]:
@@ -6295,6 +7941,7 @@ def main():
         stream_start()
     threading.Thread(target=udp_loop, daemon=True).start()
     threading.Thread(target=touch_loop, daemon=True).start()
+    threading.Thread(target=touch_loop2, daemon=True).start()
     threading.Thread(target=mouse_loop, daemon=True).start()
     threading.Thread(target=obs_loop, daemon=True).start()
     last = None
@@ -6316,7 +7963,7 @@ def main():
             data = to_fb_bytes(surf, bpp, stride)
             if data != last:
                 fb.seek(0); fb.write(data); last = data
-            time.sleep(0.1)
+            TAP_EV.wait(0.1); TAP_EV.clear()
 
 if __name__ == "__main__":
     main()
