@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# Panel tactil Elite Dangerous - Raspberry Pi 4 + pantalla 3.5" 480x320
+# Panel tactil Elite Dangerous - Raspberry Pi 3 / 4, pantalla pequena y/o HDMI
 import os, glob, json, socket, threading, time, queue, hashlib, base64, math, shutil, subprocess, wave, struct
 from collections import deque
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame
 import numpy as np
+PANEL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 UDP_PORT = 5005
 W, H = 480, 320
@@ -76,7 +77,7 @@ ui = {"view": 100, "pause": False, "tab4": 0, "page4": 0, "orders": {}, "page7":
       "start": time.time(), "idle_skip": 0, "idle_on": False, "note_seq": None, "gui": 0, "alert": None}
 
 # ---------- ajustes (se guardan en la Pi) ----------
-SETTINGS_FILE = os.path.expanduser("~/panel_ajustes.json")
+SETTINGS_FILE = os.path.join(PANEL_DIR, "panel_ajustes.json")
 THEMES = [("NARANJA", (255, 140, 0)), ("AZUL", (80, 160, 255)), ("VERDE", (60, 220, 110)),
           ("MORADO", (190, 110, 255)), ("ROJO", (255, 80, 60)), ("BLANCO", (225, 225, 225))]
 cfg = {"sharp": True, "auto": True, "alerts": True, "sound": True, "theme": 0, "cmdr": CMDR_NAME}
@@ -346,6 +347,18 @@ def press_seq(keys):
     if not all(key_ok(k) for k in keys):
         set_alert("SIN TECLA EN EL JUEGO", "mira AJUSTES > OPCIONES > TECLAS", ORANGE, 3)
         return
+    if not os.path.exists("/dev/hidg0"):
+        pc = state.get("pc")
+        if not pc:
+            set_alert("NO SÉ LA IP DEL PC", "el sender no está enviando", RED, 3)
+            return
+        try:
+            so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            so.sendto(("ELITEPANEL-KEYS|" + ",".join(keys)).encode(), (pc, 5006))
+            so.close()
+        except OSError as e:
+            print("Error teclas por red:", e)
+        return
     def run():
         with hid_lock:
             try:
@@ -584,7 +597,7 @@ def touch_loop():
             y = (ry - ay.min) / max(1, ay.max - ay.min)
             if SWAP_XY: x, y = y, x
             if INV_X: x = 1 - x
-            if INV_Y: y = 1 - y
+            if INV_Y and "ADS7846" in dev.name: y = 1 - y
             on_tap(int(x * W), int(y * H))
 
 # ---------- utilidades de dibujo ----------
@@ -1730,7 +1743,7 @@ def view_market(surf, d, flags, now):
         put(surf, F["btn"], f"VENDIENDO TODO: {cr(tot)} cr", (8, H - 36), GREEN)
 
 # ---------- 12.8 notas de viaje ----------
-NOTES_FILE = "/home/ortem/notas.json"
+NOTES_FILE = os.path.join(PANEL_DIR, "notas.json")
 
 def trip_load():
     try:
@@ -2428,7 +2441,10 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("0.99k", "Vigilante: si se congela, LOG y reinicio solo"),
+    ("0.99j", "MEGA NAVE a mano: tocar el cuadro empieza los 15:00"),
     ("0.99g", "Solo pantalla de 10\": táctil HDMI sin la pequeña de 3.5\""),
+    ("0.99i", "Mega nave: cuenta atrás con la hora del PC"),
     ("0.99h", "Cierre de emergencia: IP del PC fija opcional en pc_ip.txt"),
 ]
 
@@ -2447,7 +2463,7 @@ def view_changelog(surf, d, flags, now):
         y += 22
 
 # ---------- menu principal con iconos (12.4 -> 7 ICONOS) ----------
-ICONS_FILE = "/home/ortem/iconos.txt"
+ICONS_FILE = os.path.join(PANEL_DIR, "iconos.txt")
 try:
     ICONS_ON = [open(ICONS_FILE).read().strip() == "si"]
 except OSError:
@@ -2790,7 +2806,7 @@ CMDR_IMG = [None]
 def cmdr_img():
     if CMDR_IMG[0] is None:
         try:
-            CMDR_IMG[0] = pygame.image.load("/home/ortem/cmdr.jpg")
+            CMDR_IMG[0] = pygame.image.load(os.path.join(PANEL_DIR, "cmdr.jpg"))
         except Exception as e:
             print("foto:", e); CMDR_IMG[0] = False
     return CMDR_IMG[0]
@@ -3416,10 +3432,10 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.99h · 06/11/2026 13:57"
+PANEL_VER = "v0.99k · 06/11/2026 20:53"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
-STYLE_FILE = "/home/ortem/estilo.txt"
+STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")
 
 def style_load():
     try:
@@ -3923,7 +3939,7 @@ def decorate_big(S):
 
 # ---------- bordes de situacion (rojo, naranja, marron, azul) ----------
 BROWN = (150, 90, 40)
-BORDERS_FILE = "/home/ortem/bordes.txt"
+BORDERS_FILE = os.path.join(PANEL_DIR, "bordes.txt")
 try:
     style["borders"] = open(BORDERS_FILE).read().strip() != "no"
 except OSError:
@@ -3971,7 +3987,7 @@ def draw_borders(surf):
 import re
 GALNET_URL = ("https://cms.zaonce.net/es-ES/jsonapi/node/galnet_article"
               "?sort=-published_at&page%5Blimit%5D=20")
-GALNET_FILE = "/home/ortem/galnet.json"
+GALNET_FILE = os.path.join(PANEL_DIR, "galnet.json")
 GALNET_EVERY = 1800
 galnet = {"list": [], "t": 0, "err": "", "page": 0, "sel": None, "apage": 0, "new": set(), "lines": None}
 
@@ -4484,7 +4500,7 @@ def power_box(surf, r):
 
 # ---------- registro de errores: /home/ortem/panel.log y pantalla LOG ----------
 import builtins, traceback, os as _os
-PANEL_LOG = "/home/ortem/panel.log"
+PANEL_LOG = os.path.join(PANEL_DIR, "panel.log")
 _err_seen = {}
 
 def plog(*a, **k):
@@ -4925,6 +4941,12 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 # Novedades v0.99
 - VOZ con Piper (voz natural): carpeta piper/ junto a panel.py con piper/piper y es.onnx. Las frases ya dichas se guardan en piper/cache y suenan al momento. Si no está Piper, se usa espeak-ng.
 - La pantalla grande solo pasa a COMBATE en nave con las armas sacadas; al guardarlas se quita (los avisos siguen saliendo).
+# Novedades v0.99 (reloj)
+- La cuenta atrás de la mega nave usa la hora del PC: funciona aunque el reloj de la Pi vaya mal.
+# Novedades v0.99j
+- MEGA NAVE a mano: en Operations sale abajo a la derecha el cuadro MEGA NAVE · TOCA (15:00). Al tocarlo empieza la cuenta atrás de 15 minutos; tocarlo otra vez la vuelve a poner en 15:00 (segunda planta). Aviso al último minuto.
+# Novedades v0.99k
+- Vigilante: si la pantalla se queda congelada más de 45 segundos, el panel apunta en el LOG dónde se atascó («PANEL COLGADO») y se reinicia solo.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -5537,7 +5559,7 @@ def mouse_loop():
                 caps = d.capabilities()
             except Exception:
                 continue
-            if "ADS7846" in d.name or "touch" in d.name.lower():
+            if is_touch2(d):
                 continue                                   # el tactil lo lleva touch_loop
             if ec.EV_REL in caps or ec.KEY_ESC in caps.get(ec.EV_KEY, []):
                 devs[p] = d
@@ -7115,9 +7137,15 @@ VIEWS[51] = view_emotes
 MEGA_SECS = 15 * 60
 _MGF = {}
 
+def pc_now(d, now=None):
+    """Hora del PC (la del juego). Si el sender manda su reloj, se corrige el de la Pi."""
+    now = time.time() if now is None else now
+    pn = (d or {}).get("pcnow")
+    return now + (pn - state["rx"]) if pn and state.get("rx") else now
+
 def mega_left(d, now):
     t0 = (d or {}).get("mega")
-    return None if not t0 else t0 + MEGA_SECS - now
+    return None if not t0 else t0 + MEGA_SECS - pc_now(d, now)
 
 def mega_watch(d, now):
     left = mega_left(d, now)
@@ -7755,7 +7783,7 @@ def touch_loop2():
 # ---------- v0.99: voz con Piper y combate solo con armas fuera ----------
 def hp_out(d, flags):
     """Armas sacadas de verdad (no el escaner en modo analisis ni justo despues de escanear o lanzar drones)."""
-    return bool(flags & 64) and not flags & (1 << 27) and time.time() - ((d or {}).get("scan_t") or 0) > 20
+    return bool(flags & 64) and not flags & (1 << 27) and pc_now(d) - ((d or {}).get("scan_t") or 0) > 20
 
 PIPER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "piper")
 PIPER_BIN = os.path.join(PIPER_DIR, "piper", "piper")
@@ -7834,6 +7862,121 @@ MENU[177] = "OBJETIVO"
 ST_BG.update({"SpaceConstructionDepot": "deposito_espacial", "PlanetaryConstructionDepot": "deposito_planetario"})
 BG_FILES.update({"deposito_espacial": "fondo_deposito_espacial.jpg", "deposito_planetario": "fondo_deposito_planetario.jpg"})
 ST_TYPE.update({"SpaceConstructionDepot": "Depósito de construcción", "PlanetaryConstructionDepot": "Depósito planetario"})
+
+
+# ---------- v0.99j: cronometro de la mega nave a mano ----------
+MEGA = {"t0": None}
+
+def ops_on(d):
+    return bool(((d or {}).get("ops") or {}).get("on"))
+
+def mega_left(d, now):
+    if not ops_on(d):
+        MEGA["t0"] = None
+        return None
+    t0 = MEGA["t0"]
+    if t0 and t0 + MEGA_SECS - now < -30:
+        MEGA["t0"] = t0 = None                        # acabado: vuelve a 15:00 en espera
+    return False if not t0 else t0 + MEGA_SECS - now   # False = en espera de que lo toques
+
+def mega_tap(now=None):
+    MEGA["t0"] = time.time() if now is None else now
+    xa.pop("mega60", None)
+    play("ok")
+    TAP_EV.set()
+
+def mega_rect(w, h):
+    k = h / H
+    return pygame.Rect(w - int(140 * k), h - int(52 * k), int(132 * k), int(46 * k))
+
+def mega_watch(d, now):
+    left = mega_left(d, now)
+    if not left:
+        return
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "opmega"
+        key = MEGA["t0"]
+        if 0 < left <= 60 and xa.get("mega60") != key:
+            xa["mega60"] = key
+            xa["a"] = dict(until=now + 6, col=RED, title="MEGA NAVE", big="¡QUEDA 1 MINUTO!", lines=["despega ya"])
+            play("alarm")
+    finally:
+        XA_K[0] = k0
+
+def draw_mega(surf, d, now):
+    left = mega_left(d, now)
+    if left is None:
+        return
+    w, h = surf.get_size()
+    k = h / H
+    key = round(k, 2)
+    if key not in _MGF:
+        _MGF[key] = (pygame.font.Font(None, int(40 * k)), pygame.font.Font(None, int(18 * k)))
+    f1, f2 = _MGF[key] if type(surf).__name__ != "ScaledSurf" else (F["big"], F["small"])
+    r = mega_rect(w, h)
+    if left is False:
+        col, txt, lab = DIM, "15:00", "MEGA NAVE · TOCA"
+    else:
+        col = GREEN if left > 300 else ORANGE if left > 60 else (RED if int(now * 3) % 2 == 0 else WHITE)
+        l_ = max(0, int(left)); txt, lab = f"{l_ // 60}:{l_ % 60:02d}", "MEGA NAVE"
+    pygame.draw.rect(surf, BLACK, r, border_radius=6)
+    pygame.draw.rect(surf, col, r, 2, border_radius=6)
+    put(surf, f2, lab, (r.centerx, r.y + int(10 * k)), DIM, anchor="center")
+    put(surf, f1, txt, (r.centerx, r.y + int(30 * k)), col, anchor="center")
+
+_on_tap99j = on_tap
+
+def on_tap(x, y):
+    with lock:
+        d_ = state["data"]
+    if ops_on(d_) and mega_rect(W, H).collidepoint(x, y):
+        mega_tap(); return
+    _on_tap99j(x, y)
+
+_big_tap99j = big_tap
+
+def big_tap(xn, yn):
+    if not hdmi_panel():
+        with lock:
+            d_ = state["data"]
+        bw, bh = BIG.get("w") or 1024, BIG.get("h") or 600
+        if ops_on(d_) and mega_rect(bw, bh).collidepoint(xn * bw, yn * bh):
+            mega_tap(); return
+    _big_tap99j(xn, yn)
+
+
+# ---------- v0.99k: vigilante del bucle principal ----------
+WD = {"t": time.time(), "on": False}
+WD_SECS = 45
+
+def wd_dump(why):
+    import sys, traceback as tb_
+    names = {t.ident: t.name for t in threading.enumerate()}
+    out = [f"PANEL COLGADO ({why}): reinicio. Donde estaba cada hilo:"]
+    for tid, fr in sys._current_frames().items():
+        st = tb_.extract_stack(fr)[-4:]
+        out.append(f"  [{names.get(tid, tid)}] " + " <- ".join(f"{x.name}:{x.lineno}" for x in reversed(st)))
+        out.append("      " + ((st[-1].line or "") if st else ""))
+    plog("\n".join(out))
+
+def watchdog_loop():
+    while True:
+        time.sleep(5)
+        if WD["on"] and time.time() - WD["t"] > WD_SECS:
+            try:
+                wd_dump(f"{time.time() - WD['t']:.0f} s sin dibujar")
+            finally:
+                os._exit(3)                              # systemd lo arranca otra vez
+
+_big_go99k = big_go
+
+def big_go(surf):
+    WD["t"] = time.time()
+    if not WD["on"]:
+        WD["on"] = True
+        threading.Thread(target=watchdog_loop, daemon=True, name="vigilante").start()
+    return _big_go99k(surf)
 
 
 def render(surf):
