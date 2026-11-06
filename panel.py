@@ -3415,7 +3415,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.99f · 05/11/2026 18:54"
+PANEL_VER = "v0.99g · 06/11/2026 13:47"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
