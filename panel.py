@@ -2421,6 +2421,13 @@ CHANGES = [
     ("0.97b", "Ficha del ingeniero en NAVEGACIÓN y EXOBIOLOGÍA"),
     ("0.97c", "BASE DE INGENIERO solo en las bases de verdad"),
     ("0.98", "Pantalla HDMI táctil: PANEL o 4 CUADROS"),
+    ("0.98b", "La HDMI táctil siempre responde; toques al LOG"),
+    ("0.99", "Voz con Piper y COMBATE solo con las armas sacadas"),
+    ("0.99b", "Nave fijada sin armas: ficha OBJETIVO en la pantalla grande"),
+    ("0.99c", "Fotos de los cazas"),
+    ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
+    ("0.99e", "Sin los toques de prueba en el LOG"),
+    ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -3407,7 +3414,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.98 · 05/11/2026 14:45"
+PANEL_VER = "v0.99f · 05/11/2026 18:54"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
@@ -3642,7 +3649,7 @@ def big_mode(d, flags):
     f2 = d.get("Flags2", 0)
     if in_fight(d):
         return "COMBATE A PIE"
-    if not f2 & 1 and time.time() - fight["t"] < FIGHT_SECS:
+    if not f2 & 1 and hp_out(d, flags) and time.time() - fight["t"] < FIGHT_SECS:
         return "COMBATE"                     # combate de nave: manda aunque el juego diga atracado
     if flags & 1:
         return "ATRACADO"
@@ -3652,7 +3659,7 @@ def big_mode(d, flags):
         return "SUPERFICIE"
     if (d.get("body") or "").endswith(" Ring"):
         return "APROXIMACIÓN"
-    if d.get("target") or (flags & 64 and not flags & (1 << 27) and time.time() - (d.get("scan_t") or 0) > 20):
+    if hp_out(d, flags):
         return "COMBATE"
     if flags & (1 << 21):
         return "APROXIMACIÓN"
@@ -3729,6 +3736,11 @@ def render_big():
         cells[cells.index(4)] = atr_cell(d, now)
     if mega_dock(d) and 133 in cells:
         cells[cells.index(133)] = 61                 # mega nave: REGISTRO DE COMBATE en lugar de GALNET
+    if mode != "COMBATE" and len(cells) >= 3 and 10 not in cells and mining_active(d, now) and not (d.get("Flags2", 0) & 1):
+        cells[2] = 10                                # minando: MINERIA en el cuadro 3
+    if d.get("target") and mode != "COMBATE" and len(cells) >= 3:
+        k_ = next((c for c in (71, 72) if c in cells), cells[2])
+        cells[cells.index(k_)] = 177                  # nave fijada sin armas: su ficha
     if mode == "SUPERFICIE" and flags & (1 << 26) and "rhino" in (d.get("srvtype") or "").lower():
         cells = [100, 74, 5, 10]
     if len(cells) == 1:
@@ -4908,6 +4920,9 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Ingenieros (38, de nave y de a pie; carpeta ingenieros/ junto a panel.py): al llegar a su sistema, aviso INGENIERO EN EL SISTEMA con tu rango; en NAVEGACIÓN su ficha con cara (y la foto de su base si la marcas como destino), base, planeta y lo que mejora; en NAVEGACIÓN, «ING.» si el destino de la ruta es su sistema.
 # Novedades v0.98
 - Pantalla HDMI táctil (por ejemplo una de 7" con táctil USB), junto a la pequeña: en modo PANEL se maneja tocando igual que la pequeña; en 4 CUADROS, tocar un cuadro lo abre en grande y una pulsación larga (más de 1 segundo) vuelve a 4 CUADROS. También en AJUSTES > OPCIONES > PANTALLA HDMI.
+# Novedades v0.99
+- VOZ con Piper (voz natural): carpeta piper/ junto a panel.py con piper/piper y es.onnx. Las frases ya dichas se guardan en piper/cache y suenan al momento. Si no está Piper, se usa espeak-ng.
+- La pantalla grande solo pasa a COMBATE en nave con las armas sacadas; al guardarlas se quita (los avisos siguen saliendo).
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -7146,7 +7161,11 @@ SHIP_ALIAS = {"sidewindermki": "sidewinder", "eaglemkii": "eagle", "imperialeagl
     "type9heavy": "type9", "belugaliner": "belugaliner", "type10defender": "type9_military", "federalcorvette": "federation_corvette",
     "imperialcutter": "cutter", "cobramkv": "cobramkv", "pythonmkii": "python_nx", "type8transporter": "type8",
     "caspianexplorer": "explorer_nx", "pantherclippermkii": "panthermkii", "type11prospector": "lakonminer",
-    "kestrelmkii": "kestrel", "lynxhighliner": "lynx", "anacondamkii": "anaconda_mkii"}
+    "kestrelmkii": "kestrel", "lynxhighliner": "lynx", "anacondamkii": "anaconda_mkii",
+    "f63condor": "federation_fighter", "condor": "federation_fighter", "gu97": "empire_fighter",
+    "taipan": "independent_fighter", "xg7trident": "gdn_hybrid_fighter_v1", "trident": "gdn_hybrid_fighter_v1",
+    "xg8javelin": "gdn_hybrid_fighter_v2", "javelin": "gdn_hybrid_fighter_v2", "xg9lance": "gdn_hybrid_fighter_v3",
+    "lance": "gdn_hybrid_fighter_v3"}
 _SHIPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "naves")
 _SHIPF = {}
 
@@ -7474,11 +7493,48 @@ def view_mining(surf, d, flags, now):
         prices = {r[0].lower(): r[1] for r in (((d or {}).get("market") or {}).get("best") or [])}
         prices.update({r[0].lower(): r[2] for r in (((d or {}).get("market") or {}).get("sell") or [])})
         val = sum(n * prices.get(k.lower(), 0) for k, n in (m.get("refined") or {}).items())
-        pygame.draw.rect(surf, BLACK, (0, H - 18, W, 18))
-        put(surf, F["small"], f"{tons} t refinadas" + (f"  ·  {rate:.0f} t/hora".replace(".", ",") if rate else "")
-            + (f"  ·  ~{crx(val / h)} cr/hora" if val and h > 0.02 else ""), (8, H - 16), GREEN, W - 16)
+        put(surf, F["small"], f"{rate:.0f} t/h".replace(".", ",") + (f"  ·  ~{crx(val / h)} cr/h" if val and h > 0.02 else "")
+            if rate else f"{tons} t refinadas", (W - 8, H - 42), GREEN, W - 236, anchor="topright")
 
 VIEWS[10] = view_mining
+
+def mining_cargo_bar(surf, d, now):
+    """Barra de la bodega en MINERIA: naranja desde el 90 %, roja parpadeando llena."""
+    cap = (d or {}).get("cargocap")
+    used = sum(c for _, c in ((d or {}).get("cargo") or []))
+    if not cap:
+        return
+    pct = min(1.0, used / cap)
+    full = used >= cap
+    col = RED if full else ORANGE if pct >= 0.9 else BLUE
+    r = pygame.Rect(8, H - 44, 220, 16)
+    pygame.draw.rect(surf, BLACK, r.inflate(4, 4))
+    pygame.draw.rect(surf, DIM, r, 1)
+    if not full or int(now * 3) % 2 == 0:
+        pygame.draw.rect(surf, col, (r.x + 2, r.y + 2, int((r.w - 4) * pct), r.h - 4))
+    txt = "¡BODEGA LLENA!" if full else (f"BODEGA {pct * 100:.0f} %" + (f"  ·  {used}/{cap} t" if pct < 0.9 else "  ·  casi llena"))
+    put(surf, F["small"], txt, r.center, WHITE if full or pct >= 0.9 else WHITE, r.w - 8, anchor="center")
+
+_vmin1 = view_mining
+
+def view_mining(surf, d, flags, now):
+    _vmin1(surf, d, flags, now)
+    if "rhino" not in ((d or {}).get("srvtype") or "").lower():
+        mining_cargo_bar(surf, d, now)
+
+VIEWS[10] = view_mining
+
+MINE = {"sig": None, "t": 0.0}
+
+def mining_active(d, now):
+    """Se esta minando: prospector, recolector, roca prospectada o tonelada refinada en los ultimos 10 min."""
+    m = (d or {}).get("mining") or {}
+    sig = (m.get("prospectors"), m.get("collectors"), m.get("t1"), str(m.get("last"))[:200])
+    if MINE["sig"] is None:
+        MINE["sig"] = sig
+    elif sig != MINE["sig"]:
+        MINE["sig"] = sig; MINE["t"] = now
+    return now - MINE["t"] < 600
 
 # 8. Powerplay: meritos de la semana y corte
 _vpp0 = view_pp
@@ -7628,6 +7684,8 @@ def is_touch2(d):
     except Exception:
         return False
 
+BIGTAP_N = [0]
+
 def big_tap(xn, yn):
     """Toque en la HDMI (coordenadas 0..1)."""
     bw, bh = BIG.get("w") or 1024, BIG.get("h") or 600
@@ -7643,6 +7701,7 @@ def big_tap(xn, yn):
             ui["view"] = v if v in VIEWS else ui["view"]
             cfg["hdmi"] = "panel"; save_cfg(); TAP_EV.set()
             return
+    cfg["hdmi"] = "panel"; save_cfg(); TAP_EV.set()      # sin cuadros (espera, atraque...): pasa a PANEL
 
 def touch_loop2():
     """Segundo tactil (el de la HDMI) cuando tambien esta la pantalla pequena."""
@@ -7685,6 +7744,90 @@ def touch_loop2():
             time.sleep(2)                                # desconectado: se vuelve a buscar
         except Exception as e:
             log_exc("tactil HDMI", e); time.sleep(5)
+
+
+# ---------- v0.99: voz con Piper y combate solo con armas fuera ----------
+def hp_out(d, flags):
+    """Armas sacadas de verdad (no el escaner en modo analisis ni justo despues de escanear o lanzar drones)."""
+    return bool(flags & 64) and not flags & (1 << 27) and time.time() - ((d or {}).get("scan_t") or 0) > 20
+
+PIPER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "piper")
+PIPER_BIN = os.path.join(PIPER_DIR, "piper", "piper")
+PIPER_MODEL = os.path.join(PIPER_DIR, "es.onnx")
+PIPER_PRE = ["TE ATACAN", "ESCUDOS CAÍDOS", "ESCUDOS ARRIBA", "Voz de la nave activada"]
+
+def piper_ok():
+    return os.path.exists(PIPER_BIN) and os.path.exists(PIPER_MODEL)
+
+def _piper_wav(t, low=False):
+    d = os.path.join(PIPER_DIR, "cache")
+    os.makedirs(d, exist_ok=True)
+    f = os.path.join(d, hashlib.md5(t.encode("utf-8")).hexdigest()[:16] + ".wav")
+    if not os.path.exists(f):
+        cmd = (["nice", "-n", "19"] if low else []) + [PIPER_BIN, "--model", PIPER_MODEL, "--output_file", f + ".tmp"]
+        subprocess.run(cmd, input=t.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        os.replace(f + ".tmp", f)
+    return f
+
+def _piper_play(t):
+    try:
+        f = _piper_wav(t)
+        voice["proc"] = subprocess.Popen(["aplay", "-q", f], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        log_exc("voz piper", e)
+    finally:
+        voice["busy"] = False
+
+def _piper_pre():
+    time.sleep(30)                                   # tras el arranque, sin prisa
+    for t in PIPER_PRE:
+        try:
+            _piper_wav(t, low=True)
+        except Exception:
+            pass
+
+_voice_ok0 = voice_ok
+
+def voice_ok():
+    return piper_ok() or _voice_ok0()
+
+_voice_say0 = voice_say
+
+def voice_say(text):
+    if not cfg.get("voice") or not piper_ok():
+        return _voice_say0(text)
+    t = re.sub(r"[¡!¿?>|·_]", " ", text or "")
+    t = re.sub(r"\s+", " ", t).strip(" .")
+    if not t or time.time() - voice["last"].get(t, 0) < 30:
+        return
+    p_ = voice["proc"]
+    if voice.get("busy") or (p_ and p_.poll() is None):
+        return
+    voice["last"][t] = time.time()
+    voice["busy"] = True
+    threading.Thread(target=_piper_play, args=(t,), daemon=True).start()
+
+if piper_ok():
+    threading.Thread(target=_piper_pre, daemon=True).start()
+
+
+# ---------- v0.99b: ficha del objetivo en la pantalla grande ----------
+def view_target(surf, d, flags, now):
+    view_combat(surf, d, flags, now)
+    pygame.draw.rect(surf, BLACK, (0, CARD6, W, H - CARD6))
+    t = (d or {}).get("target") or {}
+    r = pygame.Rect(W // 2 - 122, CARD6 + 6, 244, H - CARD6 - 12)
+    if not (cfg.get("cmdrpics", True) and ship_photo(surf, {"type": t.get("stype"), "ship": t.get("ship")}, {}, r)):
+        put(surf, F["small"], "sin foto de esta nave", r.center, DIM, anchor="center")
+
+VIEWS[177] = view_target
+MENU[177] = "OBJETIVO"
+
+
+# ---------- v0.99d: depositos de construccion ----------
+ST_BG.update({"SpaceConstructionDepot": "deposito_espacial", "PlanetaryConstructionDepot": "deposito_planetario"})
+BG_FILES.update({"deposito_espacial": "fondo_deposito_espacial.jpg", "deposito_planetario": "fondo_deposito_planetario.jpg"})
+ST_TYPE.update({"SpaceConstructionDepot": "Depósito de construcción", "PlanetaryConstructionDepot": "Depósito planetario"})
 
 
 def render(surf):
