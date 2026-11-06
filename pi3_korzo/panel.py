@@ -2429,6 +2429,7 @@ CHANGES = [
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
     ("0.99g", "Solo pantalla de 10\": táctil HDMI sin la pequeña de 3.5\""),
+    ("0.99h", "Cierre de emergencia: IP del PC fija opcional en pc_ip.txt"),
 ]
 
 def view_changelog(surf, d, flags, now):
@@ -3415,7 +3416,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v0.99g · 06/11/2026 13:47"
+PANEL_VER = "v0.99h · 06/11/2026 13:57"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = "/home/ortem/estilo.txt"
@@ -6408,7 +6409,13 @@ def kill_tap(x, y):
     return True
 
 def kill_send():
-    pc = state.get("pc")
+    pc = None
+    try:
+        f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pc_ip.txt")
+        pc = open(f).read().strip() or None
+    except Exception:
+        pass
+    pc = pc or state.get("pc")
     if not pc:
         set_alert("NO SÉ LA IP DEL PC", "el sender no está enviando", RED, 3)
         return
