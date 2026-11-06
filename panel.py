@@ -2428,6 +2428,7 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("0.99g", "Solo pantalla de 10\": táctil HDMI sin la pequeña de 3.5\""),
 ]
 
 def view_changelog(surf, d, flags, now):

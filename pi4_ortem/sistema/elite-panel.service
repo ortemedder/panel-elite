@@ -1,0 +1,9 @@
+[Unit]
+Description=Elite Panel
+After=elite-hid.service network-online.target
+[Service]
+ExecStartPre=/bin/sh -c 'echo 0 > /sys/class/graphics/fbcon/cursor_blink; dmesg -n 1'
+ExecStart=/usr/bin/python3 /home/ortem/panel.py
+Restart=always
+[Install]
+WantedBy=multi-user.target
