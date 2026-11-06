@@ -566,9 +566,9 @@ def touch_loop():
     from evdev import InputDevice, list_devices, ecodes
     dev = None
     devs_ = [InputDevice(p) for p in list_devices()]
-    dev = next((d for d in devs_ if "ADS7846" in d.name), None) or next((d for d in devs_ if is_touch2(d)), None)
+    dev = next((d for d in devs_ if "ADS7846" in d.name), None)
     if not dev:
-        print("No encuentro el tactil"); return
+        return   # sin pantalla pequena: el tactil HDMI lo lleva touch_loop2
     ax, ay = dev.absinfo(ecodes.ABS_X), dev.absinfo(ecodes.ABS_Y)
     rx = ry = 0; down = False; pending = False
     for ev in dev.read_loop():
@@ -7714,8 +7714,6 @@ def touch_loop2():
             devs_ = [InputDevice(p) for p in list_devices()]
         except Exception:
             time.sleep(5); continue
-        if not any("ADS7846" in d.name for d in devs_):
-            return                                   # sin pantalla pequena lo lleva touch_loop
         dev = next((d for d in devs_ if "ADS7846" not in d.name and is_touch2(d)), None)
         if not dev:
             time.sleep(5); continue
