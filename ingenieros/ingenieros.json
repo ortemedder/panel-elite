@@ -1,0 +1,581 @@
+{
+"bill_turner": {
+"name": "Bill Turner",
+"base": "Turner Metallics Inc",
+"system": "Alioth",
+"mods": [
+"G5 Escáner de superficie",
+"G5 Acelerador de plasma",
+"G5 Sensores",
+"G4 Bodega",
+"G3 Mantenimiento automático",
+"G3 Escáner de estela",
+"G3 Recogedor de combustible",
+"G3 Escáner de orden de busca",
+"G3 Soporte vital",
+"G3 Escáner de manifiesto",
+"G3 Refinería"
+],
+"region": "Burbuja",
+"planet": "4 a"
+},
+"broo_tarquin": {
+"name": "Broo Tarquin",
+"base": "Broo's Legacy",
+"system": "Muang",
+"mods": [
+"G5 Láser de haz",
+"G5 Láser de ráfaga",
+"G5 Láser de pulsos"
+],
+"region": "Burbuja",
+"planet": "5 a"
+},
+"chloe_sedesi": {
+"name": "Chloe Sedesi",
+"base": "Cinder Dock",
+"system": "Shenve",
+"mods": [
+"G5 Propulsores",
+"G3 FSD"
+],
+"region": "Nebulosa Cabeza de Bruja",
+"planet": "A 6"
+},
+"bris_dekker": {
+"name": "Colonel Bris Dekker",
+"base": "Dekker's Yard",
+"system": "Sol",
+"mods": [
+"G4 Interdictor FSD",
+"G3 FSD"
+],
+"region": "Burbuja",
+"planet": "Iapetus"
+},
+"didi_vatermann": {
+"name": "Didi Vatermann",
+"base": "Vatermann LLC",
+"system": "Leesti",
+"mods": [
+"G5 Potenciador de escudo",
+"G3 Generador de escudo"
+],
+"region": "Burbuja",
+"planet": "1 a"
+},
+"elvira_martuuk": {
+"name": "Elvira Martuuk",
+"base": "Long Sight Base",
+"system": "Khun",
+"mods": [
+"G5 FSD",
+"G3 Generador de escudo",
+"G2 Propulsores",
+"G1 Banco de células de escudo"
+],
+"region": "Burbuja",
+"planet": "5"
+},
+"etienne_dorn": {
+"name": "Etienne Dorn",
+"base": "Kraken's Retreat",
+"system": "Los",
+"mods": [
+"G5 Escáner de superficie",
+"G5 Escáner de estela",
+"G5 Escáner de orden de busca",
+"G5 Soporte vital",
+"G5 Escáner de manifiesto",
+"G5 Acelerador de plasma",
+"G5 Distribuidor de energía",
+"G5 Planta de energía",
+"G5 Cañón de riel",
+"G5 Sensores"
+],
+"region": "Colonia",
+"planet": "A 2 b"
+},
+"felicity_farseer": {
+"name": "Felicity Farseer",
+"base": "Farseer Inc",
+"system": "Deciat",
+"mods": [
+"G5 FSD",
+"G3 Escáner de superficie",
+"G3 Sensores",
+"G3 Propulsores",
+"G1 Interdictor FSD",
+"G1 Planta de energía",
+"G1 Potenciador de escudo"
+],
+"region": "Burbuja",
+"planet": "6 a"
+},
+"hera_tani": {
+"name": "Hera Tani",
+"base": "The Jet's Hole",
+"system": "Kuwemaki",
+"mods": [
+"G5 Escáner de superficie",
+"G5 Planta de energía",
+"G3 Distribuidor de energía",
+"G3 Sensores"
+],
+"region": "Burbuja",
+"planet": "A 3 a"
+},
+"juri_ishmaak": {
+"name": "Juri Ishmaak",
+"base": "Pater's Memorial",
+"system": "Giryak",
+"mods": [
+"G5 Lanzador de abrasión",
+"G5 Escáner de superficie",
+"G5 Misiles enzimáticos",
+"G5 Lanzaminas",
+"G5 Láser de minería",
+"G5 Sensores",
+"G3 Escáner de estela",
+"G3 Escáner de orden de busca",
+"G3 Escáner de manifiesto",
+"G3 Lanzamisiles",
+"G3 Misiles buscadores",
+"G3 Torpedos"
+],
+"region": "Burbuja",
+"planet": "2 a"
+},
+"lei_cheung": {
+"name": "Lei Cheung",
+"base": "Trader's Rest",
+"system": "Laksak",
+"mods": [
+"G5 Escáner de superficie",
+"G5 Sensores",
+"G5 Generador de escudo",
+"G3 Potenciador de escudo"
+],
+"region": "Burbuja",
+"planet": "A 1"
+},
+"liz_ryder": {
+"name": "Liz Ryder",
+"base": "Demolition Unlimited",
+"system": "Eurybia",
+"mods": [
+"G5 Lanzamisiles",
+"G5 Misiles buscadores",
+"G5 Torpedos",
+"G3 Lanzador de abrasión",
+"G3 Misiles enzimáticos",
+"G3 Lanzaminas",
+"G3 Láser de minería",
+"G1 Blindaje",
+"G1 Refuerzo de casco"
+],
+"region": "Burbuja",
+"planet": "Makalu"
+},
+"lori_jameson": {
+"name": "Lori Jameson",
+"base": "Jameson Base",
+"system": "Shinrarta Dezhra",
+"mods": [
+"G5 Escáner de superficie",
+"G5 Sensores",
+"G4 Mantenimiento automático",
+"G4 Recogedor de combustible",
+"G4 Soporte vital",
+"G4 Refinería",
+"G3 Escáner de estela",
+"G3 Escáner de orden de busca",
+"G3 Escáner de manifiesto",
+"G3 Banco de células de escudo"
+],
+"region": "Burbuja",
+"planet": "A 1"
+},
+"marco_qwent": {
+"name": "Marco Qwent",
+"base": "Qwent Research Base",
+"system": "Sirius",
+"mods": [
+"G4 Planta de energía",
+"G3 Distribuidor de energía"
+],
+"region": "Burbuja",
+"planet": "Lucifer"
+},
+"marsha_hicks": {
+"name": "Marsha Hicks",
+"base": "The Watchtower",
+"system": "Tir",
+"mods": [
+"G5 Cañón",
+"G5 Drones recolectores",
+"G5 Cañón de fragmentación",
+"G5 Recogedor de combustible",
+"G5 Drones de combustible",
+"G5 Drones rompeescotillas",
+"G5 Multicañón",
+"G5 Drones prospectores",
+"G5 Refinería"
+],
+"region": "Colonia",
+"planet": "A 2"
+},
+"mel_brandon": {
+"name": "Mel Brandon",
+"base": "The Brig",
+"system": "Luchtaine",
+"mods": [
+"G5 Láser de haz",
+"G5 Láser de ráfaga",
+"G5 FSD",
+"G5 Interdictor FSD",
+"G5 Láser de pulsos",
+"G5 Potenciador de escudo",
+"G5 Generador de escudo",
+"G5 Propulsores",
+"G4 Banco de células de escudo"
+],
+"region": "Colonia",
+"planet": "A 1 c"
+},
+"petra_olmanova": {
+"name": "Petra Olmanova",
+"base": "Sanctuary",
+"system": "Asura",
+"mods": [
+"G5 Blindaje",
+"G5 Mantenimiento automático",
+"G5 Lanzador de chaff",
+"G5 Contramedidas electrónicas",
+"G5 Disipador de calor",
+"G5 Refuerzo de casco",
+"G5 Lanzaminas",
+"G5 Lanzamisiles",
+"G5 Refuerzo de módulos",
+"G5 Defensa puntual",
+"G5 Misiles buscadores",
+"G5 Torpedos"
+],
+"region": "Colonia",
+"planet": "1 a"
+},
+"professor_palin": {
+"name": "Professor Palin",
+"base": "Abel Laboratory",
+"system": "Arque",
+"mods": [
+"G5 Propulsores",
+"G3 FSD"
+],
+"region": "Burbuja",
+"planet": "4 e"
+},
+"ram_tah": {
+"name": "Ram Tah",
+"base": "Phoenix Base",
+"system": "Meene",
+"mods": [
+"G5 Lanzador de chaff",
+"G5 Contramedidas electrónicas",
+"G5 Disipador de calor",
+"G5 Defensa puntual",
+"G4 Bodega",
+"G4 Drones recolectores",
+"G4 Drones de combustible",
+"G4 Drones prospectores",
+"G3 Drones rompeescotillas",
+"G1 Armas guardianas"
+],
+"region": "Burbuja",
+"planet": "AB 5 d"
+},
+"selene_jean": {
+"name": "Selene Jean",
+"base": "Prospector's Rest",
+"system": "Kuk",
+"mods": [
+"G5 Blindaje",
+"G5 Refuerzo de casco",
+"G5 Refuerzo de módulos"
+],
+"region": "Burbuja",
+"planet": "B 3"
+},
+"the_dweller": {
+"name": "The Dweller",
+"base": "Black Hide",
+"system": "Wyrd",
+"mods": [
+"G5 Distribuidor de energía",
+"G4 Láser de pulsos",
+"G3 Láser de haz",
+"G3 Láser de ráfaga"
+],
+"region": "Burbuja",
+"planet": "A 2"
+},
+"the_sarge": {
+"name": "The Sarge",
+"base": "The Beach",
+"system": "Beta-3 Tucani",
+"mods": [
+"G5 Cañón",
+"G5 Drones recolectores",
+"G5 Drones de combustible",
+"G5 Drones rompeescotillas",
+"G5 Drones prospectores",
+"G3 Cañón de riel"
+],
+"region": "Burbuja",
+"planet": "2 b a"
+},
+"tiana_fortune": {
+"name": "Tiana Fortune",
+"base": "Fortune's Loss",
+"system": "Achenar",
+"mods": [
+"G5 Drones recolectores",
+"G5 Escáner de estela",
+"G5 Drones de combustible",
+"G5 Drones rompeescotillas",
+"G5 Escáner de orden de busca",
+"G5 Escáner de manifiesto",
+"G5 Drones prospectores",
+"G5 Sensores",
+"G4 Bodega",
+"G3 Interdictor FSD"
+],
+"region": "Burbuja",
+"planet": "4 a"
+},
+"tod_mcquinn": {
+"name": "Tod \"The Blaster\" McQuinn",
+"base": "Trophy Camp",
+"system": "Wolf 397",
+"mods": [
+"G5 Multicañón",
+"G5 Cañón de riel",
+"G3 Cañón de fragmentación",
+"G2 Cañón"
+],
+"region": "Burbuja",
+"planet": "Trus Madi"
+},
+"zacariah_nemo": {
+"name": "Zacariah Nemo",
+"base": "Nemo Cyber Party Base",
+"system": "Yoru",
+"mods": [
+"G5 Cañón de fragmentación",
+"G3 Multicañón",
+"G2 Acelerador de plasma"
+],
+"region": "Burbuja",
+"planet": "4"
+},
+"domino_green": {
+"name": "Domino Green",
+"base": "The Jackrabbit",
+"system": "Orishis",
+"planet": "4",
+"region": "Burbuja",
+"mods": [
+"Rastreo mejorado",
+"Más capacidad de mochila",
+"Menos consumo de herramienta",
+"Más alcance",
+"Estabilidad"
+],
+"foot": true
+},
+"hero_ferrari": {
+"name": "Hero Ferrari",
+"base": "Nevermore Terrace",
+"system": "Siris",
+"planet": "5 c",
+"region": "Burbuja",
+"mods": [
+"Mejor impulso de salto",
+"Más reserva de aire",
+"Manejo más rápido",
+"Silenciador"
+],
+"foot": true
+},
+"jude_navarro": {
+"name": "Jude Navarro",
+"base": "Marshall's Drift",
+"system": "Aurai",
+"planet": "1 a",
+"region": "Burbuja",
+"mods": [
+"Más daño cuerpo a cuerpo",
+"Resistencia al daño",
+"Más munición",
+"Cargador mayor",
+"Recarga más rápida"
+],
+"foot": true
+},
+"kit_fowler": {
+"name": "Kit Fowler",
+"base": "The Last Call",
+"system": "Capoya",
+"planet": "2",
+"region": "Burbuja",
+"mods": [
+"Más daño cuerpo a cuerpo",
+"Más munición",
+"Escudo se recarga antes",
+"Cargador mayor",
+"Recarga guardada"
+],
+"foot": true
+},
+"oden_geiger": {
+"name": "Oden Geiger",
+"base": "Ankh's Promise",
+"system": "Candiaei",
+"planet": "9 c",
+"region": "Burbuja",
+"mods": [
+"Rastreo mejorado",
+"Más batería",
+"Visión nocturna",
+"Mira",
+"Estabilidad"
+],
+"foot": true
+},
+"terra_velasquez": {
+"name": "Terra Velasquez",
+"base": "Rascal's Choice",
+"system": "Shou Xing",
+"planet": "1",
+"region": "Burbuja",
+"mods": [
+"Movimiento en combate",
+"Más reserva de aire",
+"Más tiempo de sprint",
+"Mejor disparo sin apuntar",
+"Silenciador"
+],
+"foot": true
+},
+"uma_laszlo": {
+"name": "Uma Laszlo",
+"base": "Laszlo's Resolve",
+"system": "Xuane",
+"planet": "A 3",
+"region": "Burbuja",
+"mods": [
+"Resistencia al daño",
+"Escudo se recarga antes",
+"Daño en la cabeza",
+"Recarga más rápida",
+"Recarga guardada"
+],
+"foot": true
+},
+"wellington_beck": {
+"name": "Wellington Beck",
+"base": "Beck Facility",
+"system": "Jolapa",
+"planet": "6 a",
+"region": "Burbuja",
+"mods": [
+"Más capacidad de mochila",
+"Más batería",
+"Menos consumo de herramienta",
+"Más alcance",
+"Mira"
+],
+"foot": true
+},
+"yarden_bond": {
+"name": "Yarden Bond",
+"base": "Salamander Bank",
+"system": "Bayan",
+"planet": "7 b",
+"region": "Burbuja",
+"mods": [
+"Movimiento en combate",
+"Mejor impulso de salto",
+"Pasos silenciosos",
+"Camuflaje de sonido",
+"Manejo más rápido",
+"Mejor disparo sin apuntar"
+],
+"foot": true
+},
+"baltanos": {
+"name": "Baltanos",
+"base": "The Divine Apparatus",
+"system": "Deriso",
+"planet": "3 a",
+"region": "Colonia",
+"mods": [
+"Movimiento en combate",
+"Mejor impulso de salto",
+"Más reserva de aire",
+"Más tiempo de sprint",
+"Manejo más rápido",
+"Mejor disparo sin apuntar",
+"Silenciador"
+],
+"foot": true
+},
+"eleanor_bresa": {
+"name": "Eleanor Bresa",
+"base": "Bresa Modifications",
+"system": "Desy",
+"planet": "7 a",
+"region": "Colonia",
+"mods": [
+"Más daño cuerpo a cuerpo",
+"Resistencia al daño",
+"Más munición",
+"Escudo se recarga antes",
+"Cargador mayor",
+"Recarga más rápida",
+"Recarga guardada"
+],
+"foot": true
+},
+"rosa_dayette": {
+"name": "Rosa Dayette",
+"base": "Rosa's Shop",
+"system": "Kojeara",
+"planet": "4 b",
+"region": "Colonia",
+"mods": [
+"Rastreo mejorado",
+"Más capacidad de mochila",
+"Más batería",
+"Menos consumo de herramienta",
+"Más alcance",
+"Mira",
+"Estabilidad"
+],
+"foot": true
+},
+"yi_shen": {
+"name": "Yi Shen",
+"base": "Eidolon Hold",
+"system": "Einheriar",
+"planet": "1 a",
+"region": "Colonia",
+"mods": [
+"Visión nocturna",
+"Pasos silenciosos",
+"Camuflaje de sonido",
+"Daño en la cabeza"
+],
+"foot": true
+}
+}
