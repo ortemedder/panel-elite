@@ -2442,6 +2442,7 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.0b2", "Borde por fuera en la HDMI; botones en 4 CUADROS; MHz"),
     ("1.0b1", "Foto destino grande, voz créditos, avatar Inara, RAM/MHz, avisos reloj y SD"),
     ("0.99k", "Vigilante: si se congela, LOG y reinicio solo"),
     ("0.99j", "MEGA NAVE a mano: tocar el cuadro empieza los 15:00"),
@@ -3434,7 +3435,7 @@ def draw_xa(surf, now):
             put(surf, F["btn"], t_, (cx, y), c2, box.w - 20, anchor="midtop")
         y += 26
 
-PANEL_VER = "v1.0b1 · 07/11/2026 12:17"
+PANEL_VER = "v1.0b2 · 08/11/2026 09:57"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")
@@ -3822,8 +3823,7 @@ def big_frame():
         draw_mega(BIG["surf"], dm_, time.time())
         draw_hpcrit(BIG["surf"], time.time())
         decorate_big(BIG["surf"])
-        if not hdmi_panel():
-            draw_borders(BIG["surf"])
+        draw_borders(BIG["surf"])
         rhino_banner(BIG["surf"])
         s16 = BIG["s16"]
         s16.blit(BIG["surf"], (0, 0))
@@ -4470,7 +4470,7 @@ def power_loop():
         try:
             out = subprocess.run(["vcgencmd", "get_throttled"], capture_output=True, text=True, timeout=5).stdout
             v = int(out.strip().split("=")[1], 16)
-            power.update(now=bool(v & 1), past=bool(v & 0x10000), ok=True)
+            power.update(now=bool(v & 1), past=bool(v & 0x10000), ok=True, cap=bool(v & 0x6))
             if power["now"] and time.time() - power["warned"] > 600 and ev_on("power"):
                 power["warned"] = time.time()
                 set_alert("BAJA TENSIÓN", "a la Pi le falta corriente: revisa la alimentación", RED, 5)
@@ -4958,6 +4958,10 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Aviso si el reloj de la Pi no tiene la hora de internet y si queda menos del 10 % de espacio en la tarjeta SD.
 - HDMI en modo PANEL: el borde de estado sale una sola vez, alrededor del panel.
 - ESCUDOS CAÍDOS ya no se queda puesto al perder el caza o cambiar de nave.
+# Novedades v1.0 beta 2
+- Pantalla HDMI en modo PANEL: el borde de estado va por el borde exterior de la pantalla.
+- 4 CUADROS: los botones de cada cuadro (COMBATE, PIPS...) funcionan al tocarlos. Tocar fuera de un botón abre el cuadro en grande, como antes.
+- Los MHz salen en naranja solo si la Pi se está frenando (calor o falta de corriente); bajar a 1200 MHz en reposo es normal.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -5985,7 +5989,7 @@ def panel_hi():
         if ui.get("bye"):
             draw_bye(ss)
         else:
-            render(ss); decorate(ss); draw_borders(real); rhino_banner(ss)
+            render(ss); decorate(ss); rhino_banner(ss)
         draw_pointer(ss)
     except Exception as e:
         log_exc("panel nitido", e)
@@ -8092,7 +8096,7 @@ def perf_parts():
     if c is not None:
         out.append((f"CPU {c:.0f} %", GREEN if c < 30 else ORANGE if c < 60 else RED))
     if mhz:
-        out.append((f"{mhz:.0f} MHz", GREEN if not PERF_MAXMHZ[0] or mhz >= PERF_MAXMHZ[0] * 0.9 else ORANGE))
+        out.append((f"{mhz:.0f} MHz", ORANGE if power.get("cap") else GREEN))
     if t is not None:
         out.append((f"{t:.0f} °C", GREEN if t < 70 else ORANGE if t < 80 else RED))
     if ram is not None:
@@ -8125,6 +8129,52 @@ def salud_loop():
         time.sleep(1800)
 
 threading.Thread(target=salud_loop, daemon=True, name="salud").start()
+
+
+# ---------- v1.0 beta 2: botones de los cuadros (4 CUADROS) ----------
+_big_cell_b2 = big_cell
+
+def big_cell(S, cell, v, d, flags, now, r, font, how, extra=""):
+    if not BIG.get("rects"):
+        BIG["cellmap"] = []
+    if v != 150:
+        top = r.y + font.size(str(MENU.get(v, v)).upper() + extra)[1] + 6
+        BIG["cellmap"].append((v, pygame.Rect(r.x + 4, top, r.w - 8, r.bottom - 3 - top), how))
+    return _big_cell_b2(S, cell, v, d, flags, now, r, font, how, extra)
+
+def cell_point(area, how, X, Y):
+    # punto de la pantalla grande -> punto del panel (480x320) dentro de ese cuadro
+    if how == "fill":
+        return (X - area.x) * W / area.w, TOP + (Y - area.y) * (H - TOP) / area.h
+    sc = min(area.w / W, area.h / (H - TOP))
+    cw, ch = W * sc, (H - TOP) * sc
+    x0 = area.centerx - cw / 2
+    y0 = area.y if how == "top" else area.centery - ch / 2
+    return (X - x0) / sc, TOP + (Y - y0) / sc
+
+_big_tap_b2 = big_tap
+
+def big_tap(xn, yn):
+    if not hdmi_panel():
+        bw, bh = BIG.get("w") or 1024, BIG.get("h") or 600
+        X, Y = xn * bw, yn * bh
+        for v, area, how in BIG.get("cellmap") or []:
+            if not area.collidepoint(X, Y) or v not in VIEWS:
+                continue
+            px, py = cell_point(area, how, X, Y)
+            if not (0 <= px < W and TOP <= py < H):
+                break
+            f0, v0 = dict(flash), ui["view"]
+            ui["view"] = v
+            on_tap(int(px), int(py))
+            if flash != f0 or ui["view"] != v:          # ha tocado un boton: se queda en 4 CUADROS
+                if ui["view"] == v:
+                    ui["view"] = v0
+                TAP_EV.set()
+                return
+            ui["view"] = v0
+            break
+    _big_tap_b2(xn, yn)
 
 
 def render(surf):
@@ -8250,7 +8300,8 @@ def main():
             else:
                 render(surf)
                 decorate(surf)
-                draw_borders(surf)
+                if not SMALL.get("null"):
+                    draw_borders(surf)
                 rhino_banner(surf)
             draw_pointer(surf)
             PANEL_SURF[0] = surf

@@ -5,7 +5,7 @@
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PANEL="$HOME/panel.py"
 # version de partida -> parche que la lleva a la siguiente
-CADENA="v0.99k:patch_v100b1.py"
+CADENA="v0.99f:patch_v099g.py v0.99g:patch_v099h_korzo.py v0.99i:patch_v099j.py v0.99j:patch_v099k.py v0.99k:patch_v100b1.py v1.0b1:patch_v100b2.py"
 ver() { grep -m1 -o 'PANEL_VER = "v[^ "]*' "$PANEL" | cut -d'"' -f2; }
 [ -f "$PANEL" ] || { echo "No encuentro $PANEL"; exit 1; }
 echo "Panel en $(ver)"

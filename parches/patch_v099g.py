@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Parche reloj (v0.99f o posterior -> letra siguiente)
+# Parche reloj (v0.99f o posterior -> letra siguiente): la cuenta atras de la mega nave (y el COMBATE tras escanear) usan el reloj del PC,
+# asi funcionan aunque el reloj de la Pi vaya mal (sin hora de internet). Necesita el sender v0.99b.
 import os, re, shutil, sys, time
 P = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/panel.py")
 s = open(P, encoding="utf-8").read()
