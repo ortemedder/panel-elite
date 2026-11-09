@@ -2442,6 +2442,9 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.0b9", "Botón FIJAR en la pantalla de espera"),
+    ("1.0b8", "Facción sin datos de la Pi; prueba de ACTIVIDAD GALÁCTICA en directo"),
+    ("1.0b7", "Pantalla de espera de la facción con logo, radar y alertas"),
     ("1.0b6b", "Textos que se montaban con NITIDEZ ALTA"),
     ("1.0b6", "Actividad de la facción: tráfico, zonas de conflicto, portanaves, Powerplay cercano, aviso de guerra"),
     ("1.0b5", "Menú 9 FACCIÓN, ficha de cada sistema de la facción, espera más legible"),
@@ -3439,7 +3442,7 @@ def draw_xa(surf, now):
         t_, c2 = ln_ if isinstance(ln_, tuple) else (ln_, col)
         y += put_wrap(surf, t_, (cx, y), c2, box.w - 20, max(1, (box.bottom - 6 - y) // 22))
 
-PANEL_VER = "v1.0b6b · 09/11/2026 01:26"
+PANEL_VER = "v1.0b9 · 09/11/2026 02:24"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")
@@ -4991,6 +4994,13 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - Aviso urgente (rojo, alarma y voz) de guerra, guerra civil y elecciones en tu facción: al aparecer, al arrancar, cada hora mientras juegas y al terminar (ganada o perdida). También aviso de TRÁFICO ALTO si hay mucho movimiento y baja tu influencia. Se apaga en ALERTAS: GUERRA / ELECCIONES DE TU FACCIÓN.
 - Necesita la escucha de EDDN nueva (v3) en la Orange Pi.
 - 6b: con NITIDEZ ALTA los estados ya no se montan unos sobre otros, ni los nombres de VIAJES, y «ESPERANDO A ELITE DANGEROUS» sale entero.
+# Novedades v1.0 beta 7
+- Pantalla de espera: 20 s la normal (foto, hora y GALNET) y 20 s una pantalla entera de tu facción, con su logo (logo_faccion.png junto a panel.py), un radar con tus sistemas en su posición (los controlados brillan, los que están en guerra o elecciones parpadean en rojo), un recuadro de ALERTAS, los sistemas controlados con su influencia y una cinta que va pasando con los estados de todos tus sistemas.
+# Novedades v1.0 beta 8
+- La pantalla de Caballeros de Sion ya no muestra los datos de la Pi (CPU, MHz, temperatura, RAM, FPS).
+- PRUEBA: tercera pantalla de espera, ACTIVIDAD GALÁCTICA en directo. Mientras se ve, la Pi escucha EDDN y enciende un destello en cada salto que hace un comandante (naranja si es en tus sistemas). 10 s la galaxia entera y 10 s tu zona. A la derecha: saltos por minuto, comandantes activos, comandantes en tus sistemas hoy y los últimos saltos. Necesita: sudo apt install python3-zmq. En la Pi 3 viene apagada.
+# Novedades v1.0 beta 9
+- Pantalla de espera: botón FIJAR arriba a la derecha. Deja quieta la pantalla que estás viendo (normal, facción o actividad) sin que deje de moverse ni de actualizarse; el botón pasa a SEGUIR en rojo parpadeando. Con ACTIVIDAD fijada, tocar el mapa cambia entre la galaxia y tu zona. Al entrar al juego se suelta sola. Tocar fuera del botón sigue abriendo el menú.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -9649,6 +9659,445 @@ def on_tap(x, y):
     if v == 194 and y > TOP:
         return
     _on_tap_b6(x, y)
+
+
+# ---------- v1.0 beta 7: pantalla de espera de la faccion ----------
+idle_crawl = _idle_crawl_b4                              # el recuadro vuelve a ser solo GALNET
+LOGO = {"src": None, "miss": False}
+_LOGOC = {}
+
+def logo_src():
+    if LOGO["src"] is None and not LOGO["miss"]:
+        try:
+            LOGO["src"] = pygame.image.load(os.path.join(PANEL_DIR, "logo_faccion.png"))
+        except Exception:
+            LOGO["miss"] = True
+    return LOGO["src"]
+
+def blit_logo(surf, rect, dark=255):
+    """El logo de la faccion en rect (nitido tambien en la HDMI). False si no hay logo."""
+    src = logo_src()
+    if src is None:
+        return False
+    real, rr = (surf.real, surf._r(rect)) if type(surf).__name__ == "ScaledSurf" else (surf, pygame.Rect(rect))
+    key = (rr.w, rr.h, dark)
+    if key not in _LOGOC:
+        try:
+            im = pygame.transform.smoothscale(src, (rr.w, rr.h))
+        except ValueError:
+            im = pygame.transform.scale(src, (rr.w, rr.h))
+        if dark < 255:
+            im = im.copy(); im.fill((dark, dark, dark, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        _LOGOC[key] = im
+    real.blit(_LOGOC[key], rr.topleft)
+    return True
+
+def shield(surf, cx, cy, col):
+    pygame.draw.polygon(surf, col, [(cx - 14, cy - 16), (cx + 14, cy - 16), (cx + 14, cy + 2), (cx, cy + 18), (cx - 14, cy + 2)], 2)
+    pygame.draw.line(surf, col, (cx, cy - 12), (cx, cy + 10), 2); pygame.draw.line(surf, col, (cx - 8, cy - 4), (cx + 8, cy - 4), 2)
+
+def fac_war(v):
+    return bool(v.get("conflictos")) or any(x in ("War", "CivilWar", "Election") for x in (v.get("activos") or []) + (v.get("pendientes") or []))
+
+def draw_fac_screen(surf, now):
+    D, S, gap = fac_rows()
+    surf.fill(BLACK)
+    for x in range(0, W, 24):
+        pygame.draw.line(surf, (14, 9, 3), (x, 0), (x, H))
+    for y in range(0, H, 24):
+        pygame.draw.line(surf, (14, 9, 3), (0, y), (W, y))
+    # cabecera
+    if not blit_logo(surf, pygame.Rect(4, 2, 46, 46)):
+        shield(surf, 26, 24, ORANGE)
+    put(surf, F["big"], (D.get("faccion") or "").upper(), (56, 6), ORANGE, W - 170)
+    nctl = sum(1 for v in S if v.get("ctrl"))
+    med = sum(v["inf"] for v in S) / len(S)
+    put(surf, F["small"], f"{nctl} sistemas controlados de {len(S)} · influencia media {med:.1f} %".replace(".", ","), (56, 32), DIM, W - 64)
+    tmax = max([v.get("t") or 0 for v in S] or [0])
+    a_txt, a_col = fac_age(tmax)
+    put(surf, F["small"], "act. " + a_txt, (W - 72, 8), a_col, anchor="topright")
+    put(surf, F["small"], time.strftime("%H:%M", time.localtime(now)), (W - 72, 22), ORANGE, anchor="topright")
+    pygame.draw.line(surf, ORANGE, (6, 50), (W - 6, 50), 1)
+    # radar con tus sistemas
+    R = pygame.Rect(6, 56, 200, 200); c = R.center; rad = 96
+    blit_logo(surf, pygame.Rect(c[0] - 85, c[1] - 85, 170, 170), dark=40)
+    for k in (1, 2, 3):
+        pygame.draw.circle(surf, (40, 26, 8), c, rad * k // 3, 1)
+    pygame.draw.line(surf, (40, 26, 8), (c[0] - rad, c[1]), (c[0] + rad, c[1]))
+    pygame.draw.line(surf, (40, 26, 8), (c[0], c[1] - rad), (c[0], c[1] + rad))
+    ang = math.radians((now * 60) % 360)
+    for k in range(28):
+        a = ang - math.radians(k * 1.4)
+        f_ = (1 - k / 28) * 0.5
+        pygame.draw.line(surf, (int(255 * f_), int(140 * f_), 0), c, (c[0] + rad * math.cos(a), c[1] + rad * math.sin(a)), 2)
+    ps = [v for v in S if v.get("pos") and None not in v["pos"]]
+    used = []
+    if ps:
+        ctl_ = [v for v in ps if v.get("ctrl")] or ps
+        mx = sum(v["pos"][0] for v in ctl_) / len(ctl_); mz = sum(v["pos"][2] for v in ctl_) / len(ctl_)
+        ext = sorted(max(abs(v["pos"][0] - mx), abs(v["pos"][2] - mz)) for v in ps)
+        ext = (ext[int(len(ext) * 0.9)] if len(ext) > 3 else ext[-1]) or 1     # el 90 % mas cercano, sin que uno lejano lo encoja todo
+        blink = int(now * 2) % 2
+        for v in sorted(ps, key=lambda v: (fac_war(v), v.get("ctrl"))):
+            dx, dz = (v["pos"][0] - mx) / ext, (v["pos"][2] - mz) / ext
+            d_ = math.hypot(dx, dz)
+            if d_ > 1:
+                dx, dz = dx / d_, dz / d_                 # los lejanos, en el borde
+            px, py = int(c[0] + dx * rad * 0.88), int(c[1] - dz * rad * 0.88)
+            war = fac_war(v)
+            r = 3 + int(v["inf"] / 18)
+            if v.get("ctrl"):
+                for g in range(3):
+                    pygame.draw.circle(surf, (90 - g * 25, 50 - g * 15, 0), (px, py), r + 6 - g * 2)
+            pygame.draw.circle(surf, RED if war else ORANGE if v.get("ctrl") else (150, 150, 150), (px, py), r)
+            if war and blink:
+                pygame.draw.circle(surf, RED, (px, py), r + 6, 1)
+            if v.get("ctrl") or war:
+                nm = v["sys"].upper()
+                nm = nm if len(nm) <= 12 else nm[:11] + "…"
+                tw = tw_(F["tiny"], nm)
+                lr = pygame.Rect(px + r + 3, py - 7, tw, 12)
+                if lr.right > R.right:
+                    lr.right = px - r - 3
+                if R.contains(lr) and not any(lr.colliderect(u) for u in used):
+                    used.append(lr)
+                    put(surf, F["tiny"], nm, lr.topleft, RED if war else (230, 170, 90))
+    put(surf, F["tiny"], "MAPA DE LA FACCIÓN", (R.x + 4, R.bottom - 14), DIM)
+    # alertas
+    X, y = 214, 58
+    war = [v for v in S if fac_war(v)]
+    if war:
+        box = pygame.Rect(X, y, W - X - 6, 18 + min(4, len(war)) * 30)
+        pygame.draw.rect(surf, (30, 0, 0), box, border_radius=6)
+        pygame.draw.rect(surf, RED if int(now * 2) % 2 else (120, 0, 0), box, 2, border_radius=6)
+        put(surf, F["small"], "ALERTAS", (X + 8, y + 3), RED)
+        yy = y + 18
+        for v in war[:4]:
+            cf = (v.get("conflictos") or [{}])[0]
+            t = tipo_es(cf.get("tipo") or next((x for x in (v.get("activos") or []) + (v.get("pendientes") or []) if x in ("War", "CivilWar", "Election")), "war"))
+            put(surf, F["small"], f"{t} · {v['sys']}", (X + 8, yy), WHITE, box.w - 16)
+            put(surf, F["tiny"], f"contra {cf.get('contra') or '?'} · {cf.get('ganados') or 0}-{cf.get('perdidos') or 0} días", (X + 8, yy + 14), RED, box.w - 16)
+            yy += 30
+        y = box.bottom + 8
+    put(surf, F["small"], "SISTEMAS CONTROLADOS", (X, y), DIM); y += 16
+    for v in sorted([v for v in S if v.get("ctrl")], key=lambda v: -v["inf"]):
+        if y + 14 > H - 28:
+            break
+        g = gap(v)
+        put(surf, F["tiny"], v["sys"].upper(), (X, y), ORANGE, 110)
+        bx = pygame.Rect(X + 112, y + 3, 90, 8); pygame.draw.rect(surf, DIM, bx, 1)
+        pygame.draw.rect(surf, ORANGE, (bx.x + 1, bx.y + 1, int(88 * min(100, v["inf"]) / 100), 6))
+        put(surf, F["tiny"], f"{v['inf']:.0f}%", (W - 8, y), GREEN if g >= 5 else RED, anchor="topright")
+        y += 14
+    # cinta con los estados
+    pygame.draw.line(surf, ORANGE, (6, H - 24), (W - 6, H - 24), 1)
+    segs = []
+    for v in S:
+        parts = fac_parts(v)
+        hoy, media, alto = traf(v)
+        if alto:
+            parts = parts + [(f"TRÁFICO ALTO {hoy} cmdr", RED)]
+        if parts:
+            segs.append((v["sys"].upper() + ": ", ORANGE))
+            for i, (t, col) in enumerate(parts):
+                segs.append(((", " if i else "") + t, col))
+            segs.append(("     ·     ", DIM))
+    if segs:
+        total = sum(tw_(F["small"], t) for t, c in segs) or 1
+        x0 = 8 - int((now * 40) % total)
+        old = surf.get_clip(); surf.set_clip(pygame.Rect(0, H - 22, W, 22))
+        x = x0
+        while x < W:
+            for t, col in segs:
+                w_ = tw_(F["small"], t)
+                if x + w_ > 0 and x < W:
+                    put(surf, F["small"], t, (x, H - 20), col)
+                x += w_
+        surf.set_clip(old)
+    else:
+        put(surf, F["small"], "sin estados especiales en tus sistemas", (W // 2, H - 12), DIM, anchor="center")
+
+_draw_idle_b7 = draw_idle
+
+def draw_idle(surf, now):
+    D, S, gap = fac_rows()
+    if S and int(now // 20) % 2 == 1:
+        try:
+            draw_fac_screen(surf, now); return
+        except Exception as e:
+            log_exc("espera facción", e)
+    _draw_idle_b7(surf, now)
+
+
+# ---------- v1.0 beta 8 ----------
+IDLE_MODE = {"m": None, "t": 0}                         # que pantalla de espera se esta viendo
+
+_perf_side_b8 = perf_side
+
+def perf_side(S):
+    if IDLE_MODE["m"] in ("fac", "act") and time.time() - IDLE_MODE["t"] < 2:
+        return                                           # pantallas de facción y actividad: limpias
+    _perf_side_b8(S)
+
+# --- actividad galactica en directo (EDDN escuchado por la propia Pi solo mientras se ve) ---
+ACT = {"want": 0, "on": False, "err": "", "pings": deque(maxlen=600), "feed": deque(maxlen=12),
+       "jumps": deque(maxlen=20000), "uids": {}, "zmq": None}
+
+def act_ok():
+    if ACT["zmq"] is None:
+        try:
+            import zmq  # noqa
+            ACT["zmq"] = True
+        except ImportError:
+            ACT["zmq"] = False
+    return ACT["zmq"]
+
+def act_loop():
+    while True:
+        if time.time() - ACT["want"] > 30 or not act_ok():
+            time.sleep(1); continue
+        try:
+            import zmq, zlib as _z
+            ctx = zmq.Context.instance()
+            sub = ctx.socket(zmq.SUB)
+            sub.setsockopt(zmq.SUBSCRIBE, b""); sub.setsockopt(zmq.RCVTIMEO, 1000)
+            sub.connect("tcp://eddn.edcd.io:9500")
+            ACT.update(on=True, err="")
+            plog("Actividad galáctica: escuchando EDDN")
+            while time.time() - ACT["want"] < 30:        # deja de escuchar 30 s despues de quitar la pantalla
+                try:
+                    raw = sub.recv()
+                except zmq.Again:
+                    continue
+                pkt = _z.decompress(raw)
+                if b"FSDJump" not in pkt and b"CarrierJump" not in pkt:
+                    continue
+                d = json.loads(pkt)
+                if "/journal/" not in d.get("$schemaRef", ""):
+                    continue
+                hd = d.get("header") or {}
+                gv = hd.get("gameversion") or ""
+                if gv.startswith("3.") or "legacy" in gv.lower():
+                    continue
+                m = d.get("message") or {}
+                if m.get("event") not in ("FSDJump", "CarrierJump") or not m.get("StarPos"):
+                    continue
+                now = time.time()
+                x, y_, z = m["StarPos"]
+                nm = m.get("StarSystem") or "?"
+                mine = nm in ((FACD["data"] or {}).get("sistemas") or {})
+                ACT["pings"].append((x, z, now, mine))
+                ACT["jumps"].append(now)
+                ACT["uids"][str(hd.get("uploaderID"))[:10]] = now
+                ACT["feed"].appendleft((nm, mine, now))
+            sub.close(0)
+            ACT["on"] = False
+            plog("Actividad galáctica: deja de escuchar")
+        except Exception as e:
+            ACT.update(on=False, err=str(e)[:60]); log_exc("actividad EDDN", e); time.sleep(10)
+
+threading.Thread(target=act_loop, daemon=True, name="actividad").start()
+
+_GALBG = {}
+
+def gal_points():
+    if "pts" not in _GALBG:
+        import random as _r
+        rnd = _r.Random(7); pts = []
+        for k in range(5000):
+            arm = k % 4; t = rnd.random() ** 0.6 * 4.2; a = t * 1.15 + arm * math.pi / 2 + rnd.gauss(0, 0.22)
+            r = 1500 + t * 9500 + rnd.gauss(0, 900)
+            pts.append((25 + r * math.cos(a), 25900 + r * math.sin(a), rnd.randint(25, 70)))
+        for k in range(900):
+            r = abs(rnd.gauss(0, 2600)); a = rnd.random() * 6.283
+            pts.append((25 + r * math.cos(a), 25900 + r * math.sin(a), rnd.randint(60, 120)))
+        _GALBG["pts"] = pts
+    return _GALBG["pts"]
+
+def act_view(M, gal):
+    """(funcion mundo->pantalla, escala) para la vista galaxia o la de tu zona."""
+    if gal:
+        X0, X1, Z0, Z1 = -45000, 45000, -18000, 72000
+    else:
+        S_ = [v["pos"] for v in ((FACD["data"] or {}).get("sistemas") or {}).values() if v.get("pos") and None not in v["pos"]]
+        if S_:
+            xs, zs = sorted(p[0] for p in S_), sorted(p[2] for p in S_)
+            cx_, cz_ = xs[len(xs) // 2], zs[len(zs) // 2]           # mediana: un sistema lejano no lo descentra
+            ds = sorted(max(abs(p[0] - cx_), abs(p[2] - cz_)) for p in S_)
+            hw = max(40, ds[int(len(ds) * 0.85)] * 1.25)
+        else:
+            cx_, cz_, hw = 0, 0, 260
+        X0, X1, Z0, Z1 = cx_ - hw, cx_ + hw, cz_ - hw * 0.87, cz_ + hw * 0.87
+    sc = min(M.w / (X1 - X0), M.h / (Z1 - Z0))
+    cx, cz = (X0 + X1) / 2, (Z0 + Z1) / 2
+    return (lambda x, z: (M.centerx + (x - cx) * sc, M.centery - (z - cz) * sc)), sc
+
+def act_bg(surf, M, gal):
+    real, rr = (surf.real, surf._r(M)) if type(surf).__name__ == "ScaledSurf" else (surf, pygame.Rect(M))
+    key = (rr.w, rr.h, gal, len((FACD["data"] or {}).get("sistemas") or {}) if not gal else 0)
+    if key not in _GALBG:
+        bg = pygame.Surface(rr.size); bg.fill(BLACK)
+        loc = pygame.Rect(0, 0, rr.w, rr.h)
+        pt, sc = act_view(loc, gal)
+        for x, z, b in gal_points():
+            px, py = pt(x, z)
+            if 0 <= px < rr.w and 0 <= py < rr.h:
+                bg.set_at((int(px), int(py)), (b, int(b * 0.75), int(b * 0.55)))
+        _GALBG[key] = bg
+    real.blit(_GALBG[key], rr.topleft)
+
+def draw_act_screen(surf, now):
+    ACT["want"] = now
+    surf.fill(BLACK)
+    gal = ACT_GAL[0] if IDLEHOLD["m"] == "act" else int(now // 10) % 2 == 0   # 10 s galaxia, 10 s tu zona (o fija)
+    put(surf, F["big"], "ACTIVIDAD GALÁCTICA", (10, 6), ORANGE)
+    put(surf, F["small"], ("en directo desde EDDN" if ACT["on"] else "conectando con EDDN…" if act_ok() else "falta python3-zmq en la Pi")
+        + ("  ·  GALAXIA" if gal else "  ·  TU ZONA"), (10, 32), DIM if act_ok() else RED)
+    put(surf, F["small"], time.strftime("%H:%M", time.localtime(now)), (W - 72, 8), ORANGE, anchor="topright")
+    pygame.draw.line(surf, ORANGE, (6, 50), (W - 6, 50), 1)
+    M = pygame.Rect(6, 54, 300, 262)
+    act_bg(surf, M, gal)
+    pygame.draw.rect(surf, DIM, M, 1, border_radius=4)
+    pt, sc = act_view(M, gal)
+    old = surf.get_clip(); surf.set_clip(M)
+    if gal:
+        for n, x, z in (("SOL", 0, 0), ("COLONIA", -9530, 19808), ("SAG A*", 25, 25900)):
+            px, py = pt(x, z); pygame.draw.circle(surf, DIM, (int(px), int(py)), 3, 1)
+            put(surf, F["tiny"], n, (int(px) + 5, int(py) - 6), DIM)
+    else:
+        used = []
+        for n, v in sorted(((FACD["data"] or {}).get("sistemas") or {}).items(), key=lambda kv: -(kv[1].get("inf") or 0)):
+            if v.get("pos") and None not in v["pos"] and not v.get("fuera"):
+                px, py = pt(v["pos"][0], v["pos"][2])
+                pygame.draw.circle(surf, ORANGE if v.get("ctrl") else (120, 80, 30), (int(px), int(py)), 3, 0 if v.get("ctrl") else 1)
+                if v.get("ctrl"):
+                    nm = n if len(n) <= 14 else n[:13] + "…"
+                    lr = pygame.Rect(int(px) + 5, int(py) - 6, tw_(F["tiny"], nm), 12)
+                    if not M.contains(lr):
+                        lr.right = int(px) - 5
+                    if M.contains(lr) and not any(lr.colliderect(u) for u in used):
+                        used.append(lr); put(surf, F["tiny"], nm, lr.topleft, (200, 140, 60))
+        px, py = pt(0, 0)
+        if M.collidepoint(px, py):
+            pygame.draw.circle(surf, DIM, (int(px), int(py)), 3, 1); put(surf, F["tiny"], "SOL", (int(px) + 5, int(py) - 6), DIM)
+    for x, z, t, mine in list(ACT["pings"]):
+        age = now - t
+        if age > 1.6 or age < 0:
+            continue
+        px, py = pt(x, z)
+        if not M.collidepoint(px, py):
+            continue
+        col = ORANGE if mine else (90, 200, 255)
+        f_ = max(0.0, 1 - age / 1.6)
+        pygame.draw.circle(surf, tuple(int(c * f_) for c in col), (int(px), int(py)), int(2 + age * 10), 1)
+        if age < 0.4:
+            pygame.draw.circle(surf, col, (int(px), int(py)), 2)
+    surf.set_clip(old)
+    X, y = 314, 58
+    j = ACT["jumps"]
+    pm = sum(1 for t in j if now - t < 60)
+    cm = sum(1 for t in ACT["uids"].values() if now - t < 300)
+    put(surf, F["small"], "SALTOS POR MINUTO", (X, y), DIM); y += 14
+    put(surf, F["num"], str(pm), (W - 8, y), BLUE, anchor="topright"); y += 44
+    put(surf, F["small"], "COMANDANTES (5 MIN)", (X, y), DIM); y += 14
+    put(surf, F["big"], str(cm), (W - 8, y), WHITE, anchor="topright"); y += 30
+    hoyk = time.strftime("%Y-%m-%d", time.gmtime())
+    ent = sum(((v.get("trafico") or {}).get(hoyk, 0)) for v in ((FACD["data"] or {}).get("sistemas") or {}).values())
+    put(surf, F["small"], "EN TUS SISTEMAS HOY", (X, y), DIM); put(surf, F["big"], str(ent), (W - 8, y + 10), ORANGE, anchor="topright"); y += 40
+    pygame.draw.line(surf, DIM, (X, y), (W - 6, y)); y += 4
+    put(surf, F["small"], "ÚLTIMOS SALTOS", (X, y), DIM); y += 15
+    for nm, mine, t in list(ACT["feed"])[:6]:
+        put(surf, F["tiny"], nm, (X, y), ORANGE if mine else WHITE, 120)
+        put(surf, F["tiny"], f"{max(0, int(now - t))} s", (W - 8, y), DIM, anchor="topright"); y += 13
+
+def act_enabled():
+    if cfg.get("actividad") is not None:
+        return cfg["actividad"]
+    try:
+        model = open("/proc/device-tree/model").read()
+    except OSError:
+        model = ""
+    return "Pi 3" not in model                           # en la Pi 3 viene apagada (se puede encender en el cfg)
+
+def draw_idle(surf, now):
+    D, S, gap = fac_rows()
+    modes = ["norm"] + (["fac"] if S else []) + (["act"] if act_enabled() else [])
+    m = modes[int(now // 20) % len(modes)]
+    IDLE_MODE.update(m=m, t=time.time())
+    try:
+        if m == "fac":
+            draw_fac_screen(surf, now); return
+        if m == "act":
+            draw_act_screen(surf, now); return
+    except Exception as e:
+        log_exc("espera " + m, e)
+    _draw_idle_b7(surf, now)
+
+
+# ---------- v1.0 beta 9: boton FIJAR de la pantalla de espera ----------
+IDLEHOLD = {"m": None}
+ACT_GAL = [True]
+ACT_MAP = pygame.Rect(6, 54, 300, 262)
+
+def hold_rect(m):
+    return pygame.Rect(414, 26, 62, 34) if m == "norm" else pygame.Rect(W - 66, 6, 62, 38)
+
+def draw_hold(surf, m, now):
+    r = hold_rect(m)
+    held = IDLEHOLD["m"] is not None
+    if held:
+        on = int(now * 2) % 2
+        pygame.draw.rect(surf, RED if on else (120, 0, 0), r, border_radius=6)
+        pygame.draw.rect(surf, WHITE, r, 1, border_radius=6)
+        cx, cy = r.x + 13, r.centery
+        pygame.draw.polygon(surf, WHITE, [(cx - 5, cy - 7), (cx - 5, cy + 7), (cx + 6, cy)])
+        put(surf, F["tiny"], "SEGUIR", (r.x + 39, cy), WHITE, anchor="center")
+    else:
+        pygame.draw.rect(surf, ORANGE, r, border_radius=6)
+        cx, cy = r.x + 12, r.centery
+        pygame.draw.rect(surf, BLACK, (cx - 5, cy - 7, 4, 14)); pygame.draw.rect(surf, BLACK, (cx + 1, cy - 7, 4, 14))
+        put(surf, F["tiny"], "FIJAR", (r.x + 39, cy), BLACK, anchor="center")
+
+_draw_idle_b9 = draw_idle
+
+def draw_idle(surf, now):
+    m = IDLEHOLD["m"]
+    if m:
+        IDLE_MODE.update(m=m, t=time.time())
+        try:
+            if m == "fac" and fac_rows()[1]:
+                draw_fac_screen(surf, now)
+            elif m == "act":
+                draw_act_screen(surf, now)
+            else:
+                _draw_idle_b7(surf, now)
+        except Exception as e:
+            log_exc("espera fija", e); _draw_idle_b7(surf, now)
+    else:
+        _draw_idle_b9(surf, now)
+    draw_hold(surf, IDLE_MODE["m"] or "norm", now)
+
+_render_b9 = render
+
+def render(surf):
+    r_ = _render_b9(surf)
+    if not ui.get("idle_on") and IDLEHOLD["m"]:
+        IDLEHOLD["m"] = None                             # al entrar al juego se suelta
+    return r_
+
+_on_tap_b9 = on_tap
+
+def on_tap(x, y):
+    if ui.get("idle_on"):
+        m = IDLE_MODE["m"] or "norm"
+        if hold_rect(m).inflate(10, 10).collidepoint(x, y):
+            IDLEHOLD["m"] = None if IDLEHOLD["m"] else m
+            if IDLEHOLD["m"] == "act":
+                ACT_GAL[0] = int(time.time() // 10) % 2 == 0
+            TAP_EV.set(); return
+        if IDLEHOLD["m"] == "act" and ACT_MAP.collidepoint(x, y):
+            ACT_GAL[0] = not ACT_GAL[0]; TAP_EV.set(); return
+    _on_tap_b9(x, y)
 
 
 if __name__ == "__main__":
