@@ -1,5 +1,18 @@
-# claves y datos privados: nunca al repositorio
-inara_clave.txt
+*clave*
+*token*
+*webhook*
+*.log
+*.log.1
 *.bak*
 __pycache__/
-*.pyc
+panel_ajustes.json
+notas.json
+viajes.json
+naves.json
+colonia.json
+bonos_sin_cobrar.json
+faccion_cache.json
+faccion_estado.json
+actividad_hoy.json
+pc_ip.txt
+avatares/

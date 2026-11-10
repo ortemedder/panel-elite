@@ -1,29 +1,62 @@
-PANEL ELITE DANGEROUS - Raspberry Pi            version v0.86  (01/11/2026)
-Creador: CMDR ORTEM ED DER (ortemedder@gmail.com) y Claude
-=========================================================================
+PANEL ELITE v1.0 beta 19b
 
-CARPETAS
-  pi4_ortem/panel.py      Panel completo v0.86 de Ortem (Pi 4 "PI4ELITE", 192.168.0.94, usuario ortem)
-                          -> copiar a /home/ortem/panel.py y: sudo systemctl restart elite-panel
-  pi3_korzo/              Panel completo v0.86 de KORZO (Pi 3, 192.168.1.151, usuario elite),
-                          su foto cmdr.jpg e instalar_pi3.sh (instalacion desde cero)
-  pc/elite_sender.py      Sender del PC de juego (lee el journal y manda los datos a la Pi por UDP 5005)
-                          PI_IP = 192.168.0.94 (Ortem). Para KORZO cambiar a 192.168.1.151
-  pc/control_sender.pyw   Ventana de Windows para INICIAR / PARAR el sender
-  pc/teclas_preset.txt    Nombre del perfil de controles del juego (ortem)
-  pc/inara_clave.txt      Tu clave de Inara (la misma de EDMC) -> pegarla tu, no compartir
-  pc/inara_cmdrs.txt      Comandantes del escuadron para ver en ESCUADRON (hasta 30)
-  parches/                Todos los parches, por si hay que rehacer una version paso a paso
+EN LA PI (Ortem y KORZO): copiar el contenido de pi/ a la carpeta personal y:
+    bash ~/actualizar.sh
+  (aplica los parches que falten, desde la v0.99f, y reinicia el panel)
+  Importante: copiar tambien boton_seguir.png y boton_fijado.png (los logos del boton FIJAR / SEGUIR).
 
-REGLAS DEL PROYECTO
-  - Cada novedad sube la version (v0.87, v0.88...), con su linea en VERSIONES y copia panel.py.bakNN.
-  - Los arreglos de la version recien entregada llevan letra (v0.86b, v0.86c...).
-  - El consumo de CPU importa: lo extra se puede activar y desactivar.
-  - Volver atras: cp ~/panel.py.bakNN ~/panel.py && sudo systemctl restart elite-panel
+EN EL PC: cerrar el sender, poner el elite_sender.py de pc_ortem/ o pc_korzo/ y volver a iniciarlo.
+Abajo en el panel debe salir: panel v1.0b19b · sender v1.0b12 (el sender nuevo hace falta para COLONIA, el boton IR y los VIAJES con mucho historial)
 
-PENDIENTE
-  - Manual nuevo completo (panel, web /manual y documento con capturas).
-  - Nombre de los rangos de escuadron (ya sale el nombre real con Inara).
-  - Dibujos de las naves.
-  - KORZO: tactil Waveshare 7" y sonido.
-  - v1.0 universal: un solo panel.py con config.json, cualquier resolucion y Windows 11.
+NOVEDADES
+- (19b) Arreglado el error del RADAR al arrastrar la lista.
+- (19) Voz con abreviaturas completas; velocimetro cerca de los planetas (nave: reloj de arco; SRV y Rhino: reloj,
+       km/h y brujula); aviso BAJANDO RAPIDO CERCA DEL SUELO; caja negra en el LOG al ser destruido; avisos repetidos
+       agrupados. El sender no cambia (v1.0b12).
+- (18) ACTIVIDAD GALACTICA: fondo nuevo y botones GALAXIA / COLONIA / SOL. SISTEMAS CONTROLADOS con todos y desplazamiento
+       con el dedo. COMBATE no se abre al despegar ni al atracar. BORRAR recompensas sin cobrar (11 DIA). Fondo del
+       atraque a 80. Sender v1.0b12: salida de la estacion por la musica y recompensas mejor comparadas.
+- (17b) Cronometro de salida de la estacion en 5:00.
+- (17) Fondo del atraque mas claro (75), COMBATE no se abre al despegar, avisos de MATERIALES DE COLONIZACION.
+- (16b) Arreglado el error de MERCADO con el recuadro PARA TU COLONIA.
+- (16) EMITIR sin que suba la memoria (Pi 3); reloj de atraque desde 9:59; cronometro de salida abajo del todo;
+       ALTIMETRO de cinta con velocidad vertical (pestana en NAVEGACION y cuadro en la pantalla grande cerca de un
+       planeta). El sender no cambia (v1.0b11).
+- (15) Reloj de lamas: TIEMPO PARA ATRACAR (9:55) y salida de la estacion (6 min) con banda DENTRO DE LA ESTACION;
+       al salir por la ranura se abre EN VIVO. Tocar ALERTAS del radar abre la ficha. Avisos de expansion
+       (en marcha / activa / conseguida / sin exito) y de control (tomais / perdeis). AQUI usa la estacion donde estas.
+       Necesita el sender v1.0b11.
+- (14) Aviso al pedir atraque si la estacion no vende nada de lo que le falta a tu construccion (y donde probar);
+       se confirma al abrir el mercado. EN EL SISTEMA sin textos montados y con DATO ANTIGUO (> 30 dias).
+       EN VIVO: nombre de la nave en azul. Necesita el sender v1.0b10.
+- (13) COLONIZACION: tu bodega se descuenta (azul = recogido sin entregar), filtros TODO / AQUI / EN EL SISTEMA
+       (mejor estacion del sistema segun EDSM; tocar copia la estacion al PC), aviso TIENES N t POR ENTREGAR al atracar,
+       y tocar el recuadro verde del MERCADO abre COLONIZACION > AQUI. Necesita el sender v1.0b9.
+- (12c) Pantalla grande en 4 CUADROS: modo COLONIZACION al estar atracado en un sitio de construccion.
+- (12b) COLONIZACION ya no la tapa ESTACION al atracar.
+- (12) COLONIZACION (antes COLONIA) se abre sola al atracar en un sitio de construccion. El sender escribe en su ventana
+       «Colonia: atracado en deposito...» y el panel apunta en el LOG cuando abre la pestana.
+- (12) La expansion probable sale en la ficha del sistema, no en el radar.
+- (12) ALERTAS y SONIDO: cada boton lleva su numero en pequeno (el mismo #n del aviso).
+- (11) Radar de la faccion: ultimo piloto, cuenta atras del tick, halo de trafico, recien visitados, resumen HOY,
+       expansiones con destino PROBABLE (linea roja parpadeante) y zoom + / -.
+- (11) COLONIA: pestana nueva en CARGA/MISION con el progreso de tu construccion y lo que falta. Se abre sola al atracar
+       en el deposito. En el MERCADO, recuadro verde con lo que se vende alli y le falta a tu construccion.
+- (11) VIAJES: boton + para acercar.
+- (11) Avisos: numero pequeno en la esquina (#23); tocarlo lleva a su linea en ALERTAS.
+- (10b) Menu 7: el boton < MENU vuelve a funcionar.
+- Sender v1.0b6: si el paquete es muy grande se parte en varios (arregla VIAJES «esperando datos del sender»).
+- (10c) AJUSTES > OPCIONES > FLUJO DATOS EDDN: OK y hace cuanto se subio a GitHub (en rojo si hay problema).
+- Boton FIJAR / SEGUIR con el logo de Elite, mas pequeno.
+- Menu 7: 7 RADAR (tu faccion) y 8 ACTIVIDAD (EDDN en directo). El boton de arriba a la derecha vuelve.
+- Tocar un sistema del radar abre su ficha (tambien en la pantalla de espera).
+- Aviso si un sistema controlado baja del 40 % o la segunda faccion se acerca a menos de 5 puntos.
+- Flechas de tendencia en los sistemas controlados del radar.
+- Actividad: tus sistemas brillan y sale COMANDANTE EN ...; contador de saltos vistos hoy.
+- Actividad encendida por defecto si la Pi tiene python3-zmq (tambien en la Pi 3 de KORZO).
+  Para apagarla:  python3 -c "import json;f='/home/elite/panel_ajustes.json';c=json.load(open(f));c['actividad']=False;json.dump(c,open(f,'w'))"
+- Ficha del sistema: boton IR, copia el nombre al portapapeles del PC (Ctrl+V en el mapa galactico).
+- Al arrancar se sincroniza la hora; si falla el NTP la toma de un servidor web (HORA CORREGIDA).
+
+SONIDO por la HDMI (si no suena):  bash ~/sonido_hdmi.sh
+ACTIVIDAD GALACTICA: en la Pi hace falta una vez   sudo apt install -y python3-zmq

@@ -2442,6 +2442,7 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.0b20", "4 CUADROS al cargar la partida y subir_todo.sh"),
     ("1.0b19b", "Arreglo del RADAR al arrastrar"),
     ("1.0b19", "Voz con abreviaturas, velocímetro (nave, SRV y Rhino), aviso de suelo, caja negra, repetidos"),
     ("1.0b18", "ACTIVIDAD con fondo nuevo y GALAXIA/COLONIA/SOL, controlados con el dedo, COMBATE al despegar, BORRAR recompensas"),
@@ -3459,7 +3460,7 @@ def draw_xa(surf, now):
         t_, c2 = ln_ if isinstance(ln_, tuple) else (ln_, col)
         y += put_wrap(surf, t_, (cx, y), c2, box.w - 20, max(1, (box.bottom - 6 - y) // 22))
 
-PANEL_VER = "v1.0b19b · 10/11/2026 01:20"
+PANEL_VER = "v1.0b20 · 10/11/2026 01:53"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")
@@ -5034,6 +5035,9 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.0 beta 20
+- Al cargar la partida, cuando termina la ficha de la nave, la pantalla grande pasa a 4 CUADROS (con una pulsación larga se vuelve al PANEL).
+- Nuevo subir_todo.sh: sube todo el proyecto a GitHub (panel, parches, imágenes, los dos senders y el escucha), nunca las claves ni los datos personales.
 # Novedades v1.0 beta 19b
 - Arreglado el error del RADAR al arrastrar la lista de SISTEMAS CONTROLADOS.
 # Novedades v1.0 beta 19
@@ -12634,6 +12638,31 @@ def render(surf):
     except Exception as e:
         log_exc("velocidad", e)
     return _render_b19(surf)
+
+
+# ---------- v1.0 beta 20: tras cargar la partida, 4 CUADROS ----------
+LGB = {"t": 0}
+_handle_note_b20 = handle_note
+
+def handle_note(kind, text):
+    if kind == "loadgame":
+        LGB["t"] = time.time()
+    _handle_note_b20(kind, text)
+
+_render_b20 = render
+
+def render(surf):
+    r_ = _render_b20(surf)
+    try:
+        now = time.time()
+        if LGB["t"] and now - LGB["t"] > 3 and not (ui.get("shipcard") and now < ui["shipcard"]):
+            LGB["t"] = 0
+            if hdmi_panel():
+                cfg["hdmi"] = "tablero"; save_cfg()
+                plog("Partida cargada: pantalla grande en 4 CUADROS")
+    except Exception as e:
+        log_exc("4 cuadros al cargar", e)
+    return r_
 
 
 if __name__ == "__main__":
