@@ -1605,7 +1605,7 @@ def view_live(surf, d, flags, now):
         sh = L.get("ship") or {}
         nm = " · ".join(x for x in (sh.get("name"), sh.get("ident")) if x)
         put(surf, F["small"], (sh.get("ship") or "").upper(), (W - 8, y + 2), ORANGE, 300, anchor="topright")
-        put(surf, F["small"], nm, (W - 8, y + 16), DIM, 300, anchor="topright")
+        put(surf, F["small"], nm, (W - 8, y + 16), (70, 120, 230), 300, anchor="topright")
         y += 32
         hull = pctv(sh.get("hull"))
         half = (W - 24) // 2
@@ -2213,7 +2213,7 @@ def view_stationx(surf, d, flags, now):
     return view_station(surf, d, flags, now)
 
 def view_station_info(surf, d, st):
-    carrier_bg(surf, d or {}, st, dark=55, label=False)
+    carrier_bg(surf, d or {}, st, dark=BG_DOCK_DARK, label=False)
     S = (d or {}).get("sysinfo") or {}
     y = TOP + 4
     put(surf, F["big"], (st.get("name") or "?").upper(), (8, y), ORANGE, W - 16); y += 27
@@ -2442,6 +2442,20 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.0b19b", "Arreglo del RADAR al arrastrar"),
+    ("1.0b19", "Voz con abreviaturas, velocímetro (nave, SRV y Rhino), aviso de suelo, caja negra, repetidos"),
+    ("1.0b18", "ACTIVIDAD con fondo nuevo y GALAXIA/COLONIA/SOL, controlados con el dedo, COMBATE al despegar, BORRAR recompensas"),
+    ("1.0b17b", "Cronómetro de salida en 5:00"),
+    ("1.0b17", "Fondo del atraque más claro, COMBATE no se abre al despegar, avisos de materiales de colonización"),
+    ("1.0b16b", "Arreglo del error en MERCADO"),
+    ("1.0b16", "EMITIR sin subir la memoria, atraque 9:59, salida abajo, altímetro de cinta"),
+    ("1.0b15", "Relojes de lamas (atraque y salida), salida de la estación, ALERTAS del radar, avisos de expansión y control, AQUÍ arreglado"),
+    ("1.0b14", "Aviso de compra para tu construcción, EN EL SISTEMA sin solapes y con datos antiguos, nombre de la nave en azul"),
+    ("1.0b13", "COLONIZACIÓN: bodega, filtros TODO / AQUÍ / EN EL SISTEMA, aviso de carga por entregar"),
+    ("1.0b12c", "Modo COLONIZACIÓN en 4 CUADROS"),
+    ("1.0b12b", "COLONIZACIÓN ya no la tapa ESTACIÓN al atracar"),
+    ("1.0b12", "COLONIZACIÓN se abre sola; expansión probable en la ficha; números en ALERTAS"),
+    ("1.0b11", "Radar con tick, tráfico, expansión y zoom; COLONIA; + en VIAJES; número de aviso"),
     ("1.0b10c", "FLUJO DATOS EDDN en AJUSTES > OPCIONES, con la última subida a GitHub"),
     ("1.0b10b", "Menú 7: el botón < MENÚ vuelve a funcionar"),
     ("1.0b10", "Logos en FIJAR, RADAR y ACTIVIDAD en el menú 7, avisos de influencia, IR, estado del pueblo y hora"),
@@ -3445,7 +3459,7 @@ def draw_xa(surf, now):
         t_, c2 = ln_ if isinstance(ln_, tuple) else (ln_, col)
         y += put_wrap(surf, t_, (cx, y), c2, box.w - 20, max(1, (box.bottom - 6 - y) // 22))
 
-PANEL_VER = "v1.0b10c · 09/11/2026 12:46"
+PANEL_VER = "v1.0b19b · 10/11/2026 01:20"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")
@@ -4758,6 +4772,12 @@ def stream_start():
             if path not in ("/hdmi", "/panel"):
                 self.send_error(404); return
             which = "big" if path == "/hdmi" else "small"
+            if stream["clients"] >= 3:                   # b16: como mucho 3 a la vez
+                self.send_error(503); return
+            try:
+                self.connection.settimeout(10)           # b16: si no puede enviar en 10 s, se corta
+            except Exception:
+                pass
             self.send_response(200)
             self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
             self.send_header("Cache-Control", "no-cache")
@@ -5014,6 +5034,64 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.0 beta 19b
+- Arreglado el error del RADAR al arrastrar la lista de SISTEMAS CONTROLADOS.
+# Novedades v1.0 beta 19
+- Voz: lee las abreviaturas completas (toneladas, millones, mil, segundos luz, años luz, metros por segundo, kilómetros, zona de conflicto, comandantes) y no lee los «#23».
+- Velocímetro cerca de un planeta (calculado con la latitud y longitud, aproximado): en la nave, reloj de arco junto al altímetro (velocidad sobre el suelo y total; la escala según tu nave; verde lento, naranja normal, rojo rápido). En el SRV y el Rhino, reloj de 0-40 m/s (se amplía solo), km/h y brújula con el rumbo; en 4 CUADROS sustituye al MAPA.
+- Aviso BAJANDO RÁPIDO CERCA DEL SUELO (por debajo de 250 m a más de 35 m/s, o de 60 m a más de 15 m/s). Se apaga en ALERTAS.
+- Caja negra: si te destruyen, el LOG guarda los últimos 60 s de altura, velocidad vertical y sobre el suelo.
+- Avisos repetidos seguidos (p. ej. 14 «te atacan» en un segundo): uno solo, y en el LOG una línea con ×N.
+# Novedades v1.0 beta 18
+- ACTIVIDAD GALÁCTICA: fondo nuevo (estrellas más brillantes, neblina naranja en los brazos y núcleo iluminado) y tres botones arriba: GALAXIA, COLONIA y SOL (vuestros sistemas salen en SOL). En la espera rota entre las tres; tocar un botón la deja fija.
+- Radar de la facción: SISTEMAS CONTROLADOS con todos; con el dedo se sube y baja por la lista (barrita a la derecha). Tocar un sistema abre su ficha.
+- COMBATE no se abre por la música en el minuto siguiente a cualquier despegue, y «te atacan» al atracar o despegar avisa sin cambiar de pantalla.
+- 11 DÍA: botón BORRAR (dos toques) para poner a cero lo sin cobrar si se ha quedado mal (sender v1.0b12).
+- Fotos de fondo del atraque a 80.
+# Novedades v1.0 beta 17b
+- El cronómetro de salida de la estación empieza en 5:00.
+# Novedades v1.0 beta 17
+- Fotos de fondo al atracar y aterrizar más claras (oscurecido 75 en lugar de 55).
+- COMBATE ya no se abre al despegar: se ignora la música de combate dentro de la estación, durante el primer minuto tras despegar y mientras atracas; la música «Combat_Unknown» solo lo abre si te atacan o sacas las armas. En el LOG queda apuntado cuándo se ignora.
+- Avisos de colonización: «AQUÍ HAY N MATERIALES DE COLONIZACIÓN» y «ESTA ESTACIÓN NO TIENE MATERIALES DE COLONIZACIÓN» (o «AQUÍ NO HAY…» al abrir el mercado).
+# Novedades v1.0 beta 16b
+- Arreglado «Error en esta pantalla» en MERCADO con el recuadro PARA TU COLONIA (sender v1.0b11).
+# Novedades v1.0 beta 16
+- EMITIR: la memoria ya no sube sin parar (la Pi 3 de KORZO llegaba al 85 %). Como mucho 3 a la vez, los que se atascan se cortan a los 10 s, en la Pi 3 va a 5 imágenes/s y más pequeño, y si el panel pasa del 60 % de la RAM se apaga EMITIR con un aviso.
+- Reloj de atraque desde 9:59.
+- El cronómetro de salida de la estación y su rótulo van abajo del todo (también en 4 CUADROS).
+- ALTÍMETRO de cinta con velocidad vertical (azul bajando, verde subiendo; rojo si bajas rápido cerca del suelo): pestaña en NAVEGACIÓN y, en la pantalla grande, sustituye a un cuadro al acercarte a un planeta, al aterrizar y en los puertos planetarios. Solo sale cuando el juego da la altura. En el SRV apagado (botón SRV: SÍ/NO en la pestaña).
+# Novedades v1.0 beta 15
+- Reloj de lamas (como los paneles de aeropuerto, sin sonido): TIEMPO PARA ATRACAR desde 9:55 al concederte el atraque (en ESTACIÓN y en ATRAQUE de la pantalla grande). Naranja, amarillo por debajo de 2 min y rojo parpadeando en el último.
+- Al despegar dentro de una estación con hangar (Coriolis, Dodecaedro, Orbis, Ocellus, Bernal, base de asteroide): banda DENTRO DE LA ESTACIÓN con la cuenta de 6 minutos (también en 4 CUADROS). Al salir por la ranura se quita y se abre EN VIVO (CAMBIO AUTO > SALIDA DE LA ESTACIÓN).
+- Radar de la facción: tocar un sistema de ALERTAS abre su ficha (y VOLVER lleva al radar).
+- Avisos de la facción: EXPANSIÓN EN MARCHA / ACTIVA, ¡EXPANSIÓN CONSEGUIDA! (cuando aparece un sistema nuevo) o SIN ÉXITO (3 días sin sistema nuevo), ¡TOMÁIS EL CONTROL! y PERDÉIS EL CONTROL. Se apagan en ALERTAS.
+- COLONIZACIÓN > AQUÍ: usa la estación donde estás atracado (los datos del juego si has abierto su mercado; si no, EDSM, y lo dice) y compara las mercancías por su nombre interno.
+- Necesita el sender v1.0b11.
+# Novedades v1.0 beta 14
+- Aviso de compra para tu construcción: al pedir atraque, si esa estación no vende nada de lo que te falta (según EDSM), «ESTA ESTACIÓN NO VENDE NADA DE LO QUE TE FALTA» y dónde probar en el sistema; si vende algo, «AQUÍ HAY N DE LO QUE TE FALTA». Al abrir el mercado se confirma con los datos del juego. Se apaga en ALERTAS. Necesita el sender v1.0b10.
+- COLONIZACIÓN > EN EL SISTEMA: ya no se montan los textos de abajo; los datos de EDSM de más de 30 días salen en gris como DATO ANTIGUO (y se prefiere uno reciente si lo hay).
+- EN VIVO: el nombre de la nave en azul, como el del copiloto.
+# Novedades v1.0 beta 13
+- COLONIZACIÓN: lo que llevas en la bodega se descuenta de lo que falta. En azul lo que ya llevas (recogido, sin entregar); «+N» en azul si solo cubre una parte. La barra tiene dos tramos: entregado (naranja) y en bodega (azul).
+- Filtros arriba: TODO, AQUÍ (lo que falta y se vende en esta estación) y EN EL SISTEMA (la mejor estación del sistema para cada mercancía, según EDSM: existencias, precio, distancia, pad y antigüedad). EN EL SISTEMA en verde si hay algo, en rojo si no, en gris consultando. Tocar una fila copia la estación al portapapeles del PC. Necesita el sender v1.0b9.
+- MERCADO: el recuadro verde ya descuenta tu bodega; tocarlo abre COLONIZACIÓN > AQUÍ.
+- Al atracar en el depósito con carga que le sirve: aviso TIENES N t POR ENTREGAR (se apaga en ALERTAS).
+# Novedades v1.0 beta 12c
+- Pantalla grande en 4 CUADROS: al estar atracado en un sitio de construcción sale el modo COLONIZACIÓN (COLONIZACIÓN, EN VIVO, MERCADO y ESTACIÓN).
+# Novedades v1.0 beta 12b
+- COLONIZACIÓN ya no la tapa el cambio automático a ESTACIÓN al atracar: espera 3 s y, si otro cambio automático la quita en los 8 s siguientes, vuelve a ella. Si tocas la pantalla, manda lo que tocas.
+# Novedades v1.0 beta 12
+- COLONIZACIÓN (antes COLONIA) se abre sola al atracar en un sitio de construcción, una vez por atraque: lo detecta por el tipo de estación o al llegar datos del depósito estando atracado o posado. En el LOG queda apuntado cuándo la abre. Necesita el sender v1.0b8.
+- La expansión probable ya no sale en el radar; está en la ficha del sistema que se expande, con el destino probable y la distancia.
+- ALERTAS y SONIDO: cada botón lleva su número en pequeño (el mismo #n que sale en la esquina del aviso).
+# Novedades v1.0 beta 11
+- Radar de la facción: «último piloto hace…» (cuándo entró alguien con EDMC en uno de tus sistemas), cuenta atrás del tick de tu sistema principal (EDCAS), halo azul según los comandantes de hoy, anillo blanco que late en los visitados la última hora, línea HOY con comandantes, zonas de conflicto y portanaves, y las EXPANSIONES con una línea roja parpadeante hacia el destino PROBABLE (el sistema conocido más cercano donde no estáis).
+- Radar con zoom: botones + y − (hasta x8). Con zoom salen todos los nombres y tocar una zona vacía la centra. Vuelve a x1 cuando deja de verse.
+- COLONIA (pestaña de CARGA/MISIÓN): progreso de tu construcción y lo que falta de cada mercancía (en verde lo que se vende en el mercado donde estás, en blanco lo que llevas). Tocar arriba cambia de construcción; tocar la lista pasa de página. Se abre sola al atracar en un depósito (CAMBIO AUTO). Necesita el sender v1.0b7.
+- MERCADO: recuadro verde PARA TU COLONIA con lo que se vende allí y le falta a tu construcción.
+- VIAJES: botón + para acercar sobre el centro.
+- Avisos: número pequeño en la esquina (#23). Tocarlo lleva a su línea en ALERTAS para apagarlo o encenderlo.
 # Enlace energético
 - Si llevas el enlace energético en la mano y estás parado 8 segundos (girar con el ratón no cuenta), el panel lo da por recarga: aviso pequeño RECARGANDO y punto de recarga (rayo amarillo) en el MAPA, si no hay otro a menos de 20 m.
 - El juego no dice la batería del traje ni la munición: es una aproximación.
@@ -7834,16 +7912,21 @@ def touch_loop2():
                 elif ev.type == ec.EV_KEY and ev.code in (ec.BTN_TOUCH, ec.BTN_LEFT):
                     if ev.value == 1:
                         t_down, pos = time.time(), None
+                        DRAG.update(on=False, p0=None, last=None)
                     elif t_down is not None:
                         dur = time.time() - t_down; t_down = None
                         if pos is None:
                             continue
+                        if DRAG.get("on"):                       # b18: era un arrastre, no un toque
+                            drag_end(); continue
                         if dur >= 1.2:
                             hdmi_toggle(); TAP_EV.set()          # pulsacion larga: PANEL <-> 4 CUADROS
                         else:
                             big_tap(*pos)
                 elif ev.type == ec.EV_SYN and t_down is not None and pos is None:
                     pos = ((rx - ax.min) / max(1, ax.max - ax.min), (ry - ay.min) / max(1, ay.max - ay.min))
+                elif ev.type == ec.EV_SYN and t_down is not None:
+                    drag_move(pos, ((rx - ax.min) / max(1, ax.max - ax.min), (ry - ay.min) / max(1, ay.max - ay.min)))
         except OSError:
             time.sleep(2)                                # desconectado: se vuelve a buscar
         except Exception as e:
@@ -10523,6 +10606,2034 @@ def on_tap(x, y):
         sub, col, det = pueblo_estado(time.time())
         set_alert("FLUJO DATOS EDDN", det, col, 7, kind="info"); TAP_EV.set(); return
     _on_tap_b10c(x, y)
+
+
+# ---------- v1.0 beta 11 ----------
+# --- tick del BGS de tu sistema principal (EDCAS; id64 de EDSM), cada 30 min ---
+FTICK = {"sys": None, "addr": {}, "next": None, "win": 0, "last": None, "t": 0}
+
+def ftick_loop():
+    import urllib.request, urllib.parse, datetime
+    def iso(x):
+        try:
+            return datetime.datetime.fromisoformat((x or "").replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return None
+    def get(url):
+        req = urllib.request.Request(url, headers={"User-Agent": "PanelEliteRPi/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode() or "null")
+    time.sleep(30)
+    while True:
+        try:
+            D, S, gap = fac_rows()
+            ctl = sorted([v for v in S if v.get("ctrl")], key=lambda v: -v["inf"])
+            if ctl:
+                n = ctl[0]["sys"]
+                a = FTICK["addr"].get(n)
+                if not a:
+                    j = get("https://www.edsm.net/api-v1/system?" + urllib.parse.urlencode({"systemName": n, "showId": 1}))
+                    a = (j or {}).get("id64")
+                    if a:
+                        FTICK["addr"][n] = a
+                if a:
+                    p = get(f"https://edservertick.de/api/v1/systems/{a}/tick-prediction")
+                    FTICK.update(sys=n, next=iso((p or {}).get("next_tick")), win=(p or {}).get("window_minutes") or 0,
+                                 last=iso((p or {}).get("last_tick")), t=time.time())
+        except Exception as e:
+            FTICK["err"] = str(e)[:50]
+        time.sleep(1800)
+
+threading.Thread(target=ftick_loop, daemon=True, name="tick-faccion").start()
+
+def ftick_txt(now):
+    n = FTICK.get("next")
+    if not n:
+        return None, DIM
+    w = (FTICK.get("win") or 0) * 60
+    hm = lambda s_: f"{int(s_ // 3600)} h {int(s_ % 3600 // 60):02d} min"
+    if now < n - w:
+        return "tick en " + hm(n - w - now), BLUE
+    if now < n + w:
+        return "TICK EN CURSO", GREEN
+    return "tick: esperando", DIM
+
+# --- radar: zoom, expansion y resumen ---
+RZ = {"z": 1, "cx": 0.0, "cz": 0.0, "seen": 0}
+RADAR_R = pygame.Rect(6, 56, 200, 200)
+ZB = [pygame.Rect(RADAR_R.right - 42, RADAR_R.bottom - 20, 19, 17), pygame.Rect(RADAR_R.right - 21, RADAR_R.bottom - 20, 19, 17)]
+RGEO = {}
+
+def exp_target(D, v):
+    """Destino probable de una expansion desde v: el sistema conocido mas cercano (< 30 al) donde no esta tu faccion."""
+    if not v.get("pos") or None in v["pos"]:
+        return None
+    mine = {n for n, x in (D.get("sistemas") or {}).items() if x.get("inf") and not x.get("fuera")}
+    cand = []
+    for n, z in (D.get("zona") or {}).items():
+        if n not in mine and z.get("pos") and None not in z["pos"]:
+            cand.append((n, z["pos"]))
+    for n, x in (D.get("sistemas") or {}).items():
+        if x.get("fuera") and x.get("pos") and None not in x["pos"]:
+            cand.append((n, x["pos"]))
+    best = None
+    for n, p in cand:
+        dd = math.dist(p, v["pos"])
+        if dd < 30 and (best is None or dd < best[0]):
+            best = (dd, n, p)
+    return best
+
+def day_summary(S):
+    hoyk = time.strftime("%Y-%m-%d", time.gmtime())
+    cm = sum(((v.get("trafico") or {}).get(hoyk, 0)) for v in S)
+    zc = sum(1 for v in S for z in (v.get("zc") or []) if time.time() - (z.get("t") or 0) < 86400)
+    pn = sum(1 for v in S for x in (v.get("pn") or {}).values() if time.time() - (x.get("t") or 0) < 86400)
+    return cm, zc, pn
+
+def draw_fac_screen_b11(surf, now):
+    D, S, gap = fac_rows()
+    if now - RZ["seen"] > 3:                            # no se estaba viendo: vuelve a x1
+        RZ.update(z=1, cx=0.0, cz=0.0)
+    RZ["seen"] = now
+    surf.fill(BLACK)
+    for x in range(0, W, 24):
+        pygame.draw.line(surf, (14, 9, 3), (x, 0), (x, H))
+    for y in range(0, H, 24):
+        pygame.draw.line(surf, (14, 9, 3), (0, y), (W, y))
+    blink = int(now * 2) % 2
+    # cabecera: nombre, resumen con el ultimo piloto, hora y tick
+    if not blit_logo(surf, pygame.Rect(4, 2, 46, 46)):
+        shield(surf, 26, 24, ORANGE)
+    put(surf, F["big"], (D.get("faccion") or "").upper(), (56, 6), ORANGE, W - 190)
+    nctl = sum(1 for v in S if v.get("ctrl"))
+    med = sum(v["inf"] for v in S) / len(S)
+    tmax = max([v.get("t") or 0 for v in S] or [0])
+    a_txt, a_col = fac_age(tmax)
+    t1 = f"{nctl} de {len(S)} controlados · media {med:.1f} % · ".replace(".", ",", 1)
+    x_ = put(surf, F["small"], t1, (56, 32), DIM, W - 120)
+    put(surf, F["small"], "último piloto " + a_txt, (56 + x_, 32), a_col, W - 120 - x_)
+    put(surf, F["small"], time.strftime("%H:%M", time.localtime(now)), (W - 56, 6), ORANGE, anchor="topright")
+    tk, tkc = ftick_txt(now)
+    if tk:
+        put(surf, F["tiny"], tk, (W - 56, 20), tkc, anchor="topright")
+    pygame.draw.line(surf, ORANGE, (6, 50), (W - 6, 50), 1)
+    # radar
+    R = RADAR_R; c = R.center; rad = 96
+    blit_logo(surf, pygame.Rect(c[0] - 85, c[1] - 85, 170, 170), dark=40)
+    for k in (1, 2, 3):
+        pygame.draw.circle(surf, (40, 26, 8), c, rad * k // 3, 1)
+    pygame.draw.line(surf, (40, 26, 8), (c[0] - rad, c[1]), (c[0] + rad, c[1]))
+    pygame.draw.line(surf, (40, 26, 8), (c[0], c[1] - rad), (c[0], c[1] + rad))
+    ang = math.radians((now * 60) % 360)
+    for k in range(28):
+        a = ang - math.radians(k * 1.4)
+        f_ = (1 - k / 28) * 0.5
+        pygame.draw.line(surf, (int(255 * f_), int(140 * f_), 0), c, (c[0] + rad * math.cos(a), c[1] + rad * math.sin(a)), 2)
+    ps = [v for v in S if v.get("pos") and None not in v["pos"]]
+    used = []
+    RADAR_PTS.clear()
+    z = RZ["z"]
+    if ps:
+        ctl_ = [v for v in ps if v.get("ctrl")] or ps
+        mx = sum(v["pos"][0] for v in ctl_) / len(ctl_); mz = sum(v["pos"][2] for v in ctl_) / len(ctl_)
+        ext = sorted(max(abs(v["pos"][0] - mx), abs(v["pos"][2] - mz)) for v in ps)
+        ext = (ext[int(len(ext) * 0.9)] if len(ext) > 3 else ext[-1]) or 1
+        RGEO.update(mx=mx, mz=mz, ext=ext)
+
+        def to_px(p, clamp=True):
+            dx, dz = ((p[0] - mx) / ext - RZ["cx"]) * z, ((p[2] - mz) / ext - RZ["cz"]) * z
+            d_ = math.hypot(dx, dz)
+            if d_ > 1:
+                if not clamp or z > 1:
+                    return None
+                dx, dz = dx / d_, dz / d_
+            return int(c[0] + dx * rad * 0.88), int(c[1] - dz * rad * 0.88)
+
+        for v in sorted(ps, key=lambda v: (fac_war(v), v.get("ctrl"))):
+            p_ = to_px(v["pos"])
+            if not p_:
+                continue
+            px, py = p_
+            RADAR_PTS.append((px, py, v["sys"]))
+            war = fac_war(v)
+            r = 3 + int(v["inf"] / 18)
+            hoy = traf(v)[0] or 0
+            if hoy:                                     # halo de trafico: mas grande cuantos mas comandantes hoy
+                hr = r + 3 + min(9, hoy * 2)
+                pygame.draw.circle(surf, (20, 45, 70), (px, py), hr)
+                pygame.draw.circle(surf, (50, 110, 160), (px, py), hr, 1)
+            if v.get("ctrl"):
+                for g in range(3):
+                    pygame.draw.circle(surf, (90 - g * 25, 50 - g * 15, 0), (px, py), r + 6 - g * 2)
+            pygame.draw.circle(surf, RED if war else ORANGE if v.get("ctrl") else (150, 150, 150), (px, py), r)
+            if war and blink:
+                pygame.draw.circle(surf, RED, (px, py), r + 6, 1)
+            if now - (v.get("t") or 0) < 3600:          # recien visitado: anillo blanco que late
+                k_ = (now * 1.5) % 1
+                pygame.draw.circle(surf, tuple(int(255 * (1 - k_)) for _ in range(3)), (px, py), int(r + 3 + k_ * 10), 1)
+            if v.get("ctrl") or war or z > 1:
+                nm = v["sys"].upper()
+                nm = nm if len(nm) <= 12 else nm[:11] + "…"
+                tw = tw_(F["tiny"], nm)
+                lr = pygame.Rect(px + r + 3, py - 7, tw, 12)
+                if lr.right > R.right:
+                    lr.right = px - r - 3
+                if R.contains(lr) and not any(lr.colliderect(u) for u in used):
+                    used.append(lr)
+                    put(surf, F["tiny"], nm, lr.topleft, RED if war else (230, 170, 90) if v.get("ctrl") else (170, 170, 170))
+    put(surf, F["tiny"], "MAPA" if z == 1 else f"MAPA x{z}", (R.x + 4, R.bottom - 14), DIM)
+    for i, b in enumerate(ZB):
+        pygame.draw.rect(surf, BLACK, b, border_radius=3)
+        pygame.draw.rect(surf, ORANGE if (i == 0 and z < 8) or (i == 1 and z > 1) else DIM, b, 1, border_radius=3)
+        put(surf, F["small"], "+" if i == 0 else "−", b.center, ORANGE if (i == 0 and z < 8) or (i == 1 and z > 1) else DIM, anchor="center")
+    # alertas
+    X, y = 214, 58
+    war = [v for v in S if fac_war(v)] + [v for v in S if not fac_war(v) and inf_warn(v)]
+    if war:
+        box = pygame.Rect(X, y, W - X - 6, 18 + min(4, len(war)) * 30)
+        pygame.draw.rect(surf, (30, 0, 0), box, border_radius=6)
+        pygame.draw.rect(surf, RED if blink else (120, 0, 0), box, 2, border_radius=6)
+        put(surf, F["small"], "ALERTAS", (X + 8, y + 3), RED)
+        yy = y + 18
+        for v in war[:4]:
+            ALR.append((pygame.Rect(X, yy - 2, box.w, 30), v["sys"]))
+            if not fac_war(v):
+                t1_, t2_ = inf_warn(v)
+                put(surf, F["small"], t1_ + " · " + v["sys"], (X + 8, yy), WHITE, box.w - 16)
+                put(surf, F["tiny"], t2_, (X + 8, yy + 14), ORANGE, box.w - 16)
+                yy += 30; continue
+            cf = (v.get("conflictos") or [{}])[0]
+            t = tipo_es(cf.get("tipo") or next((x for x in (v.get("activos") or []) + (v.get("pendientes") or []) if x in ("War", "CivilWar", "Election")), "war"))
+            put(surf, F["small"], f"{t} · {v['sys']}", (X + 8, yy), WHITE, box.w - 16)
+            put(surf, F["tiny"], f"contra {cf.get('contra') or '?'} · {cf.get('ganados') or 0}-{cf.get('perdidos') or 0} días", (X + 8, yy + 14), RED, box.w - 16)
+            yy += 30
+        y = box.bottom + 8
+    put(surf, F["small"], "SISTEMAS CONTROLADOS", (X, y), DIM); y += 16
+    CTL_LIST.update(r=pygame.Rect(X, y, W - X - 6, H - 44 - y))
+    ctl_ = sorted([v for v in S if v.get("ctrl")], key=lambda v: -v["inf"])
+    vis_n = max(1, (H - 44 - y) // 14)
+    CTL_LIST["max"] = max(0, len(ctl_) - vis_n) * 14
+    off_ = max(0, min(CTL_LIST.get("off", 0), CTL_LIST["max"]))
+    CTL_LIST["off"] = off_
+    if CTL_LIST["max"]:
+        tr_ = pygame.Rect(W - 5, y, 3, vis_n * 14)
+        pygame.draw.rect(surf, (40, 26, 8), tr_)
+        hh_ = max(8, tr_.h * vis_n // len(ctl_))
+        pygame.draw.rect(surf, ORANGE, (tr_.x, tr_.y + int((tr_.h - hh_) * off_ / CTL_LIST["max"]), 3, hh_))
+    CTL_ROWS.clear()
+    first_ = int(off_ // 14)
+    for v in ctl_[first_:first_ + vis_n]:
+        if y + 14 > H - 44:
+            break
+        CTL_ROWS.append((pygame.Rect(X, y, W - X - 8, 14), v["sys"]))
+        g = gap(v)
+        put(surf, F["tiny"], v["sys"].upper(), (X, y), ORANGE, 110)
+        bx = pygame.Rect(X + 112, y + 3, 90, 8); pygame.draw.rect(surf, DIM, bx, 1)
+        pygame.draw.rect(surf, ORANGE, (bx.x + 1, bx.y + 1, int(88 * min(100, v["inf"]) / 100), 6))
+        put(surf, F["tiny"], f"{v['inf']:.0f}%", (W - 8, y), GREEN if g >= 5 else RED, anchor="topright")
+        trend_arrow(surf, v, W - 44, y + 3)
+        y += 14
+    # resumen del dia
+    cm, zc, pn = day_summary(S)
+    put(surf, F["small"], f"HOY: {cm} comandante{'s' if cm != 1 else ''} · {zc} ZC · {pn} portanave{'s' if pn != 1 else ''}",
+        (X, H - 40), WHITE if cm or zc or pn else DIM, W - X - 8)
+    # cinta con los estados
+    pygame.draw.line(surf, ORANGE, (6, H - 24), (W - 6, H - 24), 1)
+    segs = []
+    for v in S:
+        parts = fac_parts(v)
+        hoy, media, alto = traf(v)
+        if alto:
+            parts = parts + [(f"TRÁFICO ALTO {hoy} cmdr", RED)]
+        if parts:
+            segs.append((v["sys"].upper() + ": ", ORANGE))
+            for i, (t, col) in enumerate(parts):
+                segs.append(((", " if i else "") + t, col))
+            segs.append(("     ·     ", DIM))
+    if segs:
+        total = sum(tw_(F["small"], t) for t, c in segs) or 1
+        x0 = 8 - int((now * 40) % total)
+        old = surf.get_clip(); surf.set_clip(pygame.Rect(0, H - 22, W, 22))
+        x = x0
+        while x < W:
+            for t, col in segs:
+                w_ = tw_(F["small"], t)
+                if x + w_ > 0 and x < W:
+                    put(surf, F["small"], t, (x, H - 20), col)
+                x += w_
+        surf.set_clip(old)
+    else:
+        put(surf, F["small"], "sin estados especiales en tus sistemas", (W // 2, H - 12), DIM, anchor="center")
+
+draw_fac_screen = draw_fac_screen_b11
+
+def radar_tap(x, y):
+    """Toques en el radar: zoom + / -, y con zoom tocar una zona vacia la centra. True si lo ha usado."""
+    for i, b in enumerate(ZB):
+        if b.inflate(6, 6).collidepoint(x, y):
+            if i == 0 and RZ["z"] < 8:
+                RZ["z"] *= 2
+            elif i == 1 and RZ["z"] > 1:
+                RZ["z"] //= 2
+                if RZ["z"] == 1:
+                    RZ.update(cx=0.0, cz=0.0)
+            TAP_EV.set(); return True
+    c = RADAR_R.center
+    if RZ["z"] > 1 and math.hypot(x - c[0], y - c[1]) < 96 and not radar_hit(x, y):
+        k = 96 * 0.88 * RZ["z"]
+        RZ["cx"] += (x - c[0]) / k
+        RZ["cz"] -= (y - c[1]) / k
+        TAP_EV.set(); return True
+    return False
+
+# --- VIAJES: boton + (acerca sobre el centro del mapa) ---
+def vj_btn(i):
+    return pygame.Rect(4 + i * 67, H - 28, 63, 25)
+
+_view_viajes_b11 = view_viajes
+
+def view_viajes(surf, d, flags, now):
+    _view_viajes_b11(surf, d, flags, now)
+    Z = ui.get("vjzoom")
+    draw_button(surf, vj_btn(6), "+", "", F["small"], compact=True, dim=bool(Z and Z[0] >= 64))
+
+VIEWS[190] = view_viajes
+
+def vj_plus():
+    A, pt, sc = VJT.get("A"), VJT.get("pt"), VJT.get("sc")
+    if not (A and sc):
+        return
+    c0 = pt(0, 0)
+    wx, wz = (A.centerx - c0[0]) / sc, -(A.centery - c0[1]) / sc
+    Z = ui.get("vjzoom")
+    f_ = (Z[0] if Z else 1) * 2
+    if f_ <= 64:
+        ui["vjzoom"] = (f_, wx, wz)
+
+# --- numero de aviso: esquina de cada aviso; tocarlo lleva a su linea en ALERTAS ---
+class _XA(dict):
+    def __setitem__(self, k, v):
+        if k == "a" and isinstance(v, dict) and "ev" not in v and XA_K[0]:
+            v["ev"] = XA_K[0]
+        super().__setitem__(k, v)
+
+xa = _XA(xa)
+NUMB = {"r": None, "ev": None}
+
+def ev_num(k):
+    for i, (k_, _) in enumerate(EV_LIST):
+        if k_ == k:
+            return i + 1
+    return None
+
+def draw_num(surf, box, k):
+    n = ev_num(k) if k else None
+    if not n:
+        return
+    lab = f"#{n}"
+    r = pygame.Rect(box.right - tw_(F["tiny"], lab) - 14, box.y + 5, tw_(F["tiny"], lab) + 8, 14)
+    pygame.draw.rect(surf, BLACK, r, border_radius=3)
+    pygame.draw.rect(surf, DIM, r, 1, border_radius=3)
+    put(surf, F["tiny"], lab, r.center, DIM, anchor="center")
+    NUMB.update(r=r.inflate(16, 12), ev=k, t=time.time())
+
+_draw_alert_b11 = draw_alert
+
+def draw_alert(surf, now):
+    _draw_alert_b11(surf, now)
+    a = ui.get("alert")
+    if a:
+        draw_num(surf, pygame.Rect(30, 105, W - 60, 110), a.get("ev"))
+
+_draw_xa_b11 = draw_xa
+
+def draw_xa(surf, now):
+    a = xa.get("a")
+    _draw_xa_b11(surf, now)
+    if a and xa.get("a") is a and now <= a.get("until", 0):
+        draw_num(surf, pygame.Rect(24, 64, W - 48, 196), a.get("ev"))
+
+def num_tap(x, y):
+    r = NUMB.get("r")
+    if not r or time.time() - NUMB.get("t", 0) > 0.6 or not r.collidepoint(x, y):
+        return False
+    n = ev_num(NUMB["ev"])
+    ui["alert"] = None; xa["a"] = None
+    ui["view"] = 161; ui["evpage"] = (n - 1) // EVPP; ui["idle_skip"] = time.time() + 60
+    flash[(161, (n - 1) % EVPP)] = time.time() + 4      # su boton se ilumina unos segundos
+    NUMB["r"] = None; TAP_EV.set()
+    return True
+
+# --- COLONIZACION: pestana COLONIA en CARGA/MISION (datos del sender v1.0b7) ---
+MENU[135] = "COLONIZACIÓN"
+TABS[1].append((135, "COLONIZACIÓN"))
+AUTO_LIST.append(("colonia", "DEPÓSITO DE CONSTRUCCIÓN > COLONIA"))
+COLA = {"dock": None, "pend": 0}
+COL_HEAD = pygame.Rect(0, TOP, W, 34)
+COL_ROWS = 13
+
+def col_pick(d):
+    C = (d or {}).get("colonia") or {}
+    L = C.get("list") or []
+    if not L:
+        return C, L, None
+    sel = ui.get("colsel")
+    if sel is None:
+        sel = next((i for i, x in enumerate(L) if x.get("mid") == C.get("dock")), 0)
+    return C, L, sel % len(L)
+
+def view_colonia(surf, d, flags, now):
+    C, L, i = col_pick(d)
+    if not L:
+        if d and "colonia" not in d:
+            put(surf, F["btn"], "actualiza el sender a la v1.0b7", (W // 2, H // 2 - 10), ORANGE, W - 16, anchor="center")
+        else:
+            put(surf, F["btn"], "sin construcciones", (W // 2, H // 2 - 12), DIM, anchor="center")
+            put(surf, F["small"], "atraca en un depósito de construcción y abre su mercado", (W // 2, H // 2 + 12), DIM, W - 16, anchor="center")
+        return
+    x = L[i]
+    y = TOP + 3
+    nm = (x.get("st") or "CONSTRUCCIÓN").upper() + (" · " + x["sys"] if x.get("sys") else "")
+    put(surf, F["btn"], nm, (8, y), ORANGE, W - 90)
+    if len(L) > 1:
+        put(surf, F["small"], f"{i + 1}/{len(L)}  >", (W - 8, y + 3), BLUE, anchor="topright")
+    elif x.get("mid") == C.get("dock"):
+        put(surf, F["small"], "ATRACADO", (W - 8, y + 3), GREEN, anchor="topright")
+    y += 20
+    bar = pygame.Rect(8, y, W - 16, 12)
+    pygame.draw.rect(surf, DIM, bar, 1)
+    pygame.draw.rect(surf, GREEN if x.get("done") else ORANGE, (bar.x + 1, bar.y + 1, int((bar.w - 2) * min(100, x.get("prog") or 0) / 100), bar.h - 2))
+    st_ = "COMPLETADA" if x.get("done") else "FALLIDA" if x.get("fail") else f"{x.get('prog', 0):.1f} %".replace(".", ",")
+    put(surf, F["tiny"], st_, bar.center, WHITE, anchor="center")
+    y += 16
+    res = x.get("res") or []
+    falta = sum(max(0, r[1] - r[2]) for r in res)
+    cap = (d or {}).get("cargocap") or 0
+    carg = {(n or "").lower(): c for n, c in ((d or {}).get("cargo") or [])}
+    util = sum(min(carg.get((r[0] or "").lower(), 0), max(0, r[1] - r[2])) for r in res)
+    mk = (d or {}).get("market") or {}
+    here = {(r[0] or "").lower(): r[1] for r in (mk.get("col") or [])}
+    t_ = f"FALTAN {falta:,} t".replace(",", ".") + (f" · ~{-(-falta // cap)} viajes de {cap} t" if cap and falta else "")
+    xx = put(surf, F["small"], t_, (8, y), WHITE if falta else GREEN, W - 16)
+    if util:
+        put(surf, F["small"], f" · llevas {util:,} t útiles".replace(",", "."), (8 + xx, y), GREEN, W - 24 - xx)
+    y += 16
+    pend = [r for r in res if r[1] - r[2] > 0]
+    hechas = len(res) - len(pend)
+    pages = max(1, (len(pend) + 2 * COL_ROWS - 1) // (2 * COL_ROWS))
+    pg = ui.get("colpg", 0) % pages
+    cw = (W - 16) // 2
+    vis = pend[pg * 2 * COL_ROWS:(pg + 1) * 2 * COL_ROWS]
+    rows = max(1, (len(vis) + 1) // 2)                  # las dos columnas, repartidas
+    for k, r in enumerate(vis):
+        cx, cy = 8 + (k // rows) * (cw + 4), y + (k % rows) * 14
+        name, req, prov = r[0], r[1], r[2]
+        sold = name.lower() in here
+        inb = carg.get(name.lower(), 0)
+        col = GREEN if sold else WHITE if inb else ORANGE
+        put(surf, F["tiny"], ("• " if sold else "") + name, (cx, cy), col, cw - 96)
+        b = pygame.Rect(cx + cw - 92, cy + 3, 40, 7)
+        pygame.draw.rect(surf, DIM, b, 1)
+        pygame.draw.rect(surf, ORANGE, (b.x + 1, b.y + 1, int(38 * prov / req) if req else 0, 5))
+        put(surf, F["tiny"], f"{req - prov:,}".replace(",", "."), (cx + cw - 4, cy), col, anchor="topright")
+    foot = f"{hechas} de {len(res)} completas" + (f" · pág {pg + 1}/{pages}" if pages > 1 else "") + " · verde = se vende aquí · blanco = en tu bodega"
+    put(surf, F["tiny"], foot, (8, H - 14), DIM, W - 16)
+
+VIEWS[135] = view_colonia
+
+_view_market_b11 = VIEWS[127]
+
+def view_market_b11(surf, d, flags, now):
+    _view_market_b11(surf, d, flags, now)
+    mk = (d or {}).get("market") or {}
+    L = mk.get("col") or []
+    try:
+        m_ = market_pick(d, now)
+        if m_.get("missing") or m_.get("src") == "EDSM" or m_.get("other"):
+            return                                       # se esta viendo otro mercado
+    except Exception:
+        pass
+    if not L:
+        return
+    n = min(4, len(L))
+    box = pygame.Rect(6, H - 44 - 18 - n * 14, W - 12, 18 + n * 14)
+    pygame.draw.rect(surf, (0, 28, 8), box, border_radius=5)
+    pygame.draw.rect(surf, GREEN, box, 1, border_radius=5)
+    put(surf, F["small"], "PARA TU COLONIA (se vende aquí)" + (f"  +{len(L) - n} más en COLONIZACIÓN" if len(L) > n else ""), (box.x + 6, box.y + 2), GREEN, box.w - 12)
+    yy = box.y + 18
+    for name, stock, price, need in (r_[:4] for r_ in L[:n]):
+        put(surf, F["tiny"], name, (box.x + 8, yy), GREEN, 170)
+        put(surf, F["tiny"], f"hay {stock:,} t · {price:,} cr".replace(",", "."), (box.x + 190, yy), WHITE, 150)
+        put(surf, F["tiny"], f"faltan {need:,} t".replace(",", "."), (box.right - 8, yy), ORANGE, anchor="topright")
+        yy += 14
+
+VIEWS[127] = view_market_b11
+
+# --- render: abre COLONIA al atracar en un deposito ---
+_render_b11 = render
+
+def render(surf):
+    r_ = _render_b11(surf)
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        now = time.time()
+        if d is not None and now - rx < 5:
+            dk = ((d or {}).get("colonia") or {}).get("dock")
+            if dk != COLA["dock"]:
+                COLA["dock"] = dk
+                COLA["pend"] = now + 2 if dk else 0
+            if COLA["pend"] and now > COLA["pend"]:
+                COLA["pend"] = 0
+                if auto_on("colonia") and not ui.get("idle_on"):
+                    ui["view"] = 135; ui["colsel"] = None; ui["colpg"] = 0
+    except Exception as e:
+        log_exc("colonia auto", e)
+    return r_
+
+# --- toques ---
+_on_tap_b11 = on_tap
+
+def on_tap(x, y):
+    if num_tap(x, y):
+        return
+    v = ui.get("view")
+    if v == 190 and vj_btn(6).collidepoint(x, y):
+        vj_plus(); TAP_EV.set(); return
+    if v == 135 and y > TOP:
+        if COL_HEAD.collidepoint(x, y):
+            C, L, i = col_pick(state.get("data"))
+            if L:
+                ui["colsel"] = (i + 1) % len(L); ui["colpg"] = 0
+        else:
+            ui["colpg"] = ui.get("colpg", 0) + 1
+        TAP_EV.set(); return
+    if (v == 77 or (ui.get("idle_on") and IDLE_MODE["m"] == "fac")) and not FULL_BACK.inflate(10, 10).collidepoint(x, y) \
+            and not hold_rect("fac").inflate(10, 10).collidepoint(x, y):
+        if radar_tap(x, y):
+            return
+    _on_tap_b11(x, y)
+
+
+# ---------- v1.0 beta 12 ----------
+# --- COLONIZACION: se abre sola (una vez por atraque) ---
+COLB = {"done": set(), "t": None}
+
+def col_auto(d, now):
+    C = (d or {}).get("colonia") or {}
+    L = C.get("list") or []
+    fl = (d or {}).get("Flags", 0)
+    docked = bool(fl & 1) or bool(fl & 2)                # atracado o posado
+    if not docked:
+        COLB["done"].clear()
+    newest = max((x.get("t") or 0 for x in L), default=0)
+    why = key = None
+    if C.get("dock") and docked and C["dock"] not in COLB["done"]:
+        why, key = "atracado en un depósito", C["dock"]
+    elif COLB["t"] is not None and newest > COLB["t"] and docked and L and L[0].get("mid") not in COLB["done"]:
+        why, key = "datos nuevos del depósito", L[0].get("mid")
+    COLB["t"] = newest if COLB["t"] is None else max(COLB["t"], newest)
+    if why:
+        COLB["done"].add(key)
+        if auto_on("colonia") and not ui.get("idle_on"):
+            COLB["pend"] = (now + 3, why)                # b12b: despues de que se asiente el atraque
+        else:
+            plog("Colonización: no la abro (" + why + "; cambio auto apagado o en espera)")
+
+_render_b12 = render
+
+def render(surf):
+    COLA["pend"] = 0                                     # la apertura de la b11 queda sustituida
+    COLA["dock"] = None
+    r_ = _render_b12(surf)
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        if d is not None and time.time() - rx < 5:
+            col_auto(d, time.time())
+    except Exception as e:
+        log_exc("colonización auto", e)
+    return r_
+
+# --- ficha del sistema: destino probable de la expansion ---
+_ficha_b12 = VIEWS[194]
+
+def ficha_b12(surf, d, flags, now):
+    _ficha_b12(surf, d, flags, now)
+    D, name, v = fs_get()
+    if not v or "Expansion" not in (v.get("activos") or []) + (v.get("pendientes") or []):
+        return
+    bad = [st for st in (v.get("activos") or []) + (v.get("pendientes") or []) if st in TIPS and st not in ST_GOOD][:2]
+    y = H - 44 + 15 + 13 * len(bad)
+    if y > H - 14:
+        return
+    tg = exp_target(D or FACD["data"] or {}, v)
+    txt = (f"EXPANSIÓN · destino probable: {tg[1]} (a {tg[0]:.1f} al)".replace(".", ",") if tg
+           else "EXPANSIÓN · destino desconocido (ningún sistema conocido a menos de 30 al)")
+    put(surf, F["tiny"], txt, (100, y), BLUE, W - 104)
+
+VIEWS[194] = ficha_b12
+
+# --- ALERTAS y SONIDO: numero pequeno en cada boton (el mismo #n que sale en el aviso) ---
+_evlist_b12 = view_evlist
+
+def view_evlist(surf, d, flags, now):
+    v = ui["view"]
+    if v not in (161, 163):
+        return _evlist_b12(surf, d, flags, now)
+    L, st, pk = _evl(v)
+    pages = (len(L) + EVPP - 1) // EVPP
+    pg = ui.get(pk, 0) % pages
+    on = cfg.get(st) or {}
+    df = EVL[v][4]
+    n = sum(1 for k, _ in L if on.get(k, df.get(k, True)))
+    top = [("TODOS ON", None), ("TODOS OFF", None), (f"PÁG {pg + 1}/{pages}" if pages > 1 else f"{n} de {len(L)}", None)]
+    for i, (t, _) in enumerate(top):
+        draw_button(surf, grid(i, 3, 1, TOP, TOP + 40), t, None, F["btn"], lit=flash.get((v, 100 + i), 0) > now)
+    for i, (k, name) in enumerate(L[pg * EVPP:(pg + 1) * EVPP]):
+        r = grid(i, 2, 6, TOP + 38, H)
+        lit = flash.get((v, i), 0) > now
+        fill = on.get(k, df.get(k, True))
+        if fill or lit:
+            pygame.draw.rect(surf, WHITE if lit else ORANGE, r, border_radius=6)
+        else:
+            pygame.draw.rect(surf, ORANGE, r, 2, border_radius=6)
+        col = BLACK if fill or lit else ORANGE
+        lab = str(pg * EVPP + i + 1)
+        put(surf, F["tiny"], lab, (r.x + 6, r.centery), col, anchor="midleft")
+        x0 = r.x + 10 + tw_(F["tiny"], "00")
+        put(surf, F["small"] if len(name) > 17 else F["btn"], name, ((x0 + r.right - 4) // 2, r.centery), col, r.right - 4 - x0, anchor="center")
+
+VIEWS[161] = VIEWS[163] = view_evlist
+
+# ---------- v1.0 beta 12b: COLONIZACION gana al cambio automatico de ESTACION ----------
+COLB.setdefault("pend", None)
+COLB.setdefault("hold", 0)
+
+def col_pend(now):
+    p = COLB.get("pend")
+    if p and now >= p[0]:
+        COLB["pend"] = None
+        ui["view"] = 135; ui["colsel"] = None; ui["colpg"] = 0
+        COLB["hold"] = now + 8
+        plog("Colonización: abro la pestaña (" + p[1] + ")")
+    elif now < COLB.get("hold", 0) and ui.get("view") in (0, 8, 100, 126, 127) and not ui.get("idle_on"):
+        ui["view"] = 135                                 # otro cambio automatico la ha quitado: vuelve
+        plog("Colonización: vuelvo a la pestaña (la había tapado otro cambio automático)")
+
+_render_b12b = render
+
+def render(surf):
+    r_ = _render_b12b(surf)
+    try:
+        col_pend(time.time())
+    except Exception as e:
+        log_exc("colonización", e)
+    return r_
+
+_on_tap_b12b = on_tap
+
+def on_tap(x, y):
+    COLB["hold"] = 0                                     # si tocas tu, manda lo que tocas
+    _on_tap_b12b(x, y)
+
+
+# ---------- v1.0 beta 12c: modo COLONIZACION en la pantalla grande (4 CUADROS) ----------
+BIG_SETS["COLONIZACIÓN"] = [135, 100, 127, 8]
+_big_mode_b12c = big_mode
+
+def big_mode(d, flags):
+    m = _big_mode_b12c(d, flags)
+    if m == "ATRACADO" and ((d or {}).get("colonia") or {}).get("dock"):
+        if BIGCOL.get("m") != "COLONIZACIÓN":
+            plog("Colonización: pantalla grande en modo COLONIZACIÓN")
+        BIGCOL["m"] = "COLONIZACIÓN"
+        return "COLONIZACIÓN"
+    BIGCOL["m"] = m
+    return m
+
+BIGCOL = {"m": None}
+
+# ---------- v1.0 beta 13: COLONIZACION con bodega, filtros y EN EL SISTEMA ----------
+EV_LIST.append(("colentrega", "COLONIA: CARGA POR ENTREGAR"))
+COLF = [("todo", "TODO"), ("aqui", "AQUÍ"), ("sis", "EN EL SISTEMA")]
+COLF_R = [pygame.Rect(W - 90 - 4 - 56 - 4 - 50, TOP + 2, 50, 18), pygame.Rect(W - 90 - 4 - 56, TOP + 2, 56, 18),
+          pygame.Rect(W - 90, TOP + 2, 86, 18)]
+COL_HEAD = pygame.Rect(0, TOP, COLF_R[0].x - 4, 22)
+COLROWS = []                                             # (rect, nombre de estacion) en EN EL SISTEMA
+MKBOX = {"r": None}
+
+def col_rows(d, x):
+    """Cada mercancia: (nombre, clave, pedido, entregado, en bodega util, falta de verdad)."""
+    carg = {(n or "").lower(): c for n, c in ((d or {}).get("cargo") or [])}
+    out = []
+    for r in x.get("res") or []:
+        name, req, prov = r[0], r[1], r[2]
+        key = r[3] if len(r) > 3 else ""
+        pend = max(0, req - prov)
+        if not pend:
+            continue
+        inb = min(carg.get((name or "").lower(), 0), pend)
+        out.append((name, key, req, prov, inb, pend - inb))
+    out.sort(key=lambda t: (t[5] == 0, -t[5], -t[4]))
+    return out
+
+def col_here(d):
+    mk = (d or {}).get("market") or {}
+    return {(r[0] or "").lower(): r for r in (mk.get("col") or [])}
+
+def col_sys_state(d, rows):
+    S = (d or {}).get("colsys") or {}
+    off = S.get("off") or {}
+    hit = [t for t in rows if t[5] > 0 and off.get(t[1])]
+    if not S or S.get("status", "").startswith("consultando") or not S.get("status"):
+        return S, off, hit, DIM
+    return S, off, hit, GREEN if hit else RED
+
+def _hace(sec):
+    return "?" if sec is None or sec < 0 else "ahora" if sec < 60 else f"{int(sec // 60)} min" if sec < 3600 else f"{sec / 3600:.0f} h" if sec < 172800 else f"{sec / 86400:.0f} días"
+
+def view_colonia(surf, d, flags, now):
+    C, L, i = col_pick(d)
+    COLROWS.clear()
+    if not L:
+        if d and "colonia" not in d:
+            put(surf, F["btn"], "actualiza el sender a la v1.0b9", (W // 2, H // 2 - 10), ORANGE, W - 16, anchor="center")
+        else:
+            put(surf, F["btn"], "sin construcciones", (W // 2, H // 2 - 12), DIM, anchor="center")
+            put(surf, F["small"], "atraca en un depósito de construcción y abre su mercado", (W // 2, H // 2 + 12), DIM, W - 16, anchor="center")
+        return
+    x = L[i]
+    rows = col_rows(d, x)
+    here = col_here(d)
+    S, off, hit, scol = col_sys_state(d, rows)
+    f = ui.get("colf", "todo")
+    # cabecera: nombre (tocar = otra construccion) y filtros
+    y = TOP + 3
+    nm = (x.get("st") or "CONSTRUCCIÓN").upper() + (" · " + x["sys"] if x.get("sys") else "")
+    w_ = put(surf, F["btn"], nm, (8, y), ORANGE, COLF_R[0].x - 60)
+    if len(L) > 1:
+        put(surf, F["tiny"], f"{i + 1}/{len(L)} >", (14 + w_, y + 4), BLUE)
+    for k, (fk, lab) in enumerate(COLF):
+        r = COLF_R[k]
+        sel = f == fk
+        col = scol if fk == "sis" else ORANGE
+        pygame.draw.rect(surf, col if sel else BLACK, r, border_radius=4)
+        pygame.draw.rect(surf, col, r, 1, border_radius=4)
+        put(surf, F["tiny"], lab, r.center, BLACK if sel else col, r.w - 4, anchor="center")
+    y += 21
+    # progreso
+    bar = pygame.Rect(8, y, W - 16, 11)
+    pygame.draw.rect(surf, DIM, bar, 1)
+    pygame.draw.rect(surf, GREEN if x.get("done") else ORANGE, (bar.x + 1, bar.y + 1, int((bar.w - 2) * min(100, x.get("prog") or 0) / 100), bar.h - 2))
+    st_ = "COMPLETADA" if x.get("done") else "FALLIDA" if x.get("fail") else f"{x.get('prog', 0):.1f} %".replace(".", ",")
+    put(surf, F["tiny"], st_, bar.center, WHITE, anchor="center")
+    y += 14
+    falta = sum(t[5] for t in rows)
+    bod = sum(t[4] for t in rows)
+    cap = (d or {}).get("cargocap") or 0
+    t_ = f"FALTAN {falta:,} t".replace(",", ".") + (f" · ~{-(-falta // cap)} viajes de {cap} t" if cap and falta else "")
+    xx = put(surf, F["small"], t_, (8, y), WHITE if falta else GREEN, W - 16)
+    if bod:
+        put(surf, F["small"], f" · {bod:,} t en bodega por entregar".replace(",", "."), (8 + xx, y), BLUE, W - 24 - xx)
+    y += 16
+    cw = (W - 16) // 2
+    if f == "todo":
+        pages = max(1, (len(rows) + 25) // 26)
+        pg = ui.get("colpg", 0) % pages
+        vis = rows[pg * 26:(pg + 1) * 26]
+        nrow = max(1, (len(vis) + 1) // 2)
+        for k, (name, key, req, prov, inb, real) in enumerate(vis):
+            cx, cy = 8 + (k // nrow) * (cw + 4), y + (k % nrow) * 14
+            sold = _hh(here, name, key) is not None and real > 0
+            col = BLUE if real == 0 else GREEN if sold else ORANGE
+            put(surf, F["tiny"], ("• " if sold else "") + name, (cx, cy), col, 96)
+            b = pygame.Rect(cx + 100, cy + 3, 40, 7)
+            pygame.draw.rect(surf, DIM, b, 1)
+            w1 = int(38 * prov / req) if req else 0
+            w2 = int(38 * inb / req) if req else 0
+            pygame.draw.rect(surf, ORANGE, (b.x + 1, b.y + 1, w1, 5))
+            if w2:
+                pygame.draw.rect(surf, BLUE, (b.x + 1 + w1, b.y + 1, min(w2, 38 - w1), 5))
+            if real == 0:
+                put(surf, F["tiny"], f"{inb:,} en bodega".replace(",", "."), (cx + cw - 4, cy), BLUE, anchor="topright")
+            else:
+                xr = put(surf, F["tiny"], f"{real:,}".replace(",", "."), (cx + cw - 4, cy), col, anchor="topright")
+                if inb:
+                    put(surf, F["tiny"], f"+{inb:,}".replace(",", "."), (cx + cw - 8 - tw_(F["tiny"], f"{real:,}".replace(",", ".")), cy), BLUE, anchor="topright")
+        foot = f"pág {pg + 1}/{pages} · " if pages > 1 else ""
+        put(surf, F["tiny"], foot + "verde = se vende aquí · azul = en tu bodega · naranja = falta", (8, H - 14), DIM, W - 16)
+    elif f == "aqui":
+        mk = (d or {}).get("market") or {}
+        vis = [t for t in rows if t[5] > 0 and _hh(here, t[0], t[1]) is not None]
+        src = COLHS.get("src")
+        stn = (COLHS.get("st") or "ESTA ESTACIÓN").upper()
+        if not src:
+            put(surf, F["small"], "atraca y abre el mercado para ver qué se vende aquí", (W // 2, y + 40), DIM, W - 16, anchor="center")
+        elif not vis:
+            put(surf, F["btn"], "aquí no se vende nada de lo que falta", (W // 2, y + 40), RED, W - 16, anchor="center")
+        lab = f"EN {stn}" + (" · datos del juego" if src == "juego" else
+                             " · según EDSM" + (f", hace {_hace(now - COLHS['mt'])}" if COLHS.get("mt") else "") + " · abre el mercado para ver precios exactos" if src == "EDSM" else "")
+        put(surf, F["tiny"], lab, (8, y), DIM if src != "EDSM" else BLUE, W - 16); y += 14
+        for name, key, req, prov, inb, real in vis[:13]:
+            r_ = _hh(here, name, key)
+            put(surf, F["small"], name, (8, y), GREEN, 170)
+            put(surf, F["small"], f"hay {r_[1]:,} t · {r_[2]:,} cr".replace(",", "."), (184, y), WHITE, 170)
+            put(surf, F["small"], f"faltan {real:,} t".replace(",", "."), (W - 8, y), ORANGE, anchor="topright")
+            y += 15
+    else:
+        st = S.get("status") or ""
+        info = (f"{S.get('sys')}: " if S.get("sys") else "") + (
+            f"{S.get('n', 0)} mercados en EDSM · consultado hace {_hace(now - (S.get('t') or now))}" if st == "ok" else st or "entra en un sistema con la construcción sin terminar")
+        put(surf, F["tiny"], info, (8, y), DIM, W - 16); y += 14
+        vis = [t for t in rows if t[5] > 0]
+        if st == "ok" and not hit:
+            put(surf, F["btn"], "en este sistema no se vende nada de lo que falta", (W // 2, y + 40), RED, W - 16, anchor="center")
+        per = max(1, (H - 18 - y) // 28)                 # las que quepan sobre el pie
+        pages = max(1, (len(hit) + per - 1) // per)
+        pg = ui.get("colpg", 0) % pages
+        for name, key, req, prov, inb, real in hit[pg * per:(pg + 1) * per]:
+            o = next((q for q in off[key] if not q[5] or now - q[5] < 30 * 86400), off[key][0])   # mejor uno reciente
+            stn, stock, price, dist, pad, mt, fc = o[0], o[1], o[2], o[3], o[4], o[5], o[6]
+            put(surf, F["small"], name, (8, y), GREEN, 220)
+            put(surf, F["small"], f"faltan {real:,} t".replace(",", "."), (W - 8, y), ORANGE, anchor="topright")
+            line = (f"→ {stn}" + (" (PORTANAVES)" if fc else "") + f" · {stock:,} t · {price:,} cr · {dist:,} ls · pad {pad}".replace(",", ".")
+                    + (f" · hace {_hace(now - mt)}" if mt else ""))
+            old_ = bool(mt) and now - mt > 30 * 86400
+            put(surf, F["tiny"], line.replace("→", ">") + (" · DATO ANTIGUO" if old_ else ""), (16, y + 14), DIM if old_ else WHITE, W - 24)
+            COLROWS.append((pygame.Rect(0, y, W, 27), stn))
+            y += 28
+        put(surf, F["tiny"], (f"pág {pg + 1}/{pages} · " if pages > 1 else "") + "toca una fila: copia la estación al portapapeles del PC · abajo: página",
+            (8, H - 14), DIM, W - 16)
+
+VIEWS[135] = view_colonia
+
+# --- MERCADO: recuadro verde con lo que falta de verdad (descontando la bodega); tocarlo abre COLONIZACION > AQUI ---
+def view_market_b13(surf, d, flags, now):
+    _view_market_b11(surf, d, flags, now)              # el MERCADO sin el recuadro de la b11
+    MKBOX["r"] = None
+    mk = (d or {}).get("market") or {}
+    try:
+        m_ = market_pick(d, now)
+        if m_.get("missing") or m_.get("src") == "EDSM" or m_.get("other"):
+            return
+    except Exception:
+        pass
+    C, L, i = col_pick(d)
+    if not L:
+        return
+    real = {t[0].lower(): t[5] for t in col_rows(d, L[i])}
+    rows = [r for r in (mk.get("col") or []) if real.get((r[0] or "").lower(), 0) > 0]
+    if not rows:
+        return
+    n = min(4, len(rows))
+    box = pygame.Rect(6, H - 44 - 18 - n * 14, W - 12, 18 + n * 14)
+    pygame.draw.rect(surf, (0, 28, 8), box, border_radius=5)
+    pygame.draw.rect(surf, GREEN, box, 1, border_radius=5)
+    put(surf, F["small"], "PARA TU COLONIA (se vende aquí)" + (f"  +{len(rows) - n} más" if len(rows) > n else "") + "  · toca: ver todo",
+        (box.x + 6, box.y + 2), GREEN, box.w - 12)
+    yy = box.y + 18
+    for name, stock, price, need in (r_[:4] for r_ in rows[:n]):     # b16b: mercado, ahora con 5 datos
+        put(surf, F["tiny"], name, (box.x + 8, yy), GREEN, 170)
+        put(surf, F["tiny"], f"hay {stock:,} t · {price:,} cr".replace(",", "."), (box.x + 190, yy), WHITE, 150)
+        put(surf, F["tiny"], f"faltan {real[name.lower()]:,} t".replace(",", "."), (box.right - 8, yy), ORANGE, anchor="topright")
+        yy += 14
+    MKBOX["r"] = box
+
+VIEWS[127] = view_market_b13
+
+# --- aviso: carga por entregar al atracar en el deposito ---
+_col_pend_b13 = col_pend
+
+def col_pend(now):
+    p = COLB.get("pend")
+    _col_pend_b13(now)
+    if p and now >= p[0] and "atracado" in p[1]:
+        try:
+            d = state.get("data")
+            C, L, i = col_pick(d)
+            if L:
+                bod = sum(t[4] for t in col_rows(d, L[i]))
+                if bod and ev_on("colentrega"):
+                    k0 = XA_K[0]
+                    try:
+                        XA_K[0] = "colentrega"
+                        set_alert(f"TIENES {bod:,} t POR ENTREGAR".replace(",", "."), "entrégalas en este depósito", BLUE, 8, kind="info")
+                        play("ok")
+                    finally:
+                        XA_K[0] = k0
+        except Exception as e:
+            log_exc("colonia entrega", e)
+
+# --- toques ---
+_on_tap_b13 = on_tap
+
+def on_tap(x, y):
+    v = ui.get("view")
+    if v == 127 and MKBOX.get("r") and MKBOX["r"].collidepoint(x, y) and not (ui.get("alert") and time.time() < ui["alert"]["until"]):
+        ui["view"] = 135; ui["colf"] = "aqui"; ui["colsel"] = None; ui["colpg"] = 0; TAP_EV.set(); return
+    if v == 135 and y > TOP and not (ui.get("alert") and time.time() < ui["alert"]["until"]):
+        for k, (fk, lab) in enumerate(COLF):
+            if COLF_R[k].inflate(4, 8).collidepoint(x, y):
+                ui["colf"] = fk; ui["colpg"] = 0; TAP_EV.set(); return
+        if COL_HEAD.collidepoint(x, y):
+            C, L, i = col_pick(state.get("data"))
+            if L:
+                ui["colsel"] = (i + 1) % len(L); ui["colpg"] = 0
+            TAP_EV.set(); return
+        if ui.get("colf") == "sis" and y < H - 18:
+            for r, stn in COLROWS:
+                if r.collidepoint(x, y):
+                    ir_send(stn); TAP_EV.set(); return
+            return
+        ui["colpg"] = ui.get("colpg", 0) + 1; TAP_EV.set(); return
+    _on_tap_b13(x, y)
+
+
+# ---------- v1.0 beta 14: aviso de compra para tu construccion ----------
+EV_LIST.append(("colcompra", "COLONIA: ESTACIÓN SIN LO QUE TE FALTA"))
+CBW = {"t": None, "mk": None}
+
+def _col_need_keys(d):
+    C, L, i = col_pick(d)
+    if not L:
+        return None, []
+    x = next((y for y in L if not y.get("done") and not y.get("fail")), None)
+    if not x:
+        return None, []
+    return x, [t for t in col_rows(d, x) if t[5] > 0]
+
+def _col_alert(title, sub, col, voz=None):
+    if not ev_on("colcompra"):
+        return
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = "colcompra"
+        set_alert(title, sub, col, 8, kind="info")
+        play("alarm" if col == RED else "ok")
+        if voz:
+            voice_say(voz)
+    finally:
+        XA_K[0] = k0
+
+def _col_alt(d, need, skip_mid=None):
+    """Estacion del sistema (segun EDSM) que vende mas cosas de lo que falta: (nombre, [mercancias])."""
+    off = ((d or {}).get("colsys") or {}).get("off") or {}
+    cnt = {}
+    for fresh in (True, False):                          # primero solo con datos de menos de 30 dias
+        for name, key, req, prov, inb, real in need:
+            for o in off.get(key) or []:
+                if o[7] != skip_mid and (not fresh or not o[5] or time.time() - o[5] < 30 * 86400):
+                    cnt.setdefault(o[0], []).append(name)
+        if cnt:
+            break
+    if not cnt:
+        return None
+    st = max(cnt, key=lambda k: len(cnt[k]))
+    return st, cnt[st]
+
+def colbuy_watch(d, now):
+    B = (d or {}).get("colbuy") or {}
+    t = B.get("t")
+    if CBW["t"] is None:
+        CBW["t"] = t or 0                                # al arrancar no avisa de lo antiguo
+    elif t and t != CBW["t"]:
+        CBW["t"] = t
+        if B.get("status") == "ok" and not B.get("dep"):
+            x, need = _col_need_keys(d)
+            if need:
+                keys = set(B.get("keys") or [])
+                have = [t_[0] for t_ in need if t_[1] in keys]
+                if have:
+                    _col_alert(f"AQUÍ HAY {len(have)} MATERIAL{'ES' if len(have) != 1 else ''} DE COLONIZACIÓN",
+                               ", ".join(have[:3]) + ("…" if len(have) > 3 else "") + f" · {B.get('st')}", GREEN)
+                else:
+                    alt = _col_alt(d, need, B.get("mid"))
+                    _col_alert("ESTA ESTACIÓN NO TIENE MATERIALES DE COLONIZACIÓN",
+                               (f"prueba en {alt[0]} ({', '.join(alt[1][:3])})" if alt else f"{B.get('st')} · para tu construcción"),
+                               RED, "esta estación no tiene materiales de colonización")
+    # al abrir el mercado ya atracado: con los datos del juego
+    mk = (d or {}).get("market") or {}
+    key_ = (mk.get("mid"), mk.get("t"))
+    if CBW["mk"] is None:
+        CBW["mk"] = key_
+    elif key_ != CBW["mk"] and mk.get("t") and (d or {}).get("Flags", 0) & 1:
+        CBW["mk"] = key_
+        C = (d or {}).get("colonia") or {}
+        mids = {str(y.get("mid")) for y in C.get("list") or []}
+        if str(mk.get("mid")) in mids or C.get("dock"):
+            return                                       # es un deposito de construccion
+        x, need = _col_need_keys(d)
+        if need:
+            here = col_here(d)
+            if not any(_hh(here, t_[0], t_[1]) is not None for t_ in need):
+                alt = _col_alt(d, need, str(mk.get("mid")))
+                _col_alert("AQUÍ NO HAY MATERIALES DE COLONIZACIÓN",
+                           (f"prueba en {alt[0]} ({', '.join(alt[1][:3])})" if alt else (mk.get("station") or "") + " · mercado del juego"), RED)
+
+_render_b14 = render
+
+def render(surf):
+    r_ = _render_b14(surf)
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        if d is not None and time.time() - rx < 5:
+            colbuy_watch(d, time.time())
+    except Exception as e:
+        log_exc("colonia compra", e)
+    return r_
+
+
+# ---------- v1.0 beta 15 ----------
+# --- reloj de lamas (como los paneles de aeropuerto): cada cifra en su tarjeta, la lama cae al cambiar ---
+FLIPS, _FCC = {}, {}
+
+def _flip_font(h):
+    k = ("f", h)
+    if k not in _FCC:
+        _FCC[k] = pygame.font.Font(None, max(8, int(h * 1.32)))
+    return _FCC[k]
+
+def _flip_card(ch, w, h, col):
+    k = (ch, w, h, col)
+    if k not in _FCC:
+        c = pygame.Surface((w, h), pygame.SRCALPHA)
+        r = max(3, w // 7)
+        h2 = h // 2
+        pygame.draw.rect(c, (52, 52, 58), (0, 0, w, h2), border_top_left_radius=r, border_top_right_radius=r)
+        pygame.draw.rect(c, (36, 36, 40), (0, h2, w, h - h2), border_bottom_left_radius=r, border_bottom_right_radius=r)
+        pygame.draw.rect(c, (70, 70, 78), (2, 1, w - 4, max(1, h // 30)))          # brillo arriba
+        g = _flip_font(h).render(ch, True, col)
+        c.blit(g, ((w - g.get_width()) // 2, (h - g.get_height()) // 2 + int(h * 0.05)))
+        pygame.draw.line(c, (0, 0, 0), (0, h2), (w, h2), max(1, h // 36))
+        hw, hh = max(2, w // 16), max(3, h // 8)
+        pygame.draw.rect(c, (12, 12, 12), (0, h2 - hh // 2, hw, hh))                # bisagras
+        pygame.draw.rect(c, (12, 12, 12), (w - hw, h2 - hh // 2, hw, hh))
+        _FCC[k] = c
+    return _FCC[k]
+
+def draw_flip(surf, rect, text, col, now, key, dur=0.45):
+    """Texto tipo M:SS en tarjetas de lamas. rect en coordenadas del panel (nitido tambien en la HDMI)."""
+    real, rr = (surf.real, surf._r(rect)) if type(surf).__name__ == "ScaledSurf" else (surf, pygame.Rect(rect))
+    nd = sum(1 for c in text if c != ":"); nc = len(text) - nd
+    gap = max(2, rr.h // 14)
+    cw = int((rr.w - gap * (len(text) - 1)) / (nd + 0.45 * nc))
+    ch = min(rr.h, int(cw * 1.45))
+    cw = int(ch / 1.45)
+    total = cw * nd + int(cw * 0.45) * nc + gap * (len(text) - 1)
+    x = rr.x + (rr.w - total) // 2
+    y = rr.y + (rr.h - ch) // 2
+    h2 = ch // 2
+    for i, c_ in enumerate(text):
+        if c_ == ":":
+            w_ = int(cw * 0.45)
+            for yy in (y + ch // 3, y + 2 * ch // 3):
+                pygame.draw.circle(real, col, (x + w_ // 2, yy), max(2, cw // 9))
+            x += w_ + gap; continue
+        st = FLIPS.setdefault((key, i), {"v": c_, "old": c_, "t": 0})
+        if st["v"] != c_:
+            st.update(old=st["v"], v=c_, t=now)
+        p = (now - st["t"]) / dur
+        new, old = _flip_card(c_, cw, ch, col), _flip_card(st["old"], cw, ch, col)
+        if p >= 1 or p < 0:
+            real.blit(new, (x, y))
+        else:
+            real.blit(new, (x, y), (0, 0, cw, h2))                   # arriba ya la cifra nueva
+            real.blit(old, (x, y + h2), (0, h2, cw, ch - h2))        # abajo aun la vieja
+            if p < 0.5:                                               # la lama de arriba cae
+                k = 1 - p / 0.5
+                hh = max(1, int(h2 * k))
+                part = pygame.transform.smoothscale(old.subsurface((0, 0, cw, h2)), (cw, hh))
+                part.fill((int(255 - 90 * (1 - k)),) * 3 + (255,), special_flags=pygame.BLEND_RGBA_MULT)
+                real.blit(part, (x, y + h2 - hh))
+            else:                                                     # y se abre por abajo la nueva
+                k = (p - 0.5) / 0.5
+                k = min(1.0, k * 1.08) if k < 0.9 else 1.0 - (1.0 - k) * 0.4   # pequeno rebote
+                hh = max(1, int((ch - h2) * k))
+                part = pygame.transform.smoothscale(new.subsurface((0, h2, cw, ch - h2)), (cw, hh))
+                real.blit(part, (x, y + h2))
+            pygame.draw.line(real, (0, 0, 0), (x, y + h2), (x + cw, y + h2), max(1, ch // 36))
+            TAP_EV.set()                                              # mientras gira: que se vea fluido
+        x += cw + gap
+
+def mmss(sec):
+    sec = max(0, int(sec))
+    return f"{min(9, sec // 60)}:{sec % 60:02d}"
+
+def clock_col(sec, now):
+    if sec < 60:
+        return RED if int(now * 2) % 2 else (130, 0, 0)
+    return (255, 215, 0) if sec < 120 else ORANGE
+
+# --- reloj del atraque en ESTACION (y en ATRAQUE de la pantalla grande) ---
+DOCK_SECS = 599
+
+def dock_left(d, now):
+    st = (d or {}).get("station") or {}
+    if st.get("status") != "CONCEDIDO" or not st.get("gt"):
+        return None
+    return DOCK_SECS - (pc_now(d, now) - st["gt"])
+
+_view_station_b15 = VIEWS[8]
+
+def view_station_b15(surf, d, flags, now):
+    _view_station_b15(surf, d, flags, now)
+    left = dock_left(d, now)
+    if left is None:
+        return
+    r = pygame.Rect(250, 182, 222, 84)
+    pygame.draw.rect(surf, BLACK, r.inflate(6, 18), border_radius=8)
+    put(surf, F["tiny"], "TIEMPO PARA ATRACAR", (r.centerx, r.y - 4), DIM, anchor="center")
+    draw_flip(surf, r.inflate(-6, -8).move(0, 4), mmss(left), clock_col(left, now), now, "dock")
+
+VIEWS[8] = view_station_b15
+
+# --- salida de la estacion: banda, reloj de 6 min y cambio a EN VIVO al salir ---
+AUTO_LIST.append(("salida", "SALIDA DE LA ESTACIÓN > EN VIVO"))
+EXIT_SECS = 300
+EXW = {"out": None}
+
+def exit_left(d, now):
+    x = (d or {}).get("exitst") or {}
+    if not x.get("t0") or x.get("out"):
+        return None, x
+    left = EXIT_SECS - (pc_now(d, now) - x["t0"])
+    return (left if left > -60 else None), x
+
+def draw_exit_band(surf, d, now):
+    left, x = exit_left(d, now)
+    if left is None:
+        return
+    r = pygame.Rect(0, H - 46, W, 46)
+    pygame.draw.rect(surf, BLACK, r)
+    pygame.draw.rect(surf, RED if left < 60 else ORANGE, r, 2, border_radius=6)
+    put(surf, F["btn"], "DENTRO DE LA ESTACIÓN", (10, r.y + 5), ORANGE, W - 170)
+    put(surf, F["small"], "sal por la ranura · " + (x.get("st") or ""), (10, r.y + 26), DIM, W - 170)
+    draw_flip(surf, pygame.Rect(W - 150, r.y + 4, 142, 38), mmss(left), clock_col(left, now), now, "exit")
+
+_render_b15 = render
+
+def render(surf):
+    r_ = _render_b15(surf)
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        now = time.time()
+        if d is not None and now - rx < 5:
+            x = d.get("exitst") or {}
+            if x.get("out") and EXW["out"] != x["out"]:
+                if EXW["out"] is not None and auto_on("salida") and not ui.get("idle_on") and now - rx < 5:
+                    ui["view"] = 100
+                    plog("Salida de la estación (" + str(x.get("why")) + "): EN VIVO")
+                EXW["out"] = x["out"]
+            elif EXW["out"] is None:
+                EXW["out"] = x.get("out") or 0
+            if not ui.get("idle_on"):
+                draw_exit_band(surf, d, now)
+    except Exception as e:
+        log_exc("salida estación", e)
+    return r_
+
+_render_big_b15 = render_big
+
+def render_big():
+    _render_big_b15()
+    try:
+        S = BIG.get("surf")
+        if S is None or hdmi_panel():
+            return
+        with lock:
+            d = state["data"]
+        now = time.time()
+        left, x = exit_left(d, now)
+        if left is None:
+            return
+        bw = BIG["w"]
+        box = pygame.Rect(bw // 2 - 400, BIG["h"] - 160, 800, 150)
+        pygame.draw.rect(S, BLACK, box, border_radius=12)
+        pygame.draw.rect(S, RED if left < 60 else ORANGE, box, 3, border_radius=12)
+        fb, fs = BIG.get("fonts") or (pygame.font.Font(None, 40), pygame.font.Font(None, 26))
+        S.blit(fb.render("DENTRO DE LA ESTACIÓN", True, ORANGE), (box.x + 20, box.y + 18))
+        S.blit(fs.render("sal por la ranura · " + (x.get("st") or ""), True, DIM), (box.x + 20, box.y + 60))
+        draw_flip(S, pygame.Rect(box.right - 290, box.y + 16, 270, 118), mmss(left), clock_col(left, now), now, "exitbig")
+    except Exception as e:
+        log_exc("salida pantalla grande", e)
+
+# --- radar: tocar un sistema de ALERTAS abre su ficha ---
+ALR = []
+_draw_fac_b15 = draw_fac_screen
+
+def draw_fac_screen(surf, now):
+    ALR.clear()
+    _draw_fac_b15(surf, now)
+
+_on_tap_b15 = on_tap
+
+def on_tap(x, y):
+    v = ui.get("view")
+    if (v == 77 or (ui.get("idle_on") and IDLE_MODE["m"] == "fac")) and not FULL_BACK.inflate(10, 10).collidepoint(x, y) \
+            and not hold_rect("fac").inflate(10, 10).collidepoint(x, y) and not (ui.get("alert") and time.time() < ui["alert"]["until"]):
+        for r, n in ALR:
+            if r.collidepoint(x, y):
+                ui["idle_skip"] = time.time() + 60
+                ui["facsys"] = n; ui["facback"] = 77; ui["view"] = 194; TAP_EV.set(); return
+    _on_tap_b15(x, y)
+
+# --- COLONIZACION > AQUI: lo que se vende en la estacion donde estas ---
+COLHS = {"src": None}
+
+def _hh(here, name, key):
+    return here.get(("k", key)) if key and ("k", key) in here else here.get((name or "").lower())
+
+def col_here(d):
+    """{nombre o ("k", clave): [nombre, existencias, precio, falta, clave]} de la estacion donde estas atracado."""
+    d = d or {}
+    st = d.get("station") or {}
+    COLHS.update(src=None, st=st.get("name"), mt=0)
+    if not d.get("Flags", 0) & 1 or not st.get("mid"):
+        return {}
+    mid = str(st["mid"])
+    mk = d.get("market") or {}
+    out = {}
+    if str(mk.get("mid")) == mid and mk.get("t"):                     # mercado del juego de esta estacion
+        for r in mk.get("col") or []:
+            out[(r[0] or "").lower()] = r
+            if len(r) > 4 and r[4]:
+                out[("k", r[4])] = r
+        COLHS.update(src="juego", st=mk.get("station") or st.get("name"))
+        return out
+    B = d.get("colbuy") or {}
+    if str(B.get("mid")) == mid and B.get("status") == "ok":           # si no, lo que dice EDSM
+        for k, (stock, price) in (B.get("items") or {}).items():
+            out[("k", k)] = [k, stock, price, 0, k]
+        COLHS.update(src="EDSM", st=B.get("st") or st.get("name"), mt=B.get("mt") or 0)
+    return out
+
+# --- avisos de la faccion: expansion y control (se guardan para no perderlos al reiniciar) ---
+EV_LIST.append(("facexp", "EXPANSIÓN DE TU FACCIÓN"))
+EV_LIST.append(("facctrl", "CONTROL DE SISTEMAS"))
+FST_F = os.path.join(PANEL_DIR, "faccion_estado.json")
+try:
+    FST = json.load(open(FST_F, encoding="utf-8"))
+except Exception:
+    FST = None
+
+def fx_alert(k, title, big, lines, voz, col=RED):
+    if not ev_on(k):
+        return
+    k0 = XA_K[0]
+    try:
+        XA_K[0] = k
+        xa["a"] = dict(until=time.time() + 10, col=col, title=title, big=big, lines=lines)
+        play("alarm" if col == RED else "ok")
+        voice_say(voz)
+    finally:
+        XA_K[0] = k0
+
+def fac_events(D, now):
+    global FST
+    SS = {n: v for n, v in (D.get("sistemas") or {}).items() if v.get("inf") and not v.get("fuera")}
+    if not SS:
+        return
+    exp = {n: ("act" if "Expansion" in (v.get("activos") or []) else "pend" if "Expansion" in (v.get("pendientes") or []) else None)
+           for n, v in SS.items()}
+    ctl = {n: bool(v.get("ctrl")) for n, v in SS.items()}
+    if FST is None:                                                  # primera vez: se apunta como esta, sin avisar
+        fl = [n for n, e in exp.items() if e]
+        FST = {"sis": sorted(SS), "exp": exp, "ctl": ctl, "fin": 0, "orig": "",
+               "fe": "act" if any(e == "act" for e in exp.values()) else "pend" if fl else None}
+    else:
+        # la expansion es de toda la faccion: un aviso por cambio, con el sistema de origen (el de mas influencia)
+        fl = [n for n, e in exp.items() if e]
+        fe = "act" if any(e == "act" for e in exp.values()) else "pend" if fl else None
+        fe0 = FST.get("fe")
+        orig = max(fl, key=lambda n: SS[n]["inf"]) if fl else FST.get("orig", "")
+        if fe == "pend" and fe0 is None:
+            fx_alert("facexp", "EXPANSIÓN EN MARCHA", orig, ["la facción se expandirá desde aquí tras el tick"], f"expansión en marcha desde {orig}", BLUE)
+        elif fe == "act" and fe0 != "act":
+            fx_alert("facexp", "EXPANSIÓN ACTIVA", orig, ["buscando sistema nuevo cerca"], f"expansión activa desde {orig}", BLUE)
+        elif fe is None and fe0 == "act":
+            FST["fin"] = now                             # ha terminado: esperamos a ver si aparece un sistema nuevo
+        FST["fe"] = fe
+        if fl:
+            FST["orig"] = orig
+        nuevos = [n for n in SS if n not in FST["sis"]]
+        for n in nuevos:
+            if FST.get("fin") or FST.get("fe"):
+                fx_alert("facexp", "¡EXPANSIÓN CONSEGUIDA!", n, [f"ahora estáis en {n}" + (f" (desde {FST['orig']})" if FST.get("orig") else "")],
+                         f"expansión conseguida, ahora estáis en {n}", GREEN)
+                FST["fin"] = 0
+            else:
+                fx_alert("facexp", "NUEVO SISTEMA", n, ["vuestra facción aparece en este sistema"], f"nuevo sistema, {n}", GREEN)
+        if FST.get("fin") and now - FST["fin"] > 3 * 86400:
+            fx_alert("facexp", "EXPANSIÓN SIN ÉXITO", FST.get("orig") or "", ["no ha aparecido ningún sistema nuevo en 3 días"], "la expansión no ha tenido éxito")
+            FST["fin"] = 0
+        for n, c in ctl.items():
+            c0 = FST["ctl"].get(n)
+            if c and c0 is False:
+                fx_alert("facctrl", "¡TOMÁIS EL CONTROL!", n, [f"{SS[n]['inf']:.1f} % de influencia".replace(".", ",")], f"tomáis el control de {n}", GREEN)
+            elif not c and c0:
+                fx_alert("facctrl", "PERDÉIS EL CONTROL", n, [f"ahora controla {SS[n].get('ctrl_n') or SS[n].get('segunda') or 'otra facción'}"], f"perdéis el control de {n}")
+        FST.update(sis=sorted(set(FST["sis"]) | set(SS)), exp=exp, ctl=ctl)
+    try:
+        json.dump(FST, open(FST_F, "w", encoding="utf-8"), ensure_ascii=False)
+    except OSError:
+        pass
+
+_fac_watch_b15 = fac_watch
+FWS = {"t": 0}
+
+def fac_watch(now):
+    _fac_watch_b15(now)
+    D = FACD["data"]
+    if D and (D.get("t") or 0) != FWS["t"]:                         # solo cuando llegan datos nuevos
+        FWS["t"] = D.get("t") or 0
+        try:
+            fac_events(D, now)
+        except Exception as e:
+            log_exc("faccion expansion/control", e)
+
+
+# ---------- v1.0 beta 16 ----------
+# --- memoria: pocas reservas de malloc y devolver lo libre (EMITIR copiaba 4 MB por fotograma en muchos hilos) ---
+def _libc():
+    import ctypes
+    try:
+        return ctypes.CDLL("libc.so.6")
+    except OSError:
+        return None
+
+_LC = _libc()
+try:
+    if _LC is not None:
+        _LC.mallopt(-8, 2)                              # M_ARENA_MAX = 2
+except Exception:
+    pass
+IS_PI3 = False
+try:
+    IS_PI3 = "Pi 3" in open("/proc/device-tree/model").read()
+except OSError:
+    pass
+
+def mem_rss_pct():
+    try:
+        rss = int(open("/proc/self/statm").read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+        tot = int(next(l for l in open("/proc/meminfo") if l.startswith("MemTotal")).split()[1]) * 1024
+        return 100.0 * rss / tot
+    except Exception:
+        return 0.0
+
+def mem_loop():
+    warned = 0
+    while True:
+        time.sleep(30)
+        try:
+            if _LC is not None:
+                _LC.malloc_trim(0)                      # devuelve al sistema la memoria libre
+        except Exception:
+            pass
+        p = mem_rss_pct()
+        if p > 60 and cfg.get("stream"):
+            cfg["stream"] = False
+            plog(f"EMITIR apagado: el panel usaba el {p:.0f} % de la RAM")
+            set_alert("EMITIR APAGADO", f"el panel usaba el {p:.0f} % de la RAM · vuelve a encenderlo en AJUSTES", RED, 10)
+        elif p > 75 and time.time() - warned > 600:
+            warned = time.time()
+            plog(f"Memoria del panel: {p:.0f} %")
+
+threading.Thread(target=mem_loop, daemon=True, name="memoria").start()
+
+# --- EMITIR: menos fotogramas en la Pi 3 y mas pequenos ---
+_SNAP = {"t": 0}
+
+def stream_snap(small):
+    if not cfg.get("stream") or stream["clients"] <= 0:
+        return
+    now = time.time()
+    if now - _SNAP["t"] < (0.2 if IS_PI3 else 0.1):     # 5 imagenes/s en la Pi 3, 10 en las demas
+        return
+    _SNAP["t"] = now
+    with stream_lock:
+        hi = panel_hi() if cfg.get("sharp") else None
+        src = hi if hi is not None else small
+        big = BIG["surf"] if BIG.get("fb") and BIG.get("surf") is not None else None
+        if IS_PI3:
+            sc = lambda S_: pygame.transform.scale(S_, (S_.get_width() * 3 // 4, S_.get_height() * 3 // 4)) if S_.get_width() > 800 else S_.copy()
+            stream["small"] = sc(src)
+            stream["big"] = sc(big) if big is not None else None
+        else:
+            stream["small"] = src.copy()
+            stream["big"] = big.copy() if big is not None else None
+        stream["seq"] += 1
+
+# --- altimetro de cinta con velocidad vertical ---
+MENU[137] = "ALTÍMETRO"
+TABS[0].append((137, "ALTÍMETRO"))
+ALTH = deque(maxlen=40)                                 # (hora, altura)
+
+def alt_now(d):
+    """Altura (m) si el juego la da y toca mostrarla; si no, None."""
+    d = d or {}
+    fl, f2 = d.get("Flags", 0), d.get("Flags2", 0)
+    alt = (d.get("live") or {}).get("alt")
+    if alt is None or not fl & (1 << 21) or f2 & 1:     # sin coordenadas planetarias o a pie: nada
+        return None
+    if fl & (1 << 26) and not cfg.get("alt_srv", False):
+        return None                                      # en el SRV solo si se ha activado
+    return alt
+
+def alt_vs():
+    if len(ALTH) < 2:
+        return None
+    t1, a1 = ALTH[-1]
+    old = [(t, a) for t, a in ALTH if t1 - t <= 3]
+    t0, a0 = old[0]
+    return (a1 - a0) / (t1 - t0) if t1 - t0 >= 0.5 else None
+
+def alt_track(d, now):
+    alt = alt_now(d)
+    if alt is None:
+        ALTH.clear(); return
+    if not ALTH or ALTH[-1][1] != alt or now - ALTH[-1][0] > 1:
+        ALTH.append((now, alt))
+
+def draw_alt(surf, r, d, now, big=False):
+    alt = alt_now(d)
+    if alt is None:
+        put(surf, F["btn"], "sin altura", (r.centerx, r.centery - 10), DIM, anchor="center")
+        put(surf, F["small"], "aparece cerca de un planeta", (r.centerx, r.centery + 12), DIM, r.w - 10, anchor="center")
+        return
+    fl = (d or {}).get("Flags", 0)
+    vs = alt_vs()
+    tape = pygame.Rect(r.x + 8, r.y + 18, int(r.w * 0.52), r.h - 26)
+    pygame.draw.rect(surf, (14, 14, 16), tape); pygame.draw.rect(surf, (80, 80, 86), tape, 1)
+    span = 60 if alt < 200 else 600 if alt < 3000 else 6000 if alt < 30000 else 60000   # metros visibles
+    step = span // 6
+    ppm = tape.h / span
+    mid = tape.centery
+    old = surf.get_clip(); surf.set_clip(tape)
+    m0 = int((alt - span) // (step / 5)) * (step / 5)
+    k = 0
+    m = m0
+    while m < alt + span and k < 200:
+        yy = mid - (m - alt) * ppm
+        if m >= 0 and abs(round(m / step) * step - m) < 1e-6:
+            pygame.draw.line(surf, WHITE, (tape.x, yy), (tape.x + 12, yy), 2)
+            put(surf, F["small"], f"{int(m):,}".replace(",", "."), (tape.x + 16, int(yy) - 8), WHITE)
+        elif m >= 0:
+            pygame.draw.line(surf, (150, 150, 150), (tape.x, yy), (tape.x + 6, yy), 1)
+        m += step / 5; k += 1
+    gy = mid + alt * ppm                                  # el suelo
+    if gy < tape.bottom:
+        pygame.draw.rect(surf, (60, 35, 10), (tape.x, int(gy), tape.w, tape.bottom - int(gy)))
+    surf.set_clip(old)
+    put(surf, F["tiny"], "ALT" + (" (radio medio)" if fl & (1 << 29) else ""), (tape.x, r.y + 3), DIM)
+    txt = f"{alt:,.0f} m".replace(",", ".") if alt < 100000 else f"{alt / 1000:,.0f} km".replace(",", ".")
+    box = pygame.Rect(tape.x + tape.w * 2 // 5, mid - 15, tape.w * 3 // 5 + 26, 30)
+    pts = [(box.x, mid), (box.x + 10, box.y), (box.right, box.y), (box.right, box.bottom), (box.x + 10, box.bottom)]
+    pygame.draw.polygon(surf, BLACK, pts); pygame.draw.polygon(surf, ORANGE, pts, 2)
+    put(surf, F["big"], txt, (box.centerx + 5, mid), ORANGE, box.w - 14, anchor="center")
+    # velocidad vertical
+    vsr = pygame.Rect(tape.right + 40, tape.y + 14, 28, tape.h - 44)
+    pygame.draw.rect(surf, (14, 14, 16), vsr)
+    pygame.draw.line(surf, DIM, (vsr.x, vsr.centery), (vsr.right, vsr.centery), 1)
+    put(surf, F["tiny"], "VERT.", (vsr.centerx, vsr.y - 12), DIM, anchor="center")
+    if vs is not None:
+        lim = 200 if alt > 2000 else 50
+        h_ = int(min(1.0, abs(vs) / lim) * (vsr.h // 2 - 2))
+        col = BLUE if vs < 0 else GREEN
+        if vs < 0:
+            pygame.draw.rect(surf, col, (vsr.x + 4, vsr.centery, vsr.w - 8, h_))
+        else:
+            pygame.draw.rect(surf, col, (vsr.x + 4, vsr.centery - h_, vsr.w - 8, h_))
+        warn = vs < -30 and alt < 300                     # bajando rapido muy cerca del suelo
+        put(surf, F["btn"], f"{vs:+.0f}", (vsr.centerx, vsr.bottom + 12), RED if warn and int(now * 2) % 2 else col, anchor="center")
+        put(surf, F["tiny"], "m/s", (vsr.centerx, vsr.bottom + 28), DIM, anchor="center")
+
+def view_alt(surf, d, flags, now):
+    r = pygame.Rect(4, TOP + 2, W - 8, H - TOP - 6)
+    draw_alt(surf, r, d, now)
+    b = pygame.Rect(W - 112, H - 30, 106, 24)
+    on = cfg.get("alt_srv", False)
+    draw_button(surf, b, "SRV: " + ("SÍ" if on else "NO"), None, F["small"], filled=on, compact=True)
+    ALT_SRV_R[0] = b
+
+ALT_SRV_R = [pygame.Rect(0, 0, 0, 0)]
+VIEWS[137] = view_alt
+
+# pantalla grande: el altimetro sustituye a una de las 4 cuando hay altura
+_big_mode_b16 = big_mode
+BIG_SETS["APROXIMACIÓN + ALTÍMETRO"] = [100, 72, 73, 137]
+BIG_SETS["SUPERFICIE + ALTÍMETRO"] = [100, 73, 137, 150]
+BIG_SETS["PUERTO PLANETARIO"] = [100, 8, 127, 137]
+
+def big_mode(d, flags):
+    m = _big_mode_b16(d, flags)
+    if alt_now(d) is not None:
+        if m == "APROXIMACIÓN":
+            return "APROXIMACIÓN + ALTÍMETRO"
+        if m == "SUPERFICIE" and not (d.get("Flags2", 0) & 1) and not flags & (1 << 26):
+            return "SUPERFICIE + ALTÍMETRO"
+        if m == "ATRACADO":
+            return "PUERTO PLANETARIO"                         # puerto planetario
+    return m
+
+_render_b16 = render
+
+def render(surf):
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        if d is not None and time.time() - rx < 5:
+            alt_track(d, time.time())
+    except Exception:
+        pass
+    return _render_b16(surf)
+
+_on_tap_b16 = on_tap
+
+def on_tap(x, y):
+    if ui.get("view") == 137 and ALT_SRV_R[0].collidepoint(x, y):
+        cfg["alt_srv"] = not cfg.get("alt_srv", False); save_cfg(); TAP_EV.set(); return
+    _on_tap_b16(x, y)
+
+
+# ---------- v1.0 beta 17 ----------
+BG_DOCK_DARK = 80                                        # brillo de la foto de fondo al atracar (antes 55)
+
+# --- COMBATE por la musica: no al despegar ni dentro de la estacion; «Combat_Unknown» solo si hay pelea de verdad ---
+CMB = {"att": 0}
+
+def combat_music_ok(text):
+    d = state.get("data") or {}
+    now = time.time()
+    x = d.get("exitst") or {}
+    if x.get("t0") and (not x.get("out") or pc_now(d, now) - x["t0"] < 60):
+        return False, "dentro de la estación o recién despegado"
+    st = d.get("station") or {}
+    if st.get("status") in ("SOLICITADO", "CONCEDIDO", "ATRACADO") or d.get("Flags", 0) & 1:
+        return False, "atracando o atracado"
+    if text == "Combat_Unknown" and now - CMB["att"] > 60 and not d.get("Flags", 0) & (1 << 6):
+        return False, "Combat_Unknown sin ataque ni armas fuera"
+    return True, ""
+
+_handle_note_b17 = handle_note
+
+def handle_note(kind, text):
+    if kind == "underattack":
+        CMB["att"] = time.time()
+    if kind == "combatmusic":
+        ok, why = combat_music_ok(text)
+        if not ok:
+            plog(f"Música de combate ({text}) sin abrir COMBATE: {why}")
+            return
+    _handle_note_b17(kind, text)
+
+
+# ---------- v1.0 beta 18 ----------
+# --- arrastrar el dedo en la lista de SISTEMAS CONTROLADOS (radar) ---
+DRAG = {"on": False, "p0": None, "last": None}
+CTL_LIST = {"r": None, "off": 0, "max": 0, "seen": 0}
+CTL_ROWS = []
+
+def _to_panel(p):
+    """Toque de la HDMI (0..1) a coordenadas del panel, si se esta viendo el panel."""
+    if not hdmi_panel():
+        return None
+    bw, bh = BIG["w"] or 1024, BIG["h"] or 600
+    sc = min(bw / W, bh / H)
+    ox, oy = (bw - W * sc) / 2, (bh - H * sc) / 2
+    return ((p[0] * bw - ox) / sc, (p[1] * bh - oy) / sc)
+
+def drag_move(p0, p):
+    a, b = _to_panel(p0) if p0 else None, _to_panel(p)
+    if not a or not b:
+        return
+    r = CTL_LIST.get("r")
+    radar_on = ui.get("view") == 77 or (ui.get("idle_on") and IDLE_MODE.get("m") == "fac")
+    if not r or not radar_on or not r.collidepoint(a) or not CTL_LIST.get("max"):
+        return
+    if not DRAG["on"]:
+        if abs(b[1] - a[1]) < 12:                       # menos de 12 px: todavia es un toque
+            return
+        DRAG.update(on=True, last=b[1], off0=CTL_LIST.get("off", 0), y0=a[1])
+    CTL_LIST["off"] = int(max(0, min(CTL_LIST["max"], DRAG["off0"] - (b[1] - DRAG["y0"]))))
+    CTL_LIST["seen"] = time.time()
+    ui["idle_skip"] = ui.get("idle_skip", 0)
+    TAP_EV.set()
+
+def drag_end():
+    DRAG.update(on=False)
+    TAP_EV.set()
+
+_draw_fac_b18 = draw_fac_screen
+
+def draw_fac_screen(surf, now):
+    if now - CTL_LIST.get("seen", 0) > 30 and ui.get("view") != 77:
+        CTL_LIST["off"] = 0                              # en la espera vuelve arriba
+    _draw_fac_b18(surf, now)
+
+# --- ACTIVIDAD GALACTICA: fondo con brillo y nebulosa calida, vistas GALAXIA / COLONIA / SOL ---
+ACT_MODE = ["gal"]
+ACT_MODES = [("gal", "GALAXIA"), ("col", "COLONIA"), ("sol", "SOL")]
+ACT_BTN = [pygame.Rect(236 + i * 58, 29, 54, 18) for i in range(3)]
+_act_view_b18 = act_view
+_GBG = {}
+
+def act_view_b18(M, mode):
+    if mode in ("col", "sol"):
+        cx_, cz_, hw = (-9530, 19808, 1800) if mode == "col" else (0, 0, 350)
+        X0, X1, Z0, Z1 = cx_ - hw, cx_ + hw, cz_ - hw * 0.87, cz_ + hw * 0.87
+        sc = min(M.w / (X1 - X0), M.h / (Z1 - Z0))
+        cx, cz = (X0 + X1) / 2, (Z0 + Z1) / 2
+        return (lambda x, z: (M.centerx + (x - cx) * sc, M.centery - (z - cz) * sc)), sc
+    return _act_view_b18(M, mode != "zona")
+
+act_view = act_view_b18
+
+def act_bg(surf, M, mode):
+    real, rr = (surf.real, surf._r(M)) if type(surf).__name__ == "ScaledSurf" else (surf, pygame.Rect(M))
+    key = (rr.w, rr.h, mode)
+    if key not in _GBG:
+        import random as _r
+        bg = pygame.Surface(rr.size); bg.fill(BLACK)
+        loc = pygame.Rect(0, 0, rr.w, rr.h)
+        pt, sc = act_view_b18(loc, mode)
+        if mode == "gal":
+            neb = pygame.Surface(rr.size, pygame.SRCALPHA)
+            rad = max(4, int(rr.w / 40))
+            for x, z, b in gal_points()[::3]:
+                px, py = pt(x, z)
+                if 0 <= px < rr.w and 0 <= py < rr.h:
+                    pygame.draw.circle(neb, (150, 80, 25, 9), (int(px), int(py)), rad)
+            bg.blit(neb, (0, 0))
+            cx, cy = pt(25, 25900)
+            glow = pygame.Surface(rr.size, pygame.SRCALPHA)
+            R = int(rr.w * 0.16)
+            for k_ in range(R, 0, -max(1, R // 40)):
+                pygame.draw.circle(glow, (255, 190, 120, int(70 * (1 - k_ / R) ** 1.6)), (int(cx), int(cy)), k_)
+            bg.blit(glow, (0, 0))
+            for x, z, b in gal_points():
+                px, py = pt(x, z)
+                if 0 <= px < rr.w and 0 <= py < rr.h:
+                    bb = min(255, int(b * 2.0))
+                    bg.fill((bb, int(bb * 0.75), int(bb * 0.55)), (int(px), int(py), 2, 2))
+        else:                                            # de cerca: campo de estrellas y una neblina suave
+            rnd = _r.Random(11 if mode == "col" else 7)
+            glow = pygame.Surface(rr.size, pygame.SRCALPHA)
+            for k_ in range(18):
+                gx, gy, gr = rnd.randrange(rr.w), rnd.randrange(rr.h), rnd.randrange(rr.w // 8, rr.w // 3)
+                pygame.draw.circle(glow, (150, 80, 25, 7) if mode == "col" else (120, 70, 30, 6), (gx, gy), gr)
+            bg.blit(glow, (0, 0))
+            for k_ in range(rr.w * rr.h // 900):
+                b = rnd.randint(40, 170)
+                bg.fill((b, int(b * 0.8), int(b * 0.65)), (rnd.randrange(rr.w), rnd.randrange(rr.h), 1 + (b > 150), 1 + (b > 150)))
+        _GBG[key] = bg
+    real.blit(_GBG[key], rr.topleft)
+
+def draw_act_screen(surf, now):
+    ACT["want"] = now
+    surf.fill(BLACK)
+    fixed = IDLEHOLD["m"] == "act" or ui.get("view") == 78
+    mode = ACT_MODE[0] if fixed else ("gal", "sol", "col")[int(now // 10) % 3]   # en espera: 10 s cada vista
+    put(surf, F["big"], "ACTIVIDAD GALÁCTICA", (10, 6), ORANGE)
+    put(surf, F["small"], "en directo desde EDDN" if ACT["on"] else "conectando con EDDN…" if act_ok() else "falta python3-zmq en la Pi",
+        (10, 32), DIM if act_ok() else RED, 220)
+    put(surf, F["small"], time.strftime("%H:%M", time.localtime(now)), (W - 56, 8), ORANGE, anchor="topright")
+    for i, (k, lab) in enumerate(ACT_MODES):
+        b = ACT_BTN[i]; sel = k == mode
+        pygame.draw.rect(surf, ORANGE if sel else BLACK, b, border_radius=4)
+        pygame.draw.rect(surf, ORANGE, b, 1, border_radius=4)
+        put(surf, F["tiny"], lab, b.center, BLACK if sel else ORANGE, b.w - 4, anchor="center")
+    pygame.draw.line(surf, ORANGE, (6, 50), (W - 6, 50), 1)
+    M = pygame.Rect(6, 54, 300, 262)
+    act_bg(surf, M, mode)
+    pygame.draw.rect(surf, DIM, M, 1, border_radius=4)
+    pt, sc = act_view_b18(M, mode)
+    old = surf.get_clip(); surf.set_clip(M)
+    marks = {"gal": (("SOL", 0, 0), ("COLONIA", -9530, 19808), ("SAG A*", 25, 25900)),
+             "col": (("COLONIA", -9530, 19808),), "sol": (("SOL", 0, 0),)}[mode]
+    for n, x, z in marks:
+        px, py = pt(x, z); pygame.draw.circle(surf, DIM, (int(px), int(py)), 3, 1)
+        put(surf, F["tiny"], n, (int(px) + 5, int(py) - 6), (200, 160, 110))
+    if mode == "sol":                                    # vuestros sistemas en naranja
+        used = []
+        for n, v in sorted(((FACD["data"] or {}).get("sistemas") or {}).items(), key=lambda kv: -(kv[1].get("inf") or 0)):
+            if v.get("pos") and None not in v["pos"] and not v.get("fuera") and v.get("inf"):
+                px, py = pt(v["pos"][0], v["pos"][2])
+                if not M.collidepoint(px, py):
+                    continue
+                pygame.draw.circle(surf, ORANGE if v.get("ctrl") else (120, 80, 30), (int(px), int(py)), 3, 0 if v.get("ctrl") else 1)
+                if v.get("ctrl"):
+                    nm = n if len(n) <= 14 else n[:13] + "…"
+                    lr = pygame.Rect(int(px) + 5, int(py) - 6, tw_(F["tiny"], nm), 12)
+                    if not M.contains(lr):
+                        lr.right = int(px) - 5
+                    if M.contains(lr) and not any(lr.colliderect(u) for u in used):
+                        used.append(lr); put(surf, F["tiny"], nm, lr.topleft, (200, 140, 60))
+    for x, z, t, mine in list(ACT["pings"]):
+        age = now - t
+        if age > 1.6 or age < 0:
+            continue
+        px, py = pt(x, z)
+        if not M.collidepoint(px, py):
+            continue
+        col = ORANGE if mine else (90, 200, 255)
+        f_ = max(0.0, 1 - age / 1.6)
+        pygame.draw.circle(surf, tuple(int(c * f_) for c in col), (int(px), int(py)), int(2 + age * 10), 1)
+        if age < 0.4:
+            pygame.draw.circle(surf, col, (int(px), int(py)), 2)
+    act_hit_draw(surf, M, pt, now)
+    surf.set_clip(old)
+    X, y = 314, 58
+    j = ACT["jumps"]
+    pm = sum(1 for t in j if now - t < 60)
+    cm = sum(1 for t in ACT["uids"].values() if now - t < 300)
+    put(surf, F["small"], "SALTOS POR MINUTO", (X, y), DIM); y += 14
+    put(surf, F["num"], str(pm), (W - 8, y), BLUE, anchor="topright"); y += 44
+    put(surf, F["small"], "COMANDANTES (5 MIN)", (X, y), DIM); y += 14
+    put(surf, F["big"], str(cm), (W - 8, y), WHITE, anchor="topright"); y += 30
+    hoyk = time.strftime("%Y-%m-%d", time.gmtime())
+    ent = sum(((v.get("trafico") or {}).get(hoyk, 0)) for v in ((FACD["data"] or {}).get("sistemas") or {}).values())
+    put(surf, F["small"], "TUS SISTEMAS HOY", (X, y), DIM); put(surf, F["big"], str(ent), (W - 8, y + 10), ORANGE, anchor="topright")
+    nv = ACT_DAY.get(hoyk, 0)
+    put(surf, F["tiny"], f"comandantes · {nv} salto{'' if nv == 1 else 's'} visto{'' if nv == 1 else 's'}", (X, y + 40), DIM, W - X - 8); y += 54
+    pygame.draw.line(surf, DIM, (X, y), (W - 6, y)); y += 4
+    put(surf, F["small"], "ÚLTIMOS SALTOS", (X, y), DIM); y += 15
+    for nm, mine, t in list(ACT["feed"])[:5]:
+        put(surf, F["tiny"], nm, (X, y), ORANGE if mine else WHITE, 120)
+        put(surf, F["tiny"], f"{max(0, int(now - t))} s", (W - 8, y), DIM, anchor="topright"); y += 13
+
+# --- COMBATE: no al despegar (1 min tras cualquier despegue) ni «te atacan» al atracar ---
+UNDK = {"t": 0, "dock": False}
+_combat_ok_b18 = combat_music_ok
+
+def combat_music_ok(text):
+    if time.time() - UNDK["t"] < 60:
+        return False, "recién despegado"
+    return _combat_ok_b18(text)
+
+_handle_note_b18 = handle_note
+
+def handle_note(kind, text):
+    if kind == "underattack":
+        d = state.get("data") or {}
+        st = (d.get("station") or {}).get("status")
+        if d.get("Flags", 0) & 3 or st in ("SOLICITADO", "CONCEDIDO", "ATRACADO") or time.time() - UNDK["t"] < 60:
+            v0 = ui.get("view")
+            _handle_note_b18(kind, text)                 # el aviso sale igual
+            if ui.get("view") != v0:
+                ui["view"] = v0
+                plog("Te atacan al atracar o despegar: aviso sin cambiar a COMBATE")
+            return
+    _handle_note_b18(kind, text)
+
+# --- recompensas sin cobrar: boton BORRAR (en 11 DIA) ---
+LEDB = {"r": None, "sure": 0}
+_view11_b18 = VIEWS[11]
+
+def view11_b18(surf, d, flags, now):
+    _view11_b18(surf, d, flags, now)
+    LEDB["r"] = None
+    if ui.get("sesstab"):
+        return
+    led = ((d or {}).get("footcz") or {}).get("led") or {}
+    if not led.get("cr"):
+        return
+    r = pygame.Rect(W - 104, H - 56, 98, 22)
+    sure = time.time() < LEDB["sure"]
+    draw_button(surf, r, "¿SEGURO?" if sure else "BORRAR", None, F["small"], filled=sure, compact=True)
+    LEDB["r"] = r
+
+VIEWS[11] = view11_b18
+
+def led_clear():
+    pc = pc_addr()
+    if not pc:
+        set_alert("NO SÉ LA IP DEL PC", "el sender no está enviando", RED, 3); return
+    try:
+        so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        so.sendto(b"ELITEPANEL-LEDGERCLR", (pc, 5006)); so.close()
+        set_alert("RECOMPENSAS BORRADAS", "lo pendiente de cobrar vuelve a cero (sender v1.0b12)", GREEN, 4, kind="info")
+    except OSError as e:
+        set_alert("NO SE PUDO BORRAR", str(e)[:40], RED, 3)
+
+_render_b18 = render
+
+def render(surf):
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        if d is not None and time.time() - rx < 5:
+            dk = bool(d.get("Flags", 0) & 3)
+            if UNDK["dock"] and not dk:
+                UNDK["t"] = time.time()                  # acaba de despegar
+            UNDK["dock"] = dk
+    except Exception:
+        pass
+    return _render_b18(surf)
+
+_on_tap_b18 = on_tap
+
+def on_tap(x, y):
+    if DRAG.get("on"):
+        return
+    v = ui.get("view")
+    if v == 11 and LEDB.get("r") and LEDB["r"].collidepoint(x, y):
+        if time.time() < LEDB["sure"]:
+            LEDB["sure"] = 0; led_clear()
+        else:
+            LEDB["sure"] = time.time() + 3
+        TAP_EV.set(); return
+    act_vis = v == 78 or (ui.get("idle_on") and IDLE_MODE.get("m") == "act")
+    if act_vis and not (ui.get("alert") and time.time() < ui["alert"]["until"]):
+        for i, b in enumerate(ACT_BTN):
+            if b.inflate(4, 8).collidepoint(x, y):
+                ACT_MODE[0] = ACT_MODES[i][0]
+                if ui.get("idle_on"):
+                    IDLEHOLD["m"] = "act"                # en la espera: se queda fija en esa vista
+                TAP_EV.set(); return
+        if ACT_MAP.collidepoint(x, y) and (v == 78 or IDLEHOLD["m"] == "act"):
+            k = [m for m, _ in ACT_MODES].index(ACT_MODE[0]) if ACT_MODE[0] in [m for m, _ in ACT_MODES] else 0
+            ACT_MODE[0] = ACT_MODES[(k + 1) % 3][0]; TAP_EV.set(); return
+    radar_vis = v == 77 or (ui.get("idle_on") and IDLE_MODE.get("m") == "fac")
+    if radar_vis:
+        for r, n in CTL_ROWS:
+            if r.collidepoint(x, y):
+                ui["idle_skip"] = time.time() + 60
+                ui["facsys"] = n; ui["facback"] = 77; ui["view"] = 194; TAP_EV.set(); return
+    _on_tap_b18(x, y)
+
+
+# ---------- v1.0 beta 19 ----------
+# --- voz: las abreviaturas, completas ---
+_voz_txt_b19 = voz_txt
+
+def voz_txt(t):
+    t = _voz_txt_b19(t)
+    t = re.sub(r"#\d+", "", t)
+    n_ = r"(\d+(?:[.,]\d+)?)\s*"
+    for pat, rep_ in ((n_ + r"m/s\b", r"\1 metros por segundo"), (n_ + r"km\b", r"\1 kilómetros"), (n_ + r"ls\b", r"\1 segundos luz"),
+                      (n_ + r"al\b", r"\1 años luz"), (n_ + r"t\b", r"\1 toneladas"), (n_ + r"M\b", r"\1 millones"), (n_ + r"k\b", r"\1 mil")):
+        t = re.sub(pat, rep_, t)
+    t = re.sub(r"\bZC\b", "zona de conflicto", t)
+    return re.sub(r"\bcmdrs?\b", "comandantes", t, flags=re.I)
+
+# --- velocidad cerca de un planeta (con latitud, longitud y radio que manda el sender) ---
+SPDH = deque(maxlen=40)                                  # (hora, lat, lon, alt)
+SPD = {"gs": None, "vmax": {}}
+SHIP_VMAX = {"sidewinder": 320, "eagle": 350, "hauler": 270, "adder": 300, "viper": 400, "cobra": 400, "vulture": 355,
+             "asp": 340, "python": 300, "type-6": 300, "type6": 300, "type-7": 250, "type7": 250, "type-8": 260, "type8": 260,
+             "type-9": 200, "type9": 200, "type-10": 220, "type10": 220, "anaconda": 250, "cutter": 320, "corvette": 260,
+             "krait": 330, "mamba": 420, "fer-de-lance": 400, "ferdelance": 400, "chieftain": 330, "challenger": 300,
+             "crusader": 300, "dolphin": 350, "orca": 380, "beluga": 290, "keelback": 300, "courier": 380, "clipper": 380,
+             "diamondback": 340, "panther": 230, "mandalay": 330, "corsair": 330, "kestrel": 400, "python mk ii": 330}
+
+def _geo(d):
+    b = (d or {}).get("bio") or {}
+    return b.get("lat"), b.get("lon"), b.get("R"), b.get("hdg")
+
+def spd_track(d, now):
+    lat, lon, R, hdg = _geo(d)
+    alt = ((d or {}).get("live") or {}).get("alt")
+    if lat is None or lon is None or not R:
+        SPDH.clear(); SPD["gs"] = None; return
+    if not SPDH or (SPDH[-1][1], SPDH[-1][2]) != (lat, lon) or now - SPDH[-1][0] > 1:
+        SPDH.append((now, lat, lon, alt or 0))
+    old = [p for p in SPDH if SPDH[-1][0] - p[0] <= 2.5]
+    t0, a0, o0, h0 = old[0]
+    t1, a1, o1, h1 = SPDH[-1]
+    if t1 - t0 < 0.5:
+        return
+    p0, p1 = math.radians(a0), math.radians(a1)
+    dl = math.radians(o1 - o0)
+    c = math.sin((p1 - p0) / 2) ** 2 + math.cos(p0) * math.cos(p1) * math.sin(dl / 2) ** 2
+    dist = 2 * (R + max(0, h1)) * math.asin(min(1.0, math.sqrt(c)))
+    SPD["gs"] = dist / (t1 - t0)
+
+def ship_vmax(d):
+    sh = (((d or {}).get("live") or {}).get("ship") or {})
+    n = (sh.get("ship") or "").lower()
+    v = next((v for k, v in sorted(SHIP_VMAX.items(), key=lambda kv: -len(kv[0])) if k in n), 400)
+    return max(200, int(math.ceil(v * 1.25 / 100.0)) * 100)
+
+def in_srv(d):
+    return bool((d or {}).get("Flags", 0) & (1 << 26))
+
+def srv_name(d):
+    t = ((d or {}).get("srvtype") or "SRV").upper()
+    return "RHINO" if "RHINO" in t else t
+
+def draw_arc(surf, cx, cy, R, v, vmax, step, bands, label, now, sub=None):
+    a0, a1 = math.radians(150), math.radians(390)
+    ang = lambda x: a0 + (a1 - a0) * min(1.0, max(0.0, x / vmax))
+    pygame.draw.circle(surf, (14, 14, 16), (cx, cy), R + 3)
+    for lo, hi, col in bands:
+        n_ = 24
+        for k in range(n_ + 1):
+            x = lo + (hi - lo) * k / n_
+            a = ang(x)
+            pygame.draw.line(surf, col, (cx + (R - 2) * math.cos(a), cy + (R - 2) * math.sin(a)), (cx + (R - 6) * math.cos(a), cy + (R - 6) * math.sin(a)), 2)
+    k = 0
+    while k <= vmax + 1e-6:
+        a = ang(k)
+        pygame.draw.line(surf, WHITE, (cx + (R - 7) * math.cos(a), cy + (R - 7) * math.sin(a)), (cx + (R - 12) * math.cos(a), cy + (R - 12) * math.sin(a)), 1)
+        put(surf, F["tiny"], str(int(k)), (int(cx + (R - 20) * math.cos(a)), int(cy + (R - 20) * math.sin(a))), WHITE, anchor="center")
+        k += step
+    put(surf, F["tiny"], label, (cx, cy - R // 3), DIM, anchor="center")
+    if v is not None:
+        a = ang(v)
+        pygame.draw.line(surf, ORANGE, (cx, cy), (cx + (R - 9) * math.cos(a), cy + (R - 9) * math.sin(a)), 3)
+        put(surf, F["big"], f"{v:.0f}", (cx, cy + R // 2), ORANGE, anchor="center")
+    else:
+        put(surf, F["small"], "—", (cx, cy + R // 2), DIM, anchor="center")
+    pygame.draw.circle(surf, (60, 60, 60), (cx, cy), 4)
+    put(surf, F["tiny"], "m/s" if sub is None else sub, (cx, cy + R // 2 + 14), DIM, anchor="center")
+
+def draw_hdg_compass(surf, cx, cy, R, hdg):
+    pygame.draw.circle(surf, (14, 14, 16), (cx, cy), R); pygame.draw.circle(surf, (80, 80, 86), (cx, cy), R, 1)
+    for i, lab in enumerate("NESO"):
+        a = math.radians(i * 90 - 90)
+        put(surf, F["small"], lab, (int(cx + (R - 11) * math.cos(a)), int(cy + (R - 11) * math.sin(a))), RED if lab == "N" else WHITE, anchor="center")
+    if hdg is not None:
+        a = math.radians(hdg - 90)
+        pygame.draw.line(surf, ORANGE, (cx, cy), (cx + (R - 20) * math.cos(a), cy + (R - 20) * math.sin(a)), 3)
+        put(surf, F["tiny"], f"RUMBO {int(hdg) % 360:03d}°", (cx, cy + R + 8), DIM, anchor="center")
+
+_draw_alt_b19 = draw_alt
+
+def draw_alt(surf, r, d, now, big=False):
+    if in_srv(d):                                         # SRV / Rhino: reloj de 0-40 m/s, km/h y brujula
+        gs = SPD.get("gs")
+        vm = SPD["vmax"].setdefault(srv_name(d), 40)
+        if gs and gs > vm * 0.95:
+            vm = SPD["vmax"][srv_name(d)] = int(math.ceil(gs * 1.2 / 10.0)) * 10
+        R_ = min(r.h // 2 - 8, r.w // 4)
+        draw_arc(surf, r.x + r.w // 4 + 4, r.centery, R_, gs, vm, 5 if vm <= 50 else 10,
+                 [(0, vm * 0.62, GREEN), (vm * 0.62, vm * 0.85, ORANGE), (vm * 0.85, vm, RED)], srv_name(d), now)
+        if gs is not None:
+            put(surf, F["btn"], f"{gs * 3.6:.0f} km/h", (r.x + r.w // 4 + 4, r.bottom - 12), WHITE, anchor="center")
+        draw_hdg_compass(surf, r.x + 3 * r.w // 4, r.centery - 6, min(r.h // 2 - 22, r.w // 5), _geo(d)[3])
+        return
+    _draw_alt_b19(surf, r, d, now, big)
+    if alt_now(d) is None:
+        return
+    gs, vs = SPD.get("gs"), alt_vs()
+    vm = ship_vmax(d)
+    tape_r = int(r.w * 0.52) + 8
+    cx = r.x + tape_r + 80 + (r.w - tape_r - 80) // 2
+    R_ = min((r.w - tape_r - 90) // 2, r.h // 2 - 22)
+    if R_ < 30:
+        return
+    draw_arc(surf, cx, r.y + 18 + R_, R_, gs, vm, 100 if vm <= 600 else 200,
+             [(0, 100, GREEN), (100, vm * 0.66, ORANGE), (vm * 0.66, vm, RED)], "SUELO", now)
+    if gs is not None and vs is not None:
+        put(surf, F["small"], f"total {math.hypot(gs, vs):.0f} m/s", (cx, r.y + 18 + 2 * R_ + 18), WHITE, anchor="center")
+
+# --- aviso: bajando rapido cerca del suelo (solo en la nave) ---
+EV_LIST.append(("suelo", "BAJANDO RÁPIDO CERCA DEL SUELO"))
+SUELO = {"t": 0}
+
+def suelo_watch(d, now):
+    alt, vs = alt_now(d), alt_vs()
+    fl = (d or {}).get("Flags", 0)
+    if alt is None or vs is None or in_srv(d) or fl & 3 or fl & (1 << 29):
+        return
+    if (alt < 250 and vs < -35) or (alt < 60 and vs < -15):
+        if now - SUELO["t"] > 12 and ev_on("suelo"):
+            SUELO["t"] = now
+            k0 = XA_K[0]
+            try:
+                XA_K[0] = "suelo"
+                set_alert("BAJANDO RÁPIDO CERCA DEL SUELO", f"{alt:.0f} m · {vs:.0f} m/s", RED, 4)
+                play("alarm")
+                voice_say("cuidado, bajas rápido cerca del suelo")
+            finally:
+                XA_K[0] = k0
+
+# --- caja negra: los ultimos 60 s de altura y velocidades, al LOG si te destruyen ---
+CAJA = deque(maxlen=200)
+
+def caja_track(d, now):
+    alt = ((d or {}).get("live") or {}).get("alt")
+    if alt is None or ((d or {}).get("bio") or {}).get("lat") is None:
+        return
+    if not CAJA or now - CAJA[-1][0] >= 0.5:
+        CAJA.append((now, alt, alt_vs(), SPD.get("gs"), (d or {}).get("Flags", 0)))
+
+def caja_dump(why):
+    now = time.time()
+    pts = [p for p in CAJA if now - p[0] <= 60]
+    if not pts:
+        plog(f"CAJA NEGRA ({why}): sin datos de altura en el último minuto"); return
+    plog(f"CAJA NEGRA ({why}): últimos {now - pts[0][0]:.0f} s (segundos antes · altura · vertical · suelo)")
+    sel = pts[::max(1, len(pts) // 30)] + [pts[-1]]
+    for t, alt, vs, gs, fl in sel:
+        plog(f"  -{now - t:4.1f} s · {alt:7.0f} m · " + (f"{vs:+5.0f}" if vs is not None else "   ? ") + " m/s · "
+             + (f"{gs:5.0f}" if gs is not None else "   ? ") + " m/s" + (" · radio medio" if fl & (1 << 29) else ""))
+
+# --- repetidos: avisos iguales seguidos una sola vez; en el LOG, una linea con ×N ---
+REPN = {"k": None, "t": 0, "n": 0}
+_handle_note_b19 = handle_note
+
+def handle_note(kind, text):
+    now = time.time()
+    if kind == "died":
+        try:
+            caja_dump("nave destruida")
+        except Exception as e:
+            log_exc("caja negra", e)
+    k = (kind, text)
+    if REPN["k"] == k and now - REPN["t"] < 3:
+        REPN["n"] += 1; REPN["t"] = now
+        return
+    if REPN["n"]:
+        plog(f"  (lo anterior, {REPN['k'][0]}: repetido ×{REPN['n'] + 1})")
+    REPN.update(k=k, t=now, n=0)
+    _handle_note_b19(kind, text)
+
+_plog_b19 = plog
+PLR = {"m": None, "t": 0, "n": 0}
+
+def plog(*a, **k):
+    msg = " ".join(str(x) for x in a)
+    now = time.time()
+    if msg == PLR["m"] and now - PLR["t"] < 5:
+        PLR["n"] += 1; PLR["t"] = now; return
+    if PLR["n"]:
+        _plog_b19(f"  (repetido ×{PLR['n'] + 1})")
+    PLR.update(m=msg, t=now, n=0)
+    _plog_b19(*a, **k)
+
+# pantalla grande: tambien en el SRV / Rhino (sustituye al MAPA)
+BIG_SETS["SUPERFICIE + VELOCÍMETRO"] = [100, 73, 5, 137]
+_big_mode_b19 = big_mode
+
+def big_mode(d, flags):
+    m = _big_mode_b19(d, flags)
+    if m == "SUPERFICIE" and flags & (1 << 26) and _geo(d)[0] is not None:
+        return "SUPERFICIE + VELOCÍMETRO"
+    return m
+
+MENU[137] = "ALTÍMETRO Y VELOCIDAD"
+
+_render_b19 = render
+
+def render(surf):
+    try:
+        with lock:
+            d, rx = state["data"], state["rx"]
+        now = time.time()
+        if d is not None and now - rx < 5:
+            spd_track(d, now); caja_track(d, now); suelo_watch(d, now)
+        if PLR["n"] and now - PLR["t"] > 5:
+            _plog_b19(f"  (repetido ×{PLR['n'] + 1})"); PLR["n"] = 0
+        if REPN["n"] and now - REPN["t"] > 5:
+            _plog_b19(f"  ({REPN['k'][0]}: repetido ×{REPN['n'] + 1})"); REPN["n"] = 0
+    except Exception as e:
+        log_exc("velocidad", e)
+    return _render_b19(surf)
 
 
 if __name__ == "__main__":
