@@ -821,6 +821,18 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.1
+- NAVEGACIÓN: la lista de RUTA se desplaza (arrastrando o con las flechas) y ya no la tapa la línea de política. Cada salto con sus marcas: NEUTRONES / ENANA BLANCA en rojo, CDSN (y GUERRA, ELECCIONES o RETIRADA si las hay), ANARQUÍA o SEG. BAJA según EDSM. En la cabecera: ETA, hora de llegada y combustible con el que llegas (o «hay que repostar»).
+- Tocar un salto de la ruta abre su ficha: estrella, tu facción si está, y los datos de EDSM (o «EDSM NO LO CONOCE · posible primer descubrimiento»). Botón IR para copiarlo en el mapa galáctico.
+- Avisos de ruta: PRÓXIMO SALTO enana blanca o estrella de neutrones, QUEDAN 2 SALTOS y al entrar en un sistema CDSN en guerra, elecciones o retirada (se quitan en ALERTAS).
+- Pestaña BGS (menú FACCIÓN): la web cdsn-web en el panel, con tarjetas, filtros, orden por columnas y las 11 columnas en la HDMI con NITIDEZ ALTA. Tocar un sistema abre su ficha.
+- Ficha del sistema: pestaña INFLUENCIA con la gráfica del histórico (escucha v5) y los últimos cambios.
+- RADAR y avisos con las mismas reglas que la web: RETIRADA, VENTAJA BAJA (menos de 5 puntos) y BAJADA (3 puntos o más desde ayer). Flecha de tendencia con el histórico.
+- Tick: si EDCAS no responde, se usa el del escucha del pueblo (el sistema mejor medido o el de la galaxia + 24 h).
+- RESUMEN DEL DÍA: «DÓNDE COMPRAR HOY» con las estaciones donde has atracado que venden lo que le falta a tu construcción (tocar copia el sistema en el PC).
+- Al atracar con una construcción pendiente, la ventana 3 de la pantalla grande enseña MERCADO con lo que se vende para tu colonia aunque lleves la bodega vacía. Si EDSM no responde, el aviso «AQUÍ HAY N MATERIALES» sale con los datos del mercado del juego.
+- Arreglado: error del panel nítido con el estilo CABINA al cambiar de pantalla.
+- Más rápido: el mapa del SISTEMA dibuja las órbitas unas 10 veces más rápido y el panel arranca antes (guarda las partes ya compiladas).
 # Novedades v1.1
 - Versión depurada: el mismo panel que la v1.0b20, con el código limpio y repartido en partes (partes/). Se actualiza con la versión completa, sin parches. Necesita el sender v1.0b13.
 - COLONIZACIÓN descuenta de la bodega todos los materiales (también los de nombre largo como Equipamiento de supervivencia o Estabilizadores de superficie).

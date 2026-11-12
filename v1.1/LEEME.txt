@@ -1,21 +1,22 @@
-PANEL ELITE v1.1  ·  version completa (sin parches)
-====================================================
+PANEL ELITE v1.1.1  ·  version completa (sin parches)
+======================================================
 
 QUE HAY
   panel-v11/          el panel (panel.py carga las partes de partes/ en orden)
   pc_ortem/           elite_sender.py v1.0b13 para el PC de Ortem (PI_IP 192.168.0.94)
   pc_korzo/           elite_sender.py v1.0b13 para el PC de KORZO (PI_IP 192.168.1.151)
   patch_sender_v100b13.py   el mismo cambio en forma de parche (para un sender b12 propio)
-  escucha-pueblo/     escucha_faccion.py v4 (tick de cada sistema) de la Orange Pi del pueblo
+  escucha-pueblo/     escucha_faccion.py v5 (tick de cada sistema, historico de influencia y tick de la galaxia)
   actualizar_v11.sh   actualiza ~/panel-v11 con esta version (guarda copia del codigo anterior)
   instalar_v11.sh     instalacion desde cero en ~/panel-v11 (copia tus datos de la b20)
   cambiar_panel.sh    elige cual arranca:  v11  o  b20
-  subir_v11.sh        sube el proyecto a GitHub ortemedder/panel-elite-v11 (sin claves ni datos personales)
+  prueba_sonido.sh    prueba la musica de inicio, la voz y los pitidos (bash ~/prueba_sonido.sh)
+  subir_v11.sh        sube el proyecto a GitHub, carpeta v1.1/ de ortemedder/panel-elite (sin claves ni datos personales)
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.zip && bash ~/panel_v1.1/actualizar_v11.sh
+  1) Copia panel_v1.1.1.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.1.zip && bash ~/panel_v1.1.1/actualizar_v11.sh
   2) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30
 
@@ -24,7 +25,7 @@ EN EL PC
   El panel v1.1 necesita el sender v1.0b13 (si no, avisa VERSIONES DISTINTAS).
 
 GITHUB (una vez)
-  Crea en GitHub el repositorio PRIVADO vacio "panel-elite-v11" y luego en la Pi:   bash ~/subir_v11.sh
+  En la Pi:   bash ~/subir_v11.sh   (va a la carpeta v1.1/ del repositorio panel-elite de siempre)
   Nunca pegues el token en el chat: solo en la Pi, cuando git lo pida.
 
 VOLVER ATRAS

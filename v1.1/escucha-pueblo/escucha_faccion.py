@@ -31,6 +31,7 @@ def load():
             j = json.load(f)
         if j.get("faccion") == FAC:
             DB["sistemas"] = j.get("sistemas") or {}
+            if j.get("tick_global"): DB["tick_global"] = j["tick_global"]
     except (OSError, ValueError):
         pass
     try:
@@ -112,6 +113,15 @@ def update(sysname, t, facs, ctrl_name, src, conflicts=(), extra=None):
             new["prev"], new["prev_t"] = old["inf"], old.get("t")
         elif old:
             new["prev"], new["prev_t"] = old.get("prev"), old.get("prev_t")
+        # historico de influencia (v5): un punto cada vez que cambia, los ultimos 14
+        h = [list(x) for x in (old or {}).get("hinf") or []]
+        if not h and old and old.get("inf") is not None:
+            if old.get("prev") is not None and old.get("prev_t"):
+                h.append([int(old["prev_t"]), old["prev"]])
+            h.append([int(old.get("t") or t), old["inf"]])
+        if not h or abs(h[-1][1] - inf) >= 0.01:
+            h.append([int(t), inf])
+        new["hinf"] = h[-14:]
         tick_track(sysname, new, src, t)
         DB["sistemas"][sysname] = new
         dirty[0] = True
@@ -123,26 +133,40 @@ def update(sysname, t, facs, ctrl_name, src, conflicts=(), extra=None):
 # El BGS solo cambia la influencia en el tick. Si entre dos datos de EDDN cambian las influencias
 # del sistema, el tick fue entre el ultimo dato igual ("igual") y el primero distinto (t).
 # Se guardan las horas de los ultimos ticks bien acotados (ventana <= 6 h) y se calcula la hora habitual.
-TICK_VENTANA = 6 * 3600
+TICK_VENTANA = 6 * 3600          # ventanas cortas: cuentan como tick "bien acotado"
+TICK_VENTANA_MAX = 20 * 3600     # ventanas de hasta 20 h: se cruzan entre dias para estrechar la hora
 
 def _firma(todas):
     txt = ";".join(f"{x.get('n')}:{(x.get('inf') or 0):.1f}" for x in sorted(todas or [], key=lambda x: x.get("n") or ""))
     return hashlib.md5(txt.encode("utf-8")).hexdigest()[:8]
 
 def _prevision(tk):
-    hist = tk.get("hist") or []
-    if not hist:
+    """Cruza las ventanas de los ultimos dias (hora del dia) y se queda con el tramo en el que coinciden mas."""
+    vent = tk.get("vent") or []
+    if not vent:
         return None, None
-    ang = [2 * math.pi * (h % 86400) / 86400 for h in hist]
-    sx, cx = sum(math.sin(a) for a in ang) / len(ang), sum(math.cos(a) for a in ang) / len(ang)
-    tod = (math.atan2(sx, cx) % (2 * math.pi)) * 86400 / (2 * math.pi)        # hora habitual (s desde 00:00 UTC)
-    r = min(1.0, math.hypot(sx, cx))
-    disp = math.sqrt(max(0.0, -2 * math.log(max(r, 1e-9)))) * 86400 / (2 * math.pi) if len(hist) > 1 else None
-    base = (tk.get("est") or tk.get("ult") or hist[-1]) + 12 * 3600            # el siguiente, al menos 12 h despues
+    cuenta = [0.0] * 1440                                 # minutos del dia (UTC); las ventanas cortas pesan mas
+    for a, b in vent:
+        m0, largo = int(a % 86400) // 60, max(1, int(b - a) // 60)
+        for k in range(min(largo, 1440)):
+            cuenta[(m0 + k) % 1440] += 60.0 / largo
+    top = max(cuenta)
+    mejor, ini, run = (0, 0), None, 0                     # tramo mas largo con el maximo (circular)
+    for k in range(2880):
+        if cuenta[k % 1440] >= top - 1e-9:
+            if ini is None: ini = k
+            run = k - ini + 1
+            if run > mejor[0] and run <= 1440: mejor = (run, ini)
+        else:
+            ini = None
+    run, ini = mejor
+    tod = ((ini + run / 2) % 1440) * 60                    # centro del tramo, en segundos UTC
+    disp = int(run / 2)                                    # +- minutos
+    base = (tk.get("ult") or vent[-1][1]) + 6 * 3600       # el siguiente, despues del ultimo visto
     nxt = (base // 86400) * 86400 + tod
     while nxt < base:
         nxt += 86400
-    return int(nxt), (int(disp / 60) if disp is not None else None)
+    return int(nxt), disp
 
 def tick_track(sysname, new, src, t):
     tk = dict(new.get("tk") or {})
@@ -151,6 +175,10 @@ def tick_track(sysname, new, src, t):
         if tk.get("firma") and tk["firma"] != firma and tk.get("igual"):
             desde = tk["igual"]; ventana = t - desde
             tk["ult"], tk["desde"] = t, desde
+            if ventana <= TICK_VENTANA_MAX:                # ventana para cruzar con otros dias
+                vent = [v for v in tk.get("vent") or [] if t - v[1] < 14 * 86400]
+                vent.append([int(desde), int(t)])
+                tk["vent"] = vent[-7:]
             if ventana <= TICK_VENTANA:
                 est = int(desde + ventana / 2)
                 hist = [h for h in tk.get("hist") or [] if t - h < 14 * 86400]
@@ -169,6 +197,42 @@ def tick_track(sysname, new, src, t):
     prox, disp = _prevision(tk)
     if prox:
         new["tick_prox"], new["tick_disp"], new["tick_n"] = prox, disp, len(tk.get("hist") or [])
+
+def _a_epoch(v):
+    """La API puede dar texto ISO, un numero o un objeto: se acepta cualquiera."""
+    if isinstance(v, dict):
+        for k in ("lastGalaxyTick", "tick", "timestamp", "time", "date"):
+            if v.get(k):
+                return _a_epoch(v[k])
+        return 0
+    if isinstance(v, (int, float)):
+        return int(v / 1000 if v > 1e12 else v)
+    if isinstance(v, str):
+        v = v.strip().strip('"')
+        return int(float(v)) if v.replace(".", "").isdigit() else iso2epoch(v.replace(" ", "T"))
+    return 0
+
+def tick_global_loop():                                  # tick de la galaxia (comunidad EDCD), de respaldo
+    time.sleep(5)
+    log("Tick global: consultando tick.edcd.io")
+    while True:
+        try:
+            req = urllib.request.Request("https://tick.edcd.io/api/tick", headers={"User-Agent": "PanelEliteRPi-escucha/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                crudo = r.read().decode()
+            try:
+                tg = _a_epoch(json.loads(crudo))
+            except ValueError:
+                tg = _a_epoch(crudo)
+            if not tg:
+                log("Tick global: respuesta no reconocida:", crudo[:120])
+            elif tg != DB.get("tick_global"):
+                with lock:
+                    DB["tick_global"] = tg; dirty[0] = True
+                log("Tick global:", time.strftime("%d/%m %H:%M", time.localtime(tg)))
+        except Exception as e:
+            log("Tick global:", e)
+        time.sleep(1800)
 
 # ---------- avisos a Discord (opcional: discord_webhook.txt junto a este archivo) ----------
 ES = {"Expansion": "Expansión", "War": "Guerra", "CivilWar": "Guerra civil", "Election": "Elecciones", "Retreat": "Retirada",
@@ -299,7 +363,7 @@ def gh_loop():
             token = ""
         if token:
             with lock:
-                h = hashlib.md5(json.dumps(DB["sistemas"], sort_keys=True).encode()).hexdigest()
+                h = hashlib.md5((json.dumps(DB["sistemas"], sort_keys=True) + str(DB.get("tick_global"))).encode()).hexdigest()
                 body = json.dumps(DB, ensure_ascii=False, indent=1)
             if h != last_h or time.time() - last_t > 6 * 3600:
                 hdr = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
@@ -539,6 +603,6 @@ def saver_loop():
 if __name__ == "__main__":
     load()
     log(f"Escuchando a '{FAC}' · {len(DB['sistemas'])} sistemas conocidos · puerto {CFG['puerto']}")
-    for fn in (eddn_loop, edsm_loop, saver_loop, gh_loop, discord_loop, resumen_loop):
+    for fn in (eddn_loop, edsm_loop, saver_loop, gh_loop, discord_loop, resumen_loop, tick_global_loop):
         threading.Thread(target=fn, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", CFG["puerto"]), H).serve_forever()

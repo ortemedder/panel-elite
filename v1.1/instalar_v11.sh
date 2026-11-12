@@ -20,5 +20,5 @@ for d in naves ingenieros avatares sonidos voces piper; do
     [ -d "$HOME/$d" ] && [ ! -e "$DEST/$d" ] && ln -s "$HOME/$d" "$DEST/$d"
 done
 echo "== $n archivos de datos copiados (ajustes, notas, viajes, logos, fondos...)"
-cp "$ORIG/cambiar_panel.sh" "$ORIG/actualizar_v11.sh" "$ORIG/subir_v11.sh" "$HOME/" 2>/dev/null
+cp "$ORIG/cambiar_panel.sh" "$ORIG/actualizar_v11.sh" "$ORIG/subir_v11.sh" "$ORIG/prueba_sonido.sh" "$HOME/" 2>/dev/null
 bash "$HOME/cambiar_panel.sh" v11

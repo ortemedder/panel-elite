@@ -424,6 +424,7 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.1.1", "RUTA desplazable con marcas, hora y combustible de llegada; pestaña BGS; INFLUENCIA; dónde comprar hoy; más rápido"),
     ("1.1", "Código depurado y en partes; pasajeros, calculadora, tick de cada sistema, reloj LCD, avisos de colonización"),
     ("1.0b20", "4 CUADROS al cargar la partida y subir_todo.sh"),
     ("1.0b19b", "Arreglo del RADAR al arrastrar"),

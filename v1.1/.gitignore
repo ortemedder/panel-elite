@@ -5,6 +5,7 @@
 *.log.1
 *.bak*
 __pycache__/
+__cache__/
 copias/
 panel_ajustes.json
 notas.json

@@ -297,6 +297,18 @@ def kep(o, t=None, E=None):
     xw, yw = xv * math.cos(w) - yv * math.sin(w), xv * math.sin(w) + yv * math.cos(w)
     return (xw * math.cos(W_) - yw * math.cos(i) * math.sin(W_), xw * math.sin(W_) + yw * math.cos(i) * math.cos(W_))
 
+_ORBC = {}
+
+def orbit_pts(o):
+    """Forma de la orbita (49 puntos respecto al padre): no cambia con el tiempo, se calcula una vez (v1.1.1)."""
+    k = (o.get("id"), o.get("a"), o.get("e"), o.get("w"), o.get("i"), o.get("W"), o.get("P"))
+    pts = _ORBC.get(k)
+    if pts is None:
+        if len(_ORBC) > 600:
+            _ORBC.clear()
+        pts = _ORBC[k] = [kep(o, E=j * 2 * math.pi / 48) for j in range(49)]
+    return pts
+
 def build_tree(orbits):
     nodes, parent, ntype = {}, {}, {}
     for o in orbits:
@@ -394,7 +406,7 @@ def view_orrery(surf, d, flags, now):
         if not o or not o.get("a"):
             continue
         bx, by = apos(parent.get(n))
-        pts = [scr(bx + x, by + y) for x, y in (kep(o, E=k * 2 * math.pi / 48) for k in range(49))]
+        pts = [scr(bx + x, by + y) for x, y in orbit_pts(o)]
         pygame.draw.lines(surf, (60, 40, 10) if ntype.get(n) == "Null" else DIM, False, pts, 1)
     # cuerpos
     hits = []
