@@ -16,3 +16,8 @@ faccion_estado.json
 actividad_hoy.json
 pc_ip.txt
 avatares/
+
+# Datos personales: no subir
+subidos/journals/
+Journal.*.log
+pi3_korzo/cmdr.jpg
