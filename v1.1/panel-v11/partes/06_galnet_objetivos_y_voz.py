@@ -266,6 +266,7 @@ def view_sub12(surf, d, flags, now):
         sub = {"style": "CABINA" if style["cab"] else "CLÁSICO",
                "borders": "SÍ" if style.get("borders", True) else "NO",
                "icons": "SÍ" if ICONS_ON[0] else "NO",
+               "stackchan": sc_estado() if "sc_estado" in globals() else "",
                "bigmode": BIGMODES.get(cfg.get("bigmode", "4"), "4 CUADROS")}.get(act) if isinstance(act, str) else (
                    f"{BIGMODES.get(cfg.get('bigmode', '4'), '4 CUADROS')} · {'ALTA' if cfg.get('sharp') else 'NORMAL'}" if act == 160 else None)
         if i in (8, 9, 10):
@@ -273,7 +274,7 @@ def view_sub12(surf, d, flags, now):
             draw_button(surf, r, "¿SEGURO?" if sure else name, None if sure else "toca 2 veces", F["btn"],
                         filled=sure, lit=flash.get((1240, act), 0) > now)
         else:
-            draw_button(surf, r, name, sub, F["btn"], filled=act == "style" and style["cab"],
+            draw_button(surf, r, name, sub, F["btn"], filled=(act == "style" and style["cab"]) or (act == "stackchan" and bool(cfg.get("stackchan"))),
                         lit=flash.get((12, i), 0) > now)
 
 def tap_sub12(x, y):
@@ -290,6 +291,8 @@ def tap_sub12(x, y):
             borders_toggle()
         elif act == "icons":
             icons_toggle()
+        elif act == "stackchan":
+            cfg["stackchan"] = not cfg.get("stackchan", False); save_cfg()
         elif act == "bigmode":
             order = list(BIGMODES)
             cfg["bigmode"] = order[(order.index(cfg.get("bigmode", "4")) + 1) % len(order)]

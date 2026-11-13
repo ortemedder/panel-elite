@@ -1045,7 +1045,7 @@ def render_base(surf):
     draw_mega(surf, d if online else None, now)
     draw_hpcrit(surf, now)
     draw_kill(surf, now)
-    if (cfg.get("voice") or cfg.get("stream")) and not HI_PASS[0]:
+    if (cfg.get("voice") or cfg.get("stream") or cfg.get("stackchan")) and not HI_PASS[0]:
         voice_watch()
     if ui["alert"]:
         if now < ui["alert"]["until"]:
