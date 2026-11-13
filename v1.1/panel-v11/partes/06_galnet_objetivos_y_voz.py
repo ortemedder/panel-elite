@@ -824,6 +824,19 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.8
+- 9 FACCIÓN es ahora un submenú: 1 SISTEMAS, 2 BGS, 3 RADAR, 4 ACTIVIDAD, 5 ESCUADRÓN, 6 AMIGOS, 7 OBJ. COMUNIDAD, 8 RANGOS. SISTEMAS y BGS tienen pestañas para pasar de una a otra, igual que ESCUADRÓN y AMIGOS. El botón < de RADAR y ACTIVIDAD vuelve al menú 9.
+- 7 EXPLORACIÓN: solo exploración (EXPLORACIÓN, SISTEMA, EXOBIO, YACIMIENTOS, DIARIO y ALIEN).
+- 11 RESUMEN DEL DÍA: pestañas DÍA · GALNET · CALCULADORA.
+- 12 AJUSTES: solo ajustes (la calculadora pasa al 11; ROBOT sigue aquí).
+# Novedades v1.1.7
+- Una sola versión: junta la rama del ROBOT (StackChan, v1.1.2 a v1.1.6) con las novedades de esta.
+- MERCADO (y ventana 3): franja roja parpadeante con la bodega llena y naranja «QUEDAN N t» al 95 %. Al llenarse estando atracado suena la compuerta (ALERTAS / SONIDO > BODEGA LLENA).
+- MERCADO en tu depósito de construcción: «ENTREGA AQUÍ LOS MATERIALES · N t» en verde parpadeante si llevas carga que le sirve.
+- Sonidos propios: interdicción (motor que se para), tu facción gana una guerra o toma el control (tambores), pasajeros entregados (llamada de aeropuerto, con aviso) y construcción terminada (tráiler épico, con aviso). Se quitan en ALERTAS / SONIDO.
+- Lista FACCIÓN (menú 9): botón BGS > arriba a la derecha.
+# Novedades v1.1.6 a v1.1.2 (ROBOT)
+- 12 AJUSTES > ROBOT: la StackChan de M5Stack reacciona a los avisos sin necesitar EMITIR (UDP 5007), enseña las fotos del panel y pone la cara de color con el peligro, la recarga de combustible y a pie.
 # Novedades v1.1.1
 - NAVEGACIÓN: la lista de RUTA se desplaza (arrastrando o con las flechas) y ya no la tapa la línea de política. Cada salto con sus marcas: NEUTRONES / ENANA BLANCA en rojo, CDSN (y GUERRA, ELECCIONES o RETIRADA si las hay), ANARQUÍA o SEG. BAJA según EDSM. En la cabecera: ETA, hora de llegada y combustible con el que llegas (o «hay que repostar»).
 - Tocar un salto de la ruta abre su ficha: estrella, tu facción si está, y los datos de EDSM (o «EDSM NO LO CONOCE · posible primer descubrimiento»). Botón IR para copiarlo en el mapa galáctico.

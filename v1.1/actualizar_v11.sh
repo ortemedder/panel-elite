@@ -18,7 +18,7 @@ COPIA="$DEST/copias/codigo_${OLD:-anterior}_$(date +%Y%m%d_%H%M).tar.gz"
 tar -czf "$COPIA" -C "$DEST" panel.py panel_run.py partes 2>/dev/null && echo "== Copia del codigo ${OLD:-anterior}: $COPIA"
 rm -rf "$DEST/partes"
 cp -r "$ORIG/panel-v11/partes" "$DEST/"
-cp "$ORIG/panel-v11/panel.py" "$ORIG/panel-v11/panel_run.py" "$ORIG/panel-v11/sonido_inicio.wav" "$DEST/"
+cp "$ORIG/panel-v11/panel.py" "$ORIG/panel-v11/panel_run.py" "$ORIG"/panel-v11/*.wav "$DEST/"
 rm -rf "$DEST/partes/__pycache__" "$DEST/__pycache__"
 cp "$ORIG/cambiar_panel.sh" "$HOME/" 2>/dev/null
 cp "$ORIG/actualizar_v11.sh" "$ORIG/subir_v11.sh" "$ORIG/prueba_sonido.sh" "$HOME/" 2>/dev/null

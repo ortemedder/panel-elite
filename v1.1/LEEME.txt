@@ -1,4 +1,4 @@
-PANEL ELITE v1.1.6  ·  version completa (sin parches)
+PANEL ELITE v1.1.8  ·  version completa (sin parches)
 ======================================================
 
 QUE HAY
@@ -12,23 +12,12 @@ QUE HAY
   cambiar_panel.sh    elige cual arranca:  v11  o  b20
   prueba_sonido.sh    prueba la musica de inicio, la voz y los pitidos (bash ~/prueba_sonido.sh)
   subir_v11.sh        sube el proyecto a GitHub, carpeta v1.1/ de ortemedder/panel-elite (sin claves ni datos personales)
+  robot/              stackchan_elite.ino: la StackChan (M5Stack) para Arduino IDE (pon tu WiFi en WIFI_SSID / WIFI_PASS)
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
-NOVEDAD v1.1.3
-  12 AJUSTES > ROBOT: la StackChan (M5Stack) recibe los avisos del panel por la red (UDP 5007) y reacciona
-  con cara, cabeza y luces. No necesita EMITIR. El boton dice NO / BUSCANDO / CONECTADO.
-  v1.1.3: ademas le manda fotos a su pantalla: la estacion al conceder el atraque, tu nave al cambiarla y el
-  logo de la faccion con los avisos de CDSN (servidas en http://IP:8081/foto, solo con ROBOT activado).
-  v1.1.4: PELIGRO continuo: con escudos caidos o casco por debajo del 70 % (en la nave, sin atracar) la StackChan
-  se queda en rojo parpadeando y con cara enfadada hasta que pasa, y avisa PELIGRO SUPERADO.
-  v1.1.6: a pie: cara verde; roja con salud < 50 % o poco oxigeno (con el %); azul con mucho frio, naranja con calor.
-  v1.1.5: recogiendo combustible de una estrella: cara y luces amarillas con el % del tanque.
-  v1.1.4b: ESCUDOS CAIDOS solo en naves con escudo (las que lo han tenido arriba desde que subiste a ellas).
-  El sender del PC no cambia (v1.0b13).
-
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.6.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.6.zip && bash ~/panel_v1.1.6/actualizar_v11.sh
+  1) Copia panel_v1.1.8.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.8.zip && bash ~/panel_v1.1.8/actualizar_v11.sh
   2) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30
 

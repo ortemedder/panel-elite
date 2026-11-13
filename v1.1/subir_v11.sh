@@ -31,6 +31,7 @@ if [ -n "$SRC" ] && [ -d "$SRC" ]; then
     cp "$SRC"/pc_korzo/*.py pc_korzo/ 2>/dev/null
     cp "$SRC"/escucha-pueblo/*.py escucha-pueblo/ 2>/dev/null
     cp -r "$SRC"/desarrollo/. desarrollo/ 2>/dev/null
+    mkdir -p robot && cp "$SRC"/robot/*.ino robot/ 2>/dev/null
     cp "$SRC"/*.sh "$SRC"/*.py "$SRC"/LEEME.txt . 2>/dev/null
 else
     echo "== Sin zip de version: subo solo el panel de esta Pi"
@@ -40,7 +41,7 @@ fi
 mkdir -p panel-v11
 rm -rf panel-v11/partes
 cp -r ~/panel-v11/partes panel-v11/
-cp ~/panel-v11/panel.py ~/panel-v11/panel_run.py ~/panel-v11/sonido_inicio.wav panel-v11/ 2>/dev/null
+cp ~/panel-v11/panel.py ~/panel-v11/panel_run.py ~/panel-v11/sonido_*.wav panel-v11/ 2>/dev/null
 cp ~/panel-v11/fondo_*.jpg ~/panel-v11/logo_faccion.png ~/panel-v11/boton_*.png panel-v11/ 2>/dev/null
 [ -d ~/naves ] && cp -r ~/naves .
 [ -d ~/ingenieros ] && cp -r ~/ingenieros .

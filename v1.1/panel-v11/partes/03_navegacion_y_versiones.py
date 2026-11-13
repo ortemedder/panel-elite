@@ -424,6 +424,8 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.1.8", "Menús reordenados: 9 FACCIÓN con submenú, 7 solo exploración, CALCULADORA en el 11"),
+    ("1.1.7", "Junta la rama ROBOT: bodega llena, entrega en tu depósito, sonidos propios y botón BGS en FACCIÓN"),
     ("1.1.6", "ROBOT a pie: cara verde; roja con salud < 50 % o poco oxígeno; azul con frío y naranja con calor"),
     ("1.1.5", "ROBOT: cara amarilla y % de combustible mientras recoges de una estrella"),
     ("1.1.4b", "ROBOT: las naves sin escudo ya no dan ESCUDOS CAÍDOS"),

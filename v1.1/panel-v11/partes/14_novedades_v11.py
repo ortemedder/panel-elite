@@ -806,7 +806,7 @@ def facinf_tap(x, y):
 
 # --- pestaña BGS: la web cdsn-web en el panel ---
 MENU[213] = "BGS"
-PARENT[213] = 0
+PARENT[213] = 192
 for _g in TABS:
     if any(t == 193 for t, _ in _g):
         _g.append((213, "BGS"))
@@ -1104,3 +1104,204 @@ def render(surf):
         except Exception as e:
             log_exc(nm, e)
     return r_
+
+
+# --- v1.1.1b: botón BGS en la lista FACCIÓN (menú 9), que es por donde se entra ---
+BGS_BTN = pygame.Rect(W - 64, TOP + 3, 60, 18)
+_view192_v111 = VIEWS[192]
+
+def view192_v111(surf, d, flags, now):
+    _view192_v111(surf, d, flags, now)
+    pygame.draw.rect(surf, BLACK, BGS_BTN.inflate(40, 4).move(-20, 0))
+    lit = flash.get(("bgsbtn",), 0) > now
+    pygame.draw.rect(surf, WHITE if lit else ORANGE, BGS_BTN, border_radius=4)
+    put(surf, F["small"], "BGS  >", BGS_BTN.center, BLACK, anchor="center")
+
+VIEWS[192] = view192_v111
+
+_on_tap_v111d = on_tap
+
+def on_tap(x, y):
+    if ui.get("view") == 192 and BGS_BTN.inflate(8, 8).collidepoint(x, y):
+        tap_flash(("bgsbtn",)); ui["view"] = 213; TAP_EV.set(); return
+    return _on_tap_v111d(x, y)
+
+
+# ======================================================================================
+# v1.1.2 · MERCADO: bodega llena (franja roja parpadeante) o casi llena (naranja), con sonido de compuerta
+# ======================================================================================
+EV_LIST.append(("bodegallena", "BODEGA LLENA"))
+SND_BODEGA = os.path.join(PANEL_DIR, "sonido_bodega_llena.wav")
+BOD = {"full": None}
+
+def hold_state(d):
+    """(usado, capacidad) de la bodega de la nave, o None si no se sabe."""
+    cap = (d or {}).get("cargocap")
+    if not cap:
+        return None
+    return sum(c for _, c in ((d or {}).get("cargo") or [])), cap
+
+def hold_band(surf, d, now):
+    h = hold_state(d)
+    if not h:
+        return
+    used, cap = h
+    if used >= cap:
+        col = RED if int(now * 2) % 2 else (110, 0, 0)
+        txt = f"BODEGA LLENA · {used:,} / {cap:,} t".replace(",", ".")
+    elif used >= cap * 0.95:
+        col = ORANGE
+        txt = f"BODEGA CASI LLENA · QUEDAN {cap - used:,} t".replace(",", ".")
+    else:
+        return
+    r = pygame.Rect(4, TOP + 2, W - 8, 20)
+    pygame.draw.rect(surf, col, r, border_radius=4)
+    put(surf, F["btn"], txt, r.center, BLACK if col != (110, 0, 0) else WHITE, r.w - 8, anchor="center")
+    if col != ORANGE:
+        TAP_EV.set()                                     # que parpadee aunque no lleguen datos
+
+_view127_v112 = VIEWS[127]
+
+def deliver_band(surf, d, now):
+    """Atracado en el depósito de tu construcción con carga que le sirve: «ENTREGA AQUÍ LOS MATERIALES» en verde parpadeante."""
+    if not (d or {}).get("Flags", 0) & 1 or not ((d or {}).get("colonia") or {}).get("dock"):
+        return False
+    car = _col_carried(d)
+    if not car:
+        return False
+    tot = sum(c[2] for c in car)
+    on = int(now * 2) % 2
+    r = pygame.Rect(4, TOP + 2, W - 8, 20)
+    pygame.draw.rect(surf, GREEN if on else (20, 90, 40), r, border_radius=4)
+    put(surf, F["btn"], f"ENTREGA AQUÍ LOS MATERIALES · {tot:,} t".replace(",", "."), r.center, BLACK if on else WHITE, r.w - 8, anchor="center")
+    TAP_EV.set()
+    return True
+
+def view127_v112(surf, d, flags, now):
+    _view127_v112(surf, d, flags, now)
+    if not deliver_band(surf, d, now):                   # en tu depósito, esto manda sobre «bodega llena»
+        hold_band(surf, d, now)
+
+VIEWS[127] = view127_v112
+
+def play_bodega():
+    if not (cfg.get("sound", True) and ev_on("bodegallena") and snd_on("bodegallena")) or not os.path.exists(SND_BODEGA) \
+            or not shutil.which("aplay"):
+        return
+    try:
+        subprocess.Popen(["aplay", "-q", SND_BODEGA], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+def hold_watch(now):
+    with lock:
+        d, rx = state["data"], state["rx"]
+    if not d or now - rx > 5:
+        return
+    h = hold_state(d)
+    full = bool(h and h[0] >= h[1])
+    if full and BOD["full"] is False and d.get("Flags", 0) & 1:
+        play_bodega()                                    # se acaba de llenar estando atracado
+        plog("Bodega llena")
+    BOD["full"] = full
+
+_render_v112 = render
+
+def render(surf):
+    r_ = _render_v112(surf)
+    try:
+        hold_watch(time.time())
+    except Exception as e:
+        log_exc("bodega llena", e)
+    return r_
+
+
+# ======================================================================================
+# v1.1.2 · SONIDOS PROPIOS: interdicción, victoria de tu facción, pasajeros entregados, construcción terminada
+# (si falta el archivo suena el pitido de siempre; cada uno se quita en ALERTAS / SONIDO Y VOZ)
+# ======================================================================================
+EV_LIST.append(("paxentrega", "PASAJEROS ENTREGADOS"))
+EV_LIST.append(("colfin", "CONSTRUCCIÓN TERMINADA"))
+SNDX = {"interdicted": "sonido_interdiccion.wav", "victoria": "sonido_victoria.wav",
+        "paxentrega": "sonido_pasajeros.wav", "colfin": "sonido_construccion.wav"}
+SNDCTX = [None]                                          # sonido especial para el aviso que se está dando
+
+def play_file(path):
+    if not cfg.get("sound", True) or not os.path.exists(path) or not shutil.which("aplay"):
+        return False
+    try:
+        subprocess.Popen(["aplay", "-q", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except OSError:
+        return False
+
+_play_v112 = play
+
+def play(name):
+    k = SNDCTX[0] or XA_K[0]
+    f = SNDX.get(k)
+    if f:
+        if XA_K[0] and (not ev_on(XA_K[0]) or not snd_on(XA_K[0])):
+            return
+        if play_file(os.path.join(PANEL_DIR, f)):
+            return
+    return _play_v112(name)
+
+_fw_alert_v112 = fw_alert
+
+def fw_alert(title, big, lines, voz):
+    win = "TERMINADA" in title and any("GANADA" in (l or "") for l in lines or [])
+    SNDCTX[0] = "victoria" if win else None
+    try:
+        return _fw_alert_v112(title, big, lines, voz)
+    finally:
+        SNDCTX[0] = None
+
+_fx_alert_v112 = fx_alert
+
+def fx_alert(k, title, big, lines, voz, col=RED):
+    SNDCTX[0] = "victoria" if title.startswith("¡TOMÁIS") else None
+    try:
+        return _fx_alert_v112(k, title, big, lines, voz, col)
+    finally:
+        SNDCTX[0] = None
+
+SXW = {"pax": None, "col": None}
+
+def sounds_watch(now):
+    with lock:
+        d, rx = state["data"], state["rx"]
+    if not d or now - rx > 5:
+        return
+    h_ = (d.get("pax") or {}).get("hoy") or {}
+    n_, cr_ = h_.get("n") or 0, h_.get("cr") or 0
+    if SXW["pax"] is not None and h_.get("day") == SXW["pax"][2] and n_ > SXW["pax"][0]:
+        _xa_show("paxentrega", col=GREEN, title="PASAJEROS ENTREGADOS", big=f"+{n_ - SXW['pax'][0]} PASAJEROS",
+                 lines=[f"+{cr(cr_ - SXW['pax'][1])} cr · hoy {n_} pasajeros"], secs=6)
+    SXW["pax"] = (n_, cr_, h_.get("day"))
+    done = {str(x.get("mid")): (x.get("st") or x.get("sys") or "") for x in ((d.get("colonia") or {}).get("list") or []) if x.get("done")}
+    if SXW["col"] is not None:
+        for mid, nm in done.items():
+            if mid not in SXW["col"]:
+                _xa_show("colfin", col=GREEN, title="¡CONSTRUCCIÓN TERMINADA!", big=nm.upper()[:30],
+                         lines=["enhorabuena, comandante"], secs=10)
+    SXW["col"] = set(done)
+
+_render_v112b = render
+
+def render(surf):
+    r_ = _render_v112b(surf)
+    try:
+        sounds_watch(time.time())
+    except Exception as e:
+        log_exc("sonidos", e)
+    return r_
+
+_handle_note_v112 = handle_note
+
+def handle_note(kind, text):
+    SNDCTX[0] = kind if kind in SNDX else None           # interdicción: su sonido en lugar del pitido
+    try:
+        return _handle_note_v112(kind, text)
+    finally:
+        SNDCTX[0] = None
