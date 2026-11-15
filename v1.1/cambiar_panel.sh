@@ -10,7 +10,7 @@ case "${1:-}" in
         [ -f "$HOME/panel-v11/panel_run.py" ] || { echo "No esta instalada la v1.1 (bash instalar_v11.sh)"; exit 1; }
         sudo mkdir -p "$DROP"
         printf '[Service]\nExecStart=\nExecStart=/usr/bin/python3 %s/panel-v11/panel_run.py\nWorkingDirectory=%s/panel-v11\n' "$HOME" "$HOME" | sudo tee "$CONF" >/dev/null
-        sudo systemctl daemon-reload && sudo systemctl restart elite-panel && echo "Arrancado el panel v1.1. Log: ~/panel-v11/panel.log"
+        sudo systemctl daemon-reload && sudo systemctl restart elite-panel && echo "Arrancado el panel $(grep -ho 'PANEL_VER = \"v[^ \"]*' "$HOME"/panel-v11/partes/*.py 2>/dev/null | head -1 | cut -d'"' -f2). Log: ~/panel-v11/panel.log"
         ;;
     b20)
         sudo rm -f "$CONF"

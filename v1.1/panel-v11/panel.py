@@ -4,6 +4,12 @@
 # v1.1.1: cada parte compilada se guarda en partes/__cache__ y el siguiente arranque la usa directamente
 # (se vuelve a compilar sola si la parte cambia o cambia la version de Python).
 import os as _os, sys as _sys, marshal as _marshal
+# v1.1.9: como mucho 2 zonas de memoria para todos los hilos (si no, EMITIR va acumulando RAM)
+try:
+    import ctypes as _ct
+    _ct.CDLL("libc.so.6").mallopt(-8, 2)               # M_ARENA_MAX = 2
+except Exception:
+    pass
 _PARTES = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "partes")
 _CACHE = _os.path.join(_PARTES, "__cache__")
 

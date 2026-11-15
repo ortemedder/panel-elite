@@ -381,7 +381,7 @@ def explo_pkt():
             "unsold": round(sum(unsold.values())), "unsold_n": len(unsold)}
 
 # datos pesados que casi no cambian: solo se envian si cambian (y todos cada 5 s por si se pierde alguno)
-HEAVY = ("colonia", "colsys", "colbuy", "orbits", "explo", "sysinfo", "market", "rings", "mats", "carrier", "pack", "srvmats", "alien",
+HEAVY = ("matsall", "colonia", "colsys", "colbuy", "orbits", "explo", "sysinfo", "market", "rings", "mats", "carrier", "pack", "srvmats", "alien",
          "exdiary", "ranks", "routeinfo", "ppme", "dest", "mycg", "friends", "binds", "inara", "naves", "viajes")
 _heavy, _full, last_size = {}, [0.0], [0]
 
@@ -2499,7 +2499,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b13"
+SENDER_VER = "v1.0b14"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3157,6 +3157,37 @@ def handle(e):
     except Exception as ex:
         print("pasajeros:", ex, flush=True)
 
+
+# ---------- v1.0 beta 14: parada de emergencia ----------
+EMERG = {"drop": 0.0, "appr": 0.0, "settl": 0.0}
+
+def emerg_event(e):
+    ev = e.get("event")
+    t = iso2epoch(e.get("timestamp")) or time.time()
+    if ev == "SupercruiseDestinationDrop":
+        EMERG["drop"] = t
+    elif ev == "ApproachBody":
+        EMERG["appr"] = t
+    elif ev == "ApproachSettlement":
+        EMERG["settl"] = t
+    elif ev == "SupercruiseExit" and not e.get("Taxi") and not e.get("Multicrew"):
+        bt = e.get("BodyType") or ""
+        if t - EMERG["drop"] < 15:                       # habias elegido destino: salida normal
+            return
+        if bt == "Star" or (bt == "Planet" and t - EMERG["settl"] > 60 and t - EMERG["appr"] < 10):
+            print(time.strftime("%H:%M:%S"), "PARADA DE EMERGENCIA:", e.get("Body"), flush=True)
+            if LIVE[0]:
+                note("emergstop", f"{bt}|{e.get('Body') or ''}")
+
+_handle_b14 = handle
+
+def handle(e):
+    _handle_b14(e)
+    try:
+        emerg_event(e)
+    except Exception as ex:
+        print("parada de emergencia:", ex, flush=True)
+
 _v096_load()
 print("Sender", SENDER_VER)
 
@@ -3192,7 +3223,7 @@ while True:
                "bio": bio_pkt(st), "live": live_pkt(st),
                "mats": mats_pkt(), "carrier": carrier_pkt(), "market": market, "rings": rings_pkt(st), "dest": dest_pkt(st), "sysinfo": sysinfo, "ppme": ppme,
                "pack": {k: v for k, v in pack.items() if k != "raw"}, "srvmats": srvmats_pkt(), "combat": combat_pkt(), "footcz": footcz_pkt(), "ops": ops_pkt(), "exdiary": exdiary_pkt(), "routeinfo": routeinfo_pkt(), "alien": alien_pkt(), "friends": friends_pkt(), "mycg": mycg_pkt(), "binds": binds_pkt(), "squad": squad, "inara": inara_pkt(), "naves": naves_pkt(), "taxi": taxi_pkt(), "career": career_pkt(),
-               "cargo": cargo[:40], "cargok": cargok, "pax": pax_pkt(), "colonia": col_pkt(), "colsys": colsys_pkt(), "colbuy": COLBUY,
+               "cargo": cargo[:40], "cargok": cargok, "pax": pax_pkt(), "colonia": col_pkt(), "colsys": colsys_pkt(), "colbuy": COLBUY, "matsall": mats,
                "missions": sorted(([n[:60], d, x] for n, d, x in missions.values() if not x or x > now),
                                   key=lambda m: m[2] or 9e12)[:20]}
         send(pkt)

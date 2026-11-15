@@ -824,6 +824,20 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.10
+- PARADA DE EMERGENCIA (sender v1.0b14): si te acercas demasiado rápido a una estrella o a un planeta y el juego te saca del supercrucero, aviso grande en rojo con voz, y el robot se asusta. Se quita en ALERTAS.
+- ROBOT, preguntas nuevas por voz: INGENIEROS (los que tienes, quién mejora un módulo, cómo vas con uno), PLANOS (qué materiales te faltan para un plano y grado; las recetas son de Coriolis y se bajan solas), DÓNDE VENDEN un arma o un módulo cerca (Spansh, con internet), y el sistema, cuerpos valiosos, biología, lo que te dan aquí por la carga, la construcción, el objetivo fijado, minería, amigos conectados, objetivo de comunidad, GALNET, rangos y portanaves.
+- ROBOT: con la bodega llena enseña unas cajas apiladas con «BODEGA LLENA» y luego pone cara de aviso.
+# Novedades v1.1.9c
+- ROBOT: el bocadillo es de una línea; si el texto no cabe, se desplaza como una marquesina (con una pausa al principio para leerlo).
+- ROBOT: el rótulo de las fotos (estación, nave, logo) lo pinta el panel dentro de la foto, con letra legible y tildes.
+# Novedades v1.1.9
+- Relojes de ATRACAR y SALIDA en rojo LED, como los relojes antiguos (también el digital de la Pi 3). El último minuto parpadea.
+- Mapa galáctico abierto: el panel pasa a NAVEGACIÓN (la ruta). Mapa del sistema: ficha del sistema donde estás. Al cerrar el mapa vuelve a la pantalla de antes. Se quita en CAMBIO AUTO.
+- EMITIR: si nadie mira (o se apaga) se sueltan las imágenes, y los hilos usan como mucho 2 zonas de memoria: la RAM ya no va subiendo.
+- ROBOT compañero de viaje: copiloto en ruta (saltos, combustible y siguiente estrella), cuenta atrás del atraque, «¡HEMOS LLEGADO!», contento al vender, mirando con fondo azul oscuro con un mapa abierto, combustible justo, datos sin vender si hay peligro, misiones a punto de caducar, descanso cada 2 h, resumen al atracar, ascensos y primer descubrimiento, llegada a sistemas de CDSN, modo noche (23 a 8 h) y se duerme con «Zzz» en el menú o tras salir del juego. Tocarle la cabeza repite el último aviso. Cada cosa se quita en ALERTAS > ROBOT.
+- ROBOT contesta por voz: toca su pantalla, espera el pitido y pregunta (combustible, saltos, dónde estamos, tick, facción, dinero, misiones, carga, hora, datos sin vender, atraque, nave, tiempo jugando). Contesta en el bocadillo y con voz. Necesita instalar_oido_robot.sh en la Pi (una vez).
+- ROBOT: su versión al arrancar, letra más pequeña, textos que caben y el triple de tiempo en pantalla.
 # Novedades v1.1.8
 - 9 FACCIÓN es ahora un submenú: 1 SISTEMAS, 2 BGS, 3 RADAR, 4 ACTIVIDAD, 5 ESCUADRÓN, 6 AMIGOS, 7 OBJ. COMUNIDAD, 8 RANGOS. SISTEMAS y BGS tienen pestañas para pasar de una a otra, igual que ESCUADRÓN y AMIGOS. El botón < de RADAR y ACTIVIDAD vuelve al menú 9.
 - 7 EXPLORACIÓN: solo exploración (EXPLORACIÓN, SISTEMA, EXOBIO, YACIMIENTOS, DIARIO y ALIEN).

@@ -13,6 +13,7 @@ if [ ! -f "$DEST/panel_run.py" ]; then
 fi
 OLD=$(grep -ho 'PANEL_VER = "[^"]*' "$DEST"/partes/*.py 2>/dev/null | head -1 | cut -d'"' -f2 | cut -d' ' -f1)
 NEW=$(grep -ho 'PANEL_VER = "[^"]*' "$ORIG"/panel-v11/partes/*.py | head -1 | cut -d'"' -f2 | cut -d' ' -f1)
+sudo chown -R "$(id -un)": "$DEST" 2>/dev/null       # la caché que deja el panel (root) vuelve a tu usuario
 mkdir -p "$DEST/copias"
 COPIA="$DEST/copias/codigo_${OLD:-anterior}_$(date +%Y%m%d_%H%M).tar.gz"
 tar -czf "$COPIA" -C "$DEST" panel.py panel_run.py partes 2>/dev/null && echo "== Copia del codigo ${OLD:-anterior}: $COPIA"
@@ -21,7 +22,7 @@ cp -r "$ORIG/panel-v11/partes" "$DEST/"
 cp "$ORIG/panel-v11/panel.py" "$ORIG/panel-v11/panel_run.py" "$ORIG"/panel-v11/*.wav "$DEST/"
 rm -rf "$DEST/partes/__pycache__" "$DEST/__pycache__"
 cp "$ORIG/cambiar_panel.sh" "$HOME/" 2>/dev/null
-cp "$ORIG/actualizar_v11.sh" "$ORIG/subir_v11.sh" "$ORIG/prueba_sonido.sh" "$HOME/" 2>/dev/null
+cp "$ORIG/actualizar_v11.sh" "$ORIG/subir_v11.sh" "$ORIG/prueba_sonido.sh" "$ORIG/instalar_oido_robot.sh" "$HOME/" 2>/dev/null
 echo "== Codigo ${OLD:-?} -> $NEW"
 bash "$HOME/cambiar_panel.sh" v11
 echo

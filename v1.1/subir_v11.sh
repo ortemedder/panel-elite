@@ -69,6 +69,8 @@ faccion_estado.json
 actividad_hoy.json
 pc_ip.txt
 avatares/
+datos_robot/
+vosk-es/
 EOS
 git rm -r -q --cached . >/dev/null 2>&1                  # solo dentro de v1.1/
 git add -A .
