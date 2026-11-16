@@ -515,9 +515,7 @@ def stream_jpeg(which):
         surf = stream["big"] if which == "big" and stream["big"] is not None else stream["small"]
         if surf is None:
             return None
-        buf = io.BytesIO()
-        pygame.image.save(surf, buf, "x.jpg")
-        data = buf.getvalue()
+        data = jpg_bytes(surf)                  # v1.1.10b: a fichero en RAM (a BytesIO pygame pierde memoria)
         stream["jpg"][which] = (seq, data)
         return data
 
@@ -824,6 +822,12 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.10d
+- MERCADO: «TU BODEGA AQUÍ» y «VENDIENDO TODO» usan la carga que llevas ahora. Antes seguían con la de cuando abriste el mercado (aunque ya la hubieras entregado o vendido).
+# Novedades v1.1.10c
+- PARADA DE EMERGENCIA: ahora también cuando ya ibas bajando al planeta en crucero orbital (necesita el sender v1.0b14b).
+# Novedades v1.1.10b
+- EMITIR: arreglada la subida de RAM. pygame perdía la imagen entera cada vez que hacía un JPEG en memoria (el panel llegaba al 45 % en un rato y no bajaba al desconectar). Ahora la memoria se queda estable. Si aun así el panel pasa del 30 % de la RAM, EMITIR se apaga solo y avisa.
 # Novedades v1.1.10
 - PARADA DE EMERGENCIA (sender v1.0b14): si te acercas demasiado rápido a una estrella o a un planeta y el juego te saca del supercrucero, aviso grande en rojo con voz, y el robot se asusta. Se quita en ALERTAS.
 - ROBOT, preguntas nuevas por voz: INGENIEROS (los que tienes, quién mejora un módulo, cómo vas con uno), PLANOS (qué materiales te faltan para un plano y grado; las recetas son de Coriolis y se bajan solas), DÓNDE VENDEN un arma o un módulo cerca (Spansh, con internet), y el sistema, cuerpos valiosos, biología, lo que te dan aquí por la carga, la construcción, el objetivo fijado, minería, amigos conectados, objetivo de comunidad, GALNET, rangos y portanaves.

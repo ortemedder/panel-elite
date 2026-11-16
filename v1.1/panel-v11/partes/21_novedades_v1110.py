@@ -40,9 +40,7 @@ def cajas_jpg():
                 pygame.draw.line(S_, osc, (x + cw - 2, y), (x, y + ch - 2), 3)
                 pygame.draw.rect(S_, (20, 14, 6), (x + cw // 2 - 10, y + 4, 18, 8))
             x += cw
-    b = io.BytesIO()
-    pygame.image.save(S_, b, "cajas.jpg")
-    return b.getvalue()
+    return jpg_bytes(S_)
 
 _sc_foto_file_v1110 = sc_foto_file
 

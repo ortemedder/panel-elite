@@ -22,6 +22,10 @@ def udp_loop():
                 for k, v in old.items():          # lo que no ha cambiado no viene: se conserva
                     if k not in d:
                         d[k] = v
+                try:
+                    d = mkt_recuenta(d)            # v1.1.10d: el mercado con la carga de AHORA (parte 24)
+                except NameError:
+                    pass
                 state["data"] = d
                 state["rx"] = time.time()
 

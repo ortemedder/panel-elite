@@ -1,14 +1,17 @@
-PANEL ELITE v1.1.10  ·  version completa (sin parches)
-=======================================================
-v1.1.10: PARADA DE EMERGENCIA (aviso y robot), robot con preguntas de ingenieros, planos, tiendas y del juego,
-         y cajas apiladas en el robot con la bodega llena.
-         Cambian el panel, el robot y el SENDER (v1.0b14): hay que actualizar los tres.
+PANEL ELITE v1.1.10d  ·  version completa (sin parches)
+========================================================
+v1.1.10d: MERCADO con la carga de ahora. Solo cambia el panel.
+v1.1.10c: PARADA DE EMERGENCIA tambien bajando a un planeta. Cambian el panel y el SENDER (v1.0b14b).
+v1.1.10b: EMITIR ya no se come la RAM (fuga de pygame al hacer los JPEG).
+v1.1.10:  PARADA DE EMERGENCIA, robot con preguntas de ingenieros, planos, tiendas y del juego, cajas con la bodega llena.
+          Si vienes de la v1.1.9: carga tambien el robot (.ino v1.1.10).
 
 QUE HAY
   panel-v11/          el panel (panel.py carga las partes de partes/ en orden)
-  pc_ortem/           elite_sender.py v1.0b14 para el PC de Ortem (PI_IP 192.168.0.94)
-  pc_korzo/           elite_sender.py v1.0b14 para el PC de KORZO (PI_IP 192.168.1.151)
-  patch_sender_v100b14.py   el mismo cambio en forma de parche (para un sender b13 propio)
+  pc_ortem/           elite_sender.py v1.0b14b para el PC de Ortem (PI_IP 192.168.0.94) y sus lanzadores
+  pc_korzo/           elite_sender.py v1.0b14b para el PC de KORZO (PI_IP 192.168.1.151) y sus lanzadores
+                      (control_sender.pyw: ventana INICIAR/PARAR · iniciar_sender.bat: con consola · elite_sender.bat: lo usa el .pyw)
+  patch_sender_v100b14.py   el mismo cambio en forma de parche (lleva un sender b13 propio a la b14b)
   escucha-pueblo/     escucha_faccion.py v5 (tick de cada sistema, historico de influencia y tick de la galaxia)
   actualizar_v11.sh   actualiza ~/panel-v11 con esta version (guarda copia del codigo anterior)
   instalar_v11.sh     instalacion desde cero en ~/panel-v11 (copia tus datos de la b20)
@@ -20,8 +23,8 @@ QUE HAY
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.10.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.10.zip && bash ~/panel_v1.1.10/actualizar_v11.sh
+  1) Copia panel_v1.1.10d.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.10d.zip && bash ~/panel_v1.1.10d/actualizar_v11.sh
   2) Solo la primera vez, para que el robot conteste por voz:   bash ~/instalar_oido_robot.sh
   3) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30
@@ -64,7 +67,7 @@ EL ROBOT (StackChan · M5Stack CoreS3)
     - Si los textos duran demasiado: TIEMPO_X (en CONFIGURA): 3 = el triple, 1 = como antes.
 
 EN EL PC (Ortem y KORZO)
-  Esta version SI cambia el sender: v1.0b14 (parada de emergencia y todos los materiales para los planos).
+  Esta version SI cambia el sender: v1.0b14b (parada de emergencia y todos los materiales para los planos).
   Sustituye elite_sender.py por el de tu carpeta (pc_ortem o pc_korzo) y arrancalo de nuevo.
   Si tienes un sender b13 con cambios propios:  python patch_sender_v100b14.py elite_sender.py
   Con un sender antiguo el panel avisa VERSIONES DISTINTAS.

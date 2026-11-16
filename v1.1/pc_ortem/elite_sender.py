@@ -2499,7 +2499,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b14"
+SENDER_VER = "v1.0b14b"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3158,26 +3158,40 @@ def handle(e):
         print("pasajeros:", ex, flush=True)
 
 
-# ---------- v1.0 beta 14: parada de emergencia ----------
-EMERG = {"drop": 0.0, "appr": 0.0, "settl": 0.0}
+# ---------- v1.0 beta 14b: parada de emergencia ----------
+# Estrella: salida de supercrucero en la estrella sin destino elegido.
+# Planeta: salida sin destino ni asentamiento cerca y, en el mismo instante, el juego vuelve a escribir
+#          ApproachBody del mismo planeta (asi pasa en las paradas de emergencia; en las bajadas normales no).
+EMERG = {"drop": 0.0, "settl": 0.0, "pend": None}
 
 def emerg_event(e):
     ev = e.get("event")
     t = iso2epoch(e.get("timestamp")) or time.time()
     if ev == "SupercruiseDestinationDrop":
         EMERG["drop"] = t
-    elif ev == "ApproachBody":
-        EMERG["appr"] = t
     elif ev == "ApproachSettlement":
         EMERG["settl"] = t
+    elif ev == "ApproachBody":
+        p = EMERG["pend"]
+        EMERG["pend"] = None
+        if p and p[1] == e.get("Body") and 0 <= t - p[0] <= 3:
+            emerg_aviso("Planet", p[1])
     elif ev == "SupercruiseExit" and not e.get("Taxi") and not e.get("Multicrew"):
+        EMERG["pend"] = None
         bt = e.get("BodyType") or ""
         if t - EMERG["drop"] < 15:                       # habias elegido destino: salida normal
             return
-        if bt == "Star" or (bt == "Planet" and t - EMERG["settl"] > 60 and t - EMERG["appr"] < 10):
-            print(time.strftime("%H:%M:%S"), "PARADA DE EMERGENCIA:", e.get("Body"), flush=True)
-            if LIVE[0]:
-                note("emergstop", f"{bt}|{e.get('Body') or ''}")
+        if bt == "Star":
+            emerg_aviso(bt, e.get("Body"))
+        elif bt == "Planet" and t - EMERG["settl"] > 60:
+            EMERG["pend"] = (t, e.get("Body"))           # se confirma si vuelve a llegar ApproachBody
+    elif ev not in ("Music", "ShipLocker", "FSSSignalDiscovered", "ReceiveText"):
+        EMERG["pend"] = None
+
+def emerg_aviso(bt, body):
+    print(time.strftime("%H:%M:%S"), "PARADA DE EMERGENCIA:", body, flush=True)
+    if LIVE[0]:
+        note("emergstop", f"{bt}|{body or ''}")
 
 _handle_b14 = handle
 

@@ -161,9 +161,7 @@ def sc_foto_jpg(f):
         sc = max(w / sw, h / sh)
         img = pygame.transform.smoothscale(src, (int(sw * sc) + 1, int(sh * sc) + 1))
         img = img.subsurface(pygame.Rect((img.get_width() - w) // 2, (img.get_height() - h) // 2, w, h)).copy()
-    b = io.BytesIO()
-    pygame.image.save(img, b, "foto.jpg")
-    data = b.getvalue()
+    data = jpg_bytes(img)
     if len(SC_FOTO["cache"]) > 20:
         SC_FOTO["cache"].clear()
     SC_FOTO["cache"][f] = data

@@ -28,9 +28,7 @@ def sc_foto_rotulada(f):
     img.blit(ft.render(_rot_txt(ft, tit, w - 12), True, (255, 140, 0)), (6, h - fh + 5))
     if dat:
         img.blit(fd.render(_rot_txt(fd, dat, w - 12), True, (255, 255, 255)), (6, h - fh + 25))
-    b = io.BytesIO()
-    pygame.image.save(img, b, "foto.jpg")
-    data = b.getvalue()
+    data = jpg_bytes(img)
     if len(SC_FOTO["cache"]) > 20:
         SC_FOTO["cache"].clear()
     SC_FOTO["cache"][k] = data
