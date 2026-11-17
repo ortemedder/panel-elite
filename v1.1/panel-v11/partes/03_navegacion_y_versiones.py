@@ -198,7 +198,7 @@ def view_station_info(surf, d, st):
     carrier_bg(surf, d or {}, st, dark=BG_DOCK_DARK, label=False)
     S = (d or {}).get("sysinfo") or {}
     y = TOP + 4
-    put(surf, F["big"], (st.get("name") or "?").upper(), (8, y), ORANGE, W - 16); y += 27
+    y = st_name_put(surf, (st.get("name") or "?").upper(), 8, y, W - 16) + 1     # v1.1.13: entero
     put(surf, F["small"], ST_TYPE.get(st.get("type"), st.get("type") or ""), (8, y), DIM, 200)
     put(surf, F["small"], "ATRACADO", (220, y), BLUE)
     if st.get("dist"):
@@ -206,7 +206,13 @@ def view_station_info(surf, d, st):
     y += 18
     fac = st.get("faction") or S.get("st_faction")
     put(surf, F["small"], "FACCIÓN", (8, y + 4), DIM)
-    put(surf, F["btn"], fac or "?", (80, y), ORANGE, 290)
+    if fac and es_mi_fac(fac):                           # v1.1.13: tu facción, con su escudo y en verde
+        lx = 104 if blit_logo(surf, pygame.Rect(80, y - 1, 20, 20)) else 80
+        tw = put(surf, F["btn"], fac, (lx, y), GREEN, W - lx - 110)
+        if lx + tw + 90 < W - 110:
+            put(surf, F["tiny"], "TU FACCIÓN", (lx + tw + 8, y + 6), GREEN)
+    else:
+        put(surf, F["btn"], fac or "?", (80, y), ORANGE, 290)
     fst = S.get("st_fstate")
     if fst:
         put(surf, F["small"], fst, (W - 8, y + 4), RED if fst in ("GUERRA", "GUERRA CIVIL", "BLOQUEO", "DISTURBIOS") else GREEN, anchor="topright")
@@ -425,6 +431,7 @@ CHANGES = [
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
     ("1.1.12", "HDMI 4 CUADROS FIJO, suelo en el ALTÍMETRO hasta 600 m, CERCA DEL SUELO, TE HAN INTERCEPTADO"),
+    ("1.1.13", "ALTÍMETRO en el atraque planetario, nombre entero, tu facción en verde, FSD LISTO y rótulo del suelo"),
     ("1.1.11", "Suelo del planeta en el ALTÍMETRO, RUTA EXTERNA, FSD LISTO, caché y diario, células y vulcanismo"),
     ("1.1.10d", "MERCADO con la carga de ahora (no la de cuando abriste el mercado)"),
     ("1.1.10c", "PARADA DE EMERGENCIA también bajando a un planeta (sender v1.0b14b)"),

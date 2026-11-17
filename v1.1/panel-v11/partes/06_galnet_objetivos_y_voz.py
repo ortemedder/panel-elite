@@ -822,6 +822,12 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.13
+- ATRAQUE en un puerto planetario (depósito, outpost de cráter, asentamiento): mientras esperas para atracar, la columna izquierda de ESTACIÓN enseña el ALTÍMETRO con el suelo del planeta, como el cuadro 4, y arriba a la derecha la velocidad. El número de plataforma sigue a la derecha. Se quita en CAMBIO AUTO.
+- ESTACIÓN: el nombre sale entero (letra más pequeña o en dos líneas) y el tipo de estación ya no sale repetido.
+- Facción dueña de la estación: si es la tuya, en verde, con el escudo y «TU FACCIÓN». Al atracar en una de las tuyas, aviso «ESTACIÓN DE TU FACCIÓN» (se quita en ALERTAS y en SONIDO).
+- FSD LISTO: el mensaje se quita en ALERTAS y el pitido en SONIDO, cada uno por su lado.
+- ALTÍMETRO: el tipo de suelo (HELADO · ATMÓSFERA...) va en una caja oscura y se lee bien.
 # Novedades v1.1.12
 - PANTALLA HDMI (AJUSTES > OPCIONES): nuevo modo 4 CUADROS FIJO. Tocar o hacer clic en un cuadro solo usa sus botones y ya no pasa a PANEL. Con TAB, clic derecho o pulsación larga se abre el PANEL, y a los 20 s sin tocar nada vuelve solo a 4 CUADROS. El botón va pasando por PANEL > 4 CUADROS > 4 CUADROS FIJO. De fábrica, FIJO en la Pi 4 y normal en la Pi 3.
 - ALTÍMETRO: al despegar o al bajar, el suelo se sigue viendo hasta los 600 m. La escala cambia sola con la altura (60, 150, 300, 600, 1.200 y 1.500 m).

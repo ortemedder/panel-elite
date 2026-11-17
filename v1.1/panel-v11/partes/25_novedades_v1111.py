@@ -228,9 +228,15 @@ def draw_suelo(surf, tape, gy, alt, d, now):
             c_ = _mezcla(luz, base, t_)
             pygame.draw.circle(surf, c_, (int(cx + dx), int(gy - up)), 1 + i % 2)
     if gh > 18 and info.get("cls"):
-        put(surf, F["tiny"], {"helado": "HELADO", "hielo": "ROCOSO CON HIELO", "hmc": "ALTO EN METALES",
-                              "metal": "RICO EN METALES", "rocoso": "ROCOSO"}[tipo] + (" · ATMÓSFERA" if info.get("atm") else ""),
-            (tape.right - 4, tape.bottom - 13), luz, anchor="topright")
+        rot = {"helado": "HELADO", "hielo": "ROCOSO CON HIELO", "hmc": "ALTO EN METALES",
+               "metal": "RICO EN METALES", "rocoso": "ROCOSO"}[tipo] + ("  ·  ATMÓSFERA" if info.get("atm") else "")
+        if F["tiny"].size(rot)[0] > tape.w - 12:         # cinta estrecha (atraque): sin «· ATMÓSFERA»
+            rot = rot.split("  ·  ")[0]
+        rot = fit(F["tiny"], rot, tape.w - 12)
+        tw, th = F["tiny"].size(rot)                     # v1.1.13: caja oscura detrás para que se lea
+        cj = pygame.Rect(tape.right - tw - 10, tape.bottom - th - 6, tw + 8, th + 4)
+        pygame.draw.rect(surf, (10, 10, 12), cj, border_radius=3)
+        put(surf, F["tiny"], rot, (cj.right - 4, cj.y + 2), WHITE, anchor="topright")
 
 def draw_alt_base(surf, r, d, now, big=False):
     """Igual que antes, pero el suelo marrón ahora es el del cuerpo (draw_suelo)."""
@@ -364,9 +370,11 @@ def fsd_watch(d, now):
                 os.replace(FSDT_FILE + ".tmp", FSDT_FILE)
             except OSError:
                 pass
-            if dur > 4 and ev_on("fsdlisto"):
-                set_alert("FSD LISTO", "ya puedes saltar o entrar en supercrucero", GREEN, 2)
-                play("ok")
+            if dur > 4:                                  # v1.1.13: mensaje (ALERTAS) y pitido (SONIDO) por separado
+                if ev_on("fsdlisto"):
+                    set_alert("FSD LISTO", "ya puedes saltar o entrar en supercrucero", GREEN, 2)
+                if snd_on("fsdlisto"):
+                    play("ok")
         FSDC.update(t0=None, est=None)
     if FSDC["t0"] is not None:
         el = now - FSDC["t0"]

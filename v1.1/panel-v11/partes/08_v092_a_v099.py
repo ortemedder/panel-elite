@@ -21,7 +21,7 @@ def carrier_bg(surf, d, st, dark=95, label=True):
     img = bg_img(k, w, h - top, dark)
     if img is not None:
         real.blit(img, (0, top))
-    if label and st.get("status") != "ATRACADO":
+    if label and st.get("status") != "ATRACADO" and not dock_alt_on(d):     # v1.1.13: con altímetro lo pone él
         put(surf, F["big"], lab, (W - 8, H - 30), col, W - 16 if k == "op" else W // 2 + 20, anchor="topright")
 
 # miniatura en la ruta: portanaves y ahora tambien estaciones (tipo de EDSM o recordado)

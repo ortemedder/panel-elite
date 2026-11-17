@@ -118,13 +118,15 @@ def view_station(surf, d, flags, now):
         put(surf, F["small"], "12", (cx, cy - rad - 1), DIM, anchor="midbottom")
         put(surf, F["small"], "6", (cx, cy + rad + 1), DIM, anchor="midtop")
     elif pad:
-        put(surf, F["num"], str(pad), (cx, cy), ORANGE, anchor="center")
-        put(surf, F["small"], "PLATAFORMA", (cx, cy - 34), DIM, anchor="center")
+        if not dock_alt_on(d):                           # v1.1.13: con altura, el ALTÍMETRO ocupa la columna
+            put(surf, F["num"], str(pad), (cx, cy), ORANGE, anchor="center")
+            put(surf, F["small"], "PLATAFORMA", (cx, cy - 34), DIM, anchor="center")
     else:
         x0 = 8
     y = TOP + 6
-    put(surf, F["big"], (st.get("name") or "?").upper(), (x0, y), ORANGE, W - x0 - 8); y += 26
-    put(surf, F["small"], ST_TYPE.get(stype, stype or ""), (x0, y), DIM, W - x0 - 8); y += 18
+    y = st_name_put(surf, (st.get("name") or "?").upper(), x0, y, W - x0 - 8)     # v1.1.13: entero
+    if not st_label_shown(d or {}, st):                  # v1.1.13: el tipo ya sale abajo en grande
+        put(surf, F["small"], ST_TYPE.get(stype, stype or ""), (x0, y), DIM, W - x0 - 8); y += 18
     status = st.get("status")
     put(surf, F["btn"], status, (x0, y), STATUS_COL.get(status, DIM)); y += 22
     if status == "DENEGADO" and st.get("reason"):
@@ -134,10 +136,10 @@ def view_station(surf, d, flags, now):
         if stype in STARPORTS:
             h_, d_ = pad_pos(pad)
             put(surf, F["btn"], f"a las {h_}  ·  {PAD_DEPTH[d_]}", (x0, y), ORANGE); y += 22
-    if st.get("dist"):
-        put(surf, F["small"], f"{st['dist']:,.0f} ls de la estrella".replace(",", "."), (x0, y), DIM); y += 16
     if st.get("faction"):
-        put(surf, F["small"], st["faction"], (x0, y), DIM, W - x0 - 8); y += 18
+        y = fac_put(surf, st["faction"], x0, y, W - x0 - 8)   # v1.1.13: antes que la distancia, destacada si es la tuya
+    if st.get("dist") and (dock_left(d, now) is None or y + 16 <= 172):     # sin pisar el reloj
+        put(surf, F["small"], f"{st['dist']:,.0f} ls de la estrella".replace(",", "."), (x0, y), DIM); y += 16
     srv = set(st.get("services") or [])
     tags = [t for k, t in SERVICES if k in srv]
     tx = x0
