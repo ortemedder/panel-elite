@@ -1,30 +1,28 @@
-PANEL ELITE v1.1.10d  ·  version completa (sin parches)
-========================================================
-v1.1.10d: MERCADO con la carga de ahora. Solo cambia el panel.
-v1.1.10c: PARADA DE EMERGENCIA tambien bajando a un planeta. Cambian el panel y el SENDER (v1.0b14b).
-v1.1.10b: EMITIR ya no se come la RAM (fuga de pygame al hacer los JPEG).
-v1.1.10:  PARADA DE EMERGENCIA, robot con preguntas de ingenieros, planos, tiendas y del juego, cajas con la bodega llena.
-          Si vienes de la v1.1.9: carga tambien el robot (.ino v1.1.10).
+PANEL ELITE v1.1.11  ·  version completa (sin parches)
+=======================================================
+v1.1.11: suelo del planeta en el ALTIMETRO, RUTA EXTERNA y portapapeles, FSD LISTO, cache y diario en la Pi,
+         celulas de escudo, vulcanismo y rotulo del MERCADO.
+         Cambian el panel, el SENDER (v1.0b15) y el robot (.ino v1.1.11): hay que actualizar los tres.
 
 QUE HAY
   panel-v11/          el panel (panel.py carga las partes de partes/ en orden)
-  pc_ortem/           elite_sender.py v1.0b14b para el PC de Ortem (PI_IP 192.168.0.94) y sus lanzadores
-  pc_korzo/           elite_sender.py v1.0b14b para el PC de KORZO (PI_IP 192.168.1.151) y sus lanzadores
+  pc_ortem/           elite_sender.py v1.0b15 para el PC de Ortem (PI_IP 192.168.0.94) y sus lanzadores
+  pc_korzo/           elite_sender.py v1.0b15 para el PC de KORZO (PI_IP 192.168.1.151) y sus lanzadores
                       (control_sender.pyw: ventana INICIAR/PARAR · iniciar_sender.bat: con consola · elite_sender.bat: lo usa el .pyw)
-  patch_sender_v100b14.py   el mismo cambio en forma de parche (lleva un sender b13 propio a la b14b)
+  patch_sender_v100b15.py   el mismo cambio en forma de parche (lleva un sender b14b propio a la b15)
   escucha-pueblo/     escucha_faccion.py v5 (tick de cada sistema, historico de influencia y tick de la galaxia)
   actualizar_v11.sh   actualiza ~/panel-v11 con esta version (guarda copia del codigo anterior)
   instalar_v11.sh     instalacion desde cero en ~/panel-v11 (copia tus datos de la b20)
   cambiar_panel.sh    elige cual arranca:  v11  o  b20
   prueba_sonido.sh    prueba la musica de inicio, la voz y los pitidos (bash ~/prueba_sonido.sh)
   subir_v11.sh        sube el proyecto a GitHub, carpeta v1.1/ de ortemedder/panel-elite (sin claves ni datos personales)
-  robot/              stackchan_elite.ino v1.1.10: la StackChan (M5Stack) para Arduino IDE (pon tu WiFi en WIFI_SSID / WIFI_PASS)
+  robot/              stackchan_elite.ino v1.1.11: la StackChan (M5Stack) para Arduino IDE (pon tu WiFi en WIFI_SSID / WIFI_PASS)
   instalar_oido_robot.sh  el «oido» del robot (Vosk, voz a texto en español sin internet): una vez en cada Pi
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.10d.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.10d.zip && bash ~/panel_v1.1.10d/actualizar_v11.sh
+  1) Copia panel_v1.1.11.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.11.zip && bash ~/panel_v1.1.11/actualizar_v11.sh
   2) Solo la primera vez, para que el robot conteste por voz:   bash ~/instalar_oido_robot.sh
   3) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30
@@ -43,7 +41,7 @@ EL ROBOT (StackChan · M5Stack CoreS3)
   Cargar:
     - Abre robot/stackchan_elite.ino y arriba, en CONFIGURA, pon tu WiFi en WIFI_SSID / WIFI_PASS
       (red de 2,4 GHz; nunca la pegues en el chat ni la subas a GitHub).
-    - Robot por USB-C, elige su puerto y Subir. Al arrancar debe decir «StackChan v1.1.10».
+    - Robot por USB-C, elige su puerto y Subir. Al arrancar debe decir «StackChan v1.1.11».
   Usar:
     - En el panel: 12 AJUSTES > ROBOT activado (encuentra el panel solo, por UDP 5007).
     - Preguntas por voz: toca su PANTALLA (no la cabeza, y sin foto), espera el pitido y habla 4 s.
@@ -67,9 +65,10 @@ EL ROBOT (StackChan · M5Stack CoreS3)
     - Si los textos duran demasiado: TIEMPO_X (en CONFIGURA): 3 = el triple, 1 = como antes.
 
 EN EL PC (Ortem y KORZO)
-  Esta version SI cambia el sender: v1.0b14b (parada de emergencia y todos los materiales para los planos).
-  Sustituye elite_sender.py por el de tu carpeta (pc_ortem o pc_korzo) y arrancalo de nuevo.
-  Si tienes un sender b13 con cambios propios:  python patch_sender_v100b14.py elite_sender.py
+  Esta version SI cambia el sender: v1.0b15 (cuerpo del planeta, modulos y mercado para el diario, ruta externa,
+  celulas de escudo). Sustituye elite_sender.py por el de tu carpeta (pc_ortem o pc_korzo) y arrancalo de nuevo.
+  Copia tambien la carpeta rutas\ junto al sender: ahi se dejan las rutas en CSV (Spansh, neutrones...).
+  Si tienes un sender b14b con cambios propios:  python patch_sender_v100b15.py elite_sender.py
   Con un sender antiguo el panel avisa VERSIONES DISTINTAS.
 
 GITHUB (una vez)

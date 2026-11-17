@@ -42,6 +42,7 @@ mkdir -p panel-v11
 rm -rf panel-v11/partes
 cp -r ~/panel-v11/partes panel-v11/
 cp ~/panel-v11/panel.py ~/panel-v11/panel_run.py ~/panel-v11/sonido_*.wav panel-v11/ 2>/dev/null
+[ -d ~/panel-v11/datos ] && cp -r ~/panel-v11/datos panel-v11/
 cp ~/panel-v11/fondo_*.jpg ~/panel-v11/logo_faccion.png ~/panel-v11/boton_*.png panel-v11/ 2>/dev/null
 [ -d ~/naves ] && cp -r ~/naves .
 [ -d ~/ingenieros ] && cp -r ~/ingenieros .

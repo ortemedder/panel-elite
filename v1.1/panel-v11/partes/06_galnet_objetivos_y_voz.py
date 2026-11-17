@@ -822,6 +822,15 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.11
+- ALTÍMETRO: el suelo es el del planeta (helado, rocoso, rocoso con hielo, alto en metales, rico en metales), con rocas y cráteres que pasan con la velocidad, cielo si tiene atmósfera tenue, plantas si hay señales biológicas, grietas de magma o géiseres según el vulcanismo, la sombra de la nave y polvo por debajo de 15 m.
+- MERCADO: «NO LA VENDAS · ES PARA TU COLONIA» si llevas material que le falta a tu construcción, y «aquí pagan poco» si se paga menos que la media.
+- FSD: cuenta atrás del enfriamiento («FSD LISTO EN ≈ 23 s» en EN VIVO), que aprende lo que tarda cada nave, y «FSD LISTO» con pitido. El robot también la lleva.
+- RUTA EXTERNA (NAVEGACIÓN > RUTA EXT.): el CSV más nuevo de la carpeta rutas\ junto al sender (Spansh, neutrones...). Avanza sola al llegar a cada parada y copia la siguiente al portapapeles del PC (Ctrl+V en el mapa galáctico). Botones COPIAR, ATRÁS, SALTAR y BORRAR. Sin ruta externa, al llegar a cada sistema se copia el siguiente salto de la ruta del juego. Se quita en CAMBIO AUTO.
+- CACHÉ y DIARIO en la Pi: lo que se busca en Spansh y EDSM se guarda en disco; cada estación donde abres mercado o equipamiento se apunta con precios y módulos. El robot contesta «¿dónde venden multicañón?» primero con tu diario, y «¿dónde vendo el oro?» y «¿dónde compro acero?».
+- CÉLULAS DE ESCUDO de la nave: contador aproximado en EN VIVO (las del equipamiento menos las que disparas con el botón ESCUDO del panel). «¿Cuántas células me quedan?» al robot: a pie, las de energía y los botiquines.
+- ROBOT: avisa del vulcanismo al llegar a un planeta, dice la siguiente parada de la ruta externa y la lleva en el copiloto.
+- Necesita el sender v1.0b15.
 # Novedades v1.1.10d
 - MERCADO: «TU BODEGA AQUÍ» y «VENDIENDO TODO» usan la carga que llevas ahora. Antes seguían con la de cuando abriste el mercado (aunque ya la hubieras entregado o vendido).
 # Novedades v1.1.10c

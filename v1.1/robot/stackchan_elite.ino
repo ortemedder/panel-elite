@@ -2,10 +2,11 @@
 // CMDR ORTEM ED DER y Claude
 // Recibe los avisos del panel v1.1.2+ por UDP 5007 (12 AJUSTES > ROBOT). No necesita EMITIR.
 // v1.1.8: caras para BODEGA LLENA, PASAJEROS, CONSTRUCCION TERMINADA, NO VENDER y avisos de RUTA.
+// v1.1.11: cuenta atras del enfriamiento del FSD, vulcanismo al llegar a un planeta y siguiente parada de la ruta externa.
 // v1.1.10: susto con la PARADA DE EMERGENCIA; con la bodega llena enseña cajas apiladas (las manda el panel).
 // v1.1.9: compañero de viaje: copiloto en ruta, mapas, ventas, misiones, descanso, resumen, ascensos,
 //         sistemas CDSN, se duerme en el menu, tocar la cabeza repite el ultimo aviso y letra mas pequeña.
-static const char* ROBOT_VER = "v1.1.10";   // (SC_VERSION choca con la libreria smartconfig del ESP32)
+static const char* ROBOT_VER = "v1.1.11";   // (SC_VERSION choca con la libreria smartconfig del ESP32)
 #include <M5StackChan.h>
 #include <Avatar.h>
 #include <WiFi.h>
@@ -40,6 +41,7 @@ String mapa;                               // v1.1.9: mapa abierto en el juego: 
 String cop;                                // v1.1.9: copiloto en ruta (saltos, combustible, siguiente estrella)
 bool dormido = false;                      // v1.1.9: juego en el menu o cerrado
 unsigned long finAtq = 0; int avAtq = 0;   // v1.1.9: cuenta atras del atraque (millis en que acaba)
+unsigned long finFsd = 0; bool fsdEnf = false; // v1.1.11: FSD enfriandose (finFsd = millis estimado en que acaba)
 bool noche = false; uint8_t brillo = BRILLO; // v1.1.9: modo noche (menos luz y menos volumen)
 uint8_t brilloPantalla = 128;
 // v1.1.9: preguntas por voz (tocar la pantalla). Graba aqui, el panel lo entiende y contesta.
@@ -196,6 +198,14 @@ void reaccionar(const String& ev, const String& kind, String titulo, String dato
   }
 
   // v1.1.9: compañero de viaje
+  if (es(ev, {"robvolc"})) {                                       // v1.1.11: planeta con volcanes
+    decir(Expression::Doubt, txt, "mirar", 8000);   ponLuz(L_RECARGA, 4000); M5.Speaker.tone(700, 120); delay(130); M5.Speaker.tone(500, 160);
+    return;
+  }
+  if (es(ev, {"robruta"})) {                                       // v1.1.11: siguiente parada de la ruta externa
+    decir(Expression::Happy, txt, "asentir", 6000); ponLuz(L_SALTO, 3000);  M5.Speaker.tone(1800, 70);
+    return;
+  }
   if (es(ev, {"robhito"})) {                                       // ascenso o primer descubrimiento: fanfarria
     decir(Expression::Happy, txt, "alzar", 8000);   ponLuz(L_BIEN, 8000);
     M5.Speaker.tone(1600, 100); delay(110); M5.Speaker.tone(2000, 100); delay(110); M5.Speaker.tone(2400, 300);
@@ -525,6 +535,19 @@ void preguntar() {
   }
 }
 
+// v1.1.11: FSD enfriandose: -1 = no, 0 = enfriando sin saber cuanto, >0 = segundos que faltan (aprox.)
+void ponFsd(int seg) {
+  if (seg < 0) {
+    if (fsdEnf) {
+      fsdEnf = false; finFsd = 0;
+      if (!peligro && !finAtq) { decir(Expression::Happy, "FSD LISTO", "asentir", 2000); M5.Speaker.tone(2600, 80); }
+    }
+    return;
+  }
+  fsdEnf = true;
+  finFsd = seg > 0 ? millis() + seg * 1000UL : 0;
+}
+
 // ---------- escuchar al panel ----------
 void escuchar(unsigned long t) {
   int len;
@@ -562,6 +585,7 @@ void escuchar(unsigned long t) {
     if (tipo == "hola" && doc["zzz"].is<bool>()) ponDormido(doc["zzz"] | false);
     if (tipo == "hola" && doc["datq"].is<int>()) ponAtraque(doc["datq"] | -1);
     if (tipo == "hola" && doc["noche"].is<bool>()) ponNoche(doc["noche"] | false);
+    if (tipo == "hola" && doc["fsdc"].is<int>()) ponFsd(doc["fsdc"] | -1);
     if (tipo == "foto") {
       ensenarFoto(doc["f"] | "", doc["port"] | 8081, doc["titulo"] | "", doc["dato"] | "", doc["seg"] | 6, doc["rot"] | false);
     } else if (tipo == "aviso") {
@@ -659,6 +683,14 @@ void loop() {
     }
   }
 
+  // v1.1.11: enfriamiento del FSD en el bocadillo (si no hay atraque ni otra cosa)
+  if (fsdEnf && panelVivo && !finAtq && !peligro && !finTexto) {
+    char b[28];
+    if (finFsd > t) snprintf(b, sizeof(b), "FSD LISTO EN %lu s", (finFsd - t + 999) / 1000);
+    else snprintf(b, sizeof(b), "FSD enfriandose...");
+    ponTexto(b);
+  }
+
   // v1.1.9: dormido: "Zzz" que va y viene de un lado a otro
   if (panelVivo && dormido && !finTexto) {
     static unsigned long tz = 0; static int fz = 0;
@@ -670,7 +702,7 @@ void loop() {
   }
 
   // v1.1.9: copiloto en ruta cuando no hay otra cosa que decir
-  if (panelVivo && !dormido && !peligro && !recarga && !mapa.length() && !finTexto && !finAtq) {
+  if (panelVivo && !dormido && !peligro && !recarga && !mapa.length() && !finTexto && !finAtq && !fsdEnf) {
     ponTexto(cop);
   }
 

@@ -389,7 +389,7 @@ def perf_view(v, dt):
 
 # 1. version del sender
 VERW = {"done": False}
-SENDER_REQ = "v1.0b14b"                                  # sender que va con este panel (la v1.1.10c usa el b14b)
+SENDER_REQ = "v1.0b15"                                   # sender que va con este panel (la v1.1.11 usa el b15)
 
 def ver_check(d):
     sv = (d or {}).get("sver")

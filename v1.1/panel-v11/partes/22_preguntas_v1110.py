@@ -310,7 +310,7 @@ def r_tienda(d, now, t):
     if not res:
         return f"No encuentro {mod[1]}" + (f" clase {clase}" if clase else "") + " cerca"
     a = res[0]
-    t_ = f"{mod[1].capitalize()}" + (f" clase {clase}" if clase else "") + \
+    t_ = (mod[1][:1].upper() + mod[1][1:]) + (f" clase {clase}" if clase else "") + \
          f": {a.get('name', '?')} en {a.get('system_name', '?')}, a {float(a.get('distance') or 0):.0f} al"
     if a.get("distance_to_arrival") is not None:
         t_ += f" y {float(a['distance_to_arrival']):.0f} ls"
