@@ -743,7 +743,7 @@ def draw_hdg_compass(surf, cx, cy, R, hdg):
 
 
 # --- aviso: bajando rapido cerca del suelo (solo en la nave) ---
-EV_LIST.append(("suelo", "BAJANDO RÁPIDO CERCA DEL SUELO"))
+EV_LIST.append(("suelo", "CERCA DEL SUELO, PELIGRO"))
 SUELO = {"t": 0}
 
 def suelo_watch(d, now):
@@ -757,9 +757,9 @@ def suelo_watch(d, now):
             k0 = XA_K[0]
             try:
                 XA_K[0] = "suelo"
-                set_alert("BAJANDO RÁPIDO CERCA DEL SUELO", f"{alt:.0f} m · {vs:.0f} m/s", RED, 4)
+                set_alert("CERCA DEL SUELO, PELIGRO", "", RED, 4)          # v1.1.12: solo este texto
                 play("alarm")
-                voice_say("cuidado, bajas rápido cerca del suelo")
+                voice_say("cerca del suelo, peligro")
             finally:
                 XA_K[0] = k0
 

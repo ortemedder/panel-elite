@@ -243,7 +243,7 @@ def _nota_base(kind, text):
             ui["alert"] = None
     elif kind == "interdicted":
         nm_, pl_ = ((text or "") + "|0").split("|")[:2]
-        set_alert("¡INTERDICCIÓN!", (nm_ + ("  ·  ¡COMANDANTE!" if pl_ == "1" else "  ·  NPC")) if nm_ else "", secs=6 if pl_ == "1" else 4)
+        set_alert("¡TE HAN INTERCEPTADO!", (nm_ + ("  ·  ¡COMANDANTE!" if pl_ == "1" else "  ·  NPC")) if nm_ else "", secs=6 if pl_ == "1" else 4)
         play("alarm")
     elif kind == "underattack":
         set_alert("¡TE ATACAN!", "", secs=2); play("alarm")

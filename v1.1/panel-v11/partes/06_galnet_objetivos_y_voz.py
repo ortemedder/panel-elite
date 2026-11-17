@@ -822,6 +822,11 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.12
+- PANTALLA HDMI (AJUSTES > OPCIONES): nuevo modo 4 CUADROS FIJO. Tocar o hacer clic en un cuadro solo usa sus botones y ya no pasa a PANEL. Con TAB, clic derecho o pulsación larga se abre el PANEL, y a los 20 s sin tocar nada vuelve solo a 4 CUADROS. El botón va pasando por PANEL > 4 CUADROS > 4 CUADROS FIJO. De fábrica, FIJO en la Pi 4 y normal en la Pi 3.
+- ALTÍMETRO: al despegar o al bajar, el suelo se sigue viendo hasta los 600 m. La escala cambia sola con la altura (60, 150, 300, 600, 1.200 y 1.500 m).
+- Aviso de suelo: ahora dice solo «CERCA DEL SUELO, PELIGRO» (también la voz).
+- Interdicción: sale «¡TE HAN INTERCEPTADO!» y ya no sale la PARADA DE EMERGENCIA, que queda para cuando te acercas demasiado rápido a una estrella o a un planeta.
 # Novedades v1.1.11
 - ALTÍMETRO: el suelo es el del planeta (helado, rocoso, rocoso con hielo, alto en metales, rico en metales), con rocas y cráteres que pasan con la velocidad, cielo si tiene atmósfera tenue, plantas si hay señales biológicas, grietas de magma o géiseres según el vulcanismo, la sombra de la nave y polvo por debajo de 15 m.
 - MERCADO: «NO LA VENDAS · ES PARA TU COLONIA» si llevas material que le falta a tu construcción, y «aquí pagan poco» si se paga menos que la media.

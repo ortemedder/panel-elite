@@ -424,6 +424,7 @@ CHANGES = [
     ("0.99d", "Fotos de los depósitos de construcción y fotos mejores"),
     ("0.99e", "Sin los toques de prueba en el LOG"),
     ("0.99f", "MINERÍA: barra de bodega, toneladas/hora sin tapar y en el cuadro 3 al minar"),
+    ("1.1.12", "HDMI 4 CUADROS FIJO, suelo en el ALTÍMETRO hasta 600 m, CERCA DEL SUELO, TE HAN INTERCEPTADO"),
     ("1.1.11", "Suelo del planeta en el ALTÍMETRO, RUTA EXTERNA, FSD LISTO, caché y diario, células y vulcanismo"),
     ("1.1.10d", "MERCADO con la carga de ahora (no la de cuando abriste el mercado)"),
     ("1.1.10c", "PARADA DE EMERGENCIA también bajando a un planeta (sender v1.0b14b)"),

@@ -243,7 +243,7 @@ def draw_alt_base(surf, r, d, now, big=False):
     vs = alt_vs()
     tape = pygame.Rect(r.x + 8, r.y + 18, int(r.w * 0.52), r.h - 26)
     pygame.draw.rect(surf, (14, 14, 16), tape); pygame.draw.rect(surf, (80, 80, 86), tape, 1)
-    span = 60 if alt < 200 else 600 if alt < 3000 else 6000 if alt < 30000 else 60000
+    span = alt_span(alt)                                 # v1.1.12: el suelo se ve hasta los 600 m (parte 28)
     step = span // 6
     ppm = tape.h / span
     mid = tape.centery
