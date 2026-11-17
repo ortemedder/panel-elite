@@ -1,5 +1,6 @@
-PANEL ELITE v1.1.14  ·  version completa (sin parches)
+PANEL ELITE v1.1.15  ·  version completa (sin parches)
 =======================================================
+v1.1.15: MERCADO para tu colonia en grande en la HDMI, TEMPERATURA NORMAL y FSD LISTO con numero. Solo cambia el panel.
 v1.1.14: version junto a los FPS en 4 CUADROS y CERCA DEL SUELO sin molestar al atracar. Solo cambia el panel.
 v1.1.13: ALTIMETRO en el atraque planetario, nombre de la estacion entero, tu faccion en verde y aviso al atracar,
          FSD LISTO separado en ALERTAS y SONIDO, rotulo del suelo legible. Solo cambia el panel.
@@ -26,8 +27,8 @@ QUE HAY
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.14.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.14.zip && bash ~/panel_v1.1.14/actualizar_v11.sh
+  1) Copia panel_v1.1.15.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.15.zip && bash ~/panel_v1.1.15/actualizar_v11.sh
   2) Solo la primera vez, para que el robot conteste por voz:   bash ~/instalar_oido_robot.sh
   3) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30

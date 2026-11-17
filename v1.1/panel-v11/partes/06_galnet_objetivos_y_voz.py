@@ -822,6 +822,10 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.15
+- MERCADO PARA TU COLONIA en grande: atracado donde venden lo que le falta a tu construcción, en la HDMI (4 CUADROS) los cuadros 3 y 4 se juntan en uno ancho con la lista en letra grande: material, lo que falta, precio y existencias (en naranja si no hay bastante). Un toque vuelve a los 4 cuadros hasta la siguiente estación. Se quita en CAMBIO AUTO.
+- TEMPERATURA NORMAL: aviso verde con pitido cuando se acaba el sobrecalentamiento. Lleva su número: el mensaje se quita en ALERTAS y el pitido en SONIDO.
+- FSD LISTO: ahora con su número en el aviso (mensaje y pitido se quitan por separado).
 # Novedades v1.1.14
 - HDMI en 4 CUADROS: la versión del panel sale en oscuro a la derecha de los FPS.
 - CERCA DEL SUELO: con el atraque concedido en un puerto planetario solo avisa si bajas muy rápido, así no salta con el aterrizaje automático ni al posarte normal en tu plataforma.

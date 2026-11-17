@@ -370,11 +370,8 @@ def fsd_watch(d, now):
                 os.replace(FSDT_FILE + ".tmp", FSDT_FILE)
             except OSError:
                 pass
-            if dur > 4:                                  # v1.1.13: mensaje (ALERTAS) y pitido (SONIDO) por separado
-                if ev_on("fsdlisto"):
-                    set_alert("FSD LISTO", "ya puedes saltar o entrar en supercrucero", GREEN, 2)
-                if snd_on("fsdlisto"):
-                    play("ok")
+            if dur > 4:                                  # v1.1.15: con su número; mensaje y pitido por separado (parte 31)
+                aviso_num("fsdlisto", "FSD LISTO", "ya puedes saltar o entrar en supercrucero", GREEN, 2)
         FSDC.update(t0=None, est=None)
     if FSDC["t0"] is not None:
         el = now - FSDC["t0"]
