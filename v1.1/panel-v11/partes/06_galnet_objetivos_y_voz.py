@@ -822,6 +822,9 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.14
+- HDMI en 4 CUADROS: la versión del panel sale en oscuro a la derecha de los FPS.
+- CERCA DEL SUELO: con el atraque concedido en un puerto planetario solo avisa si bajas muy rápido, así no salta con el aterrizaje automático ni al posarte normal en tu plataforma.
 # Novedades v1.1.13
 - ATRAQUE en un puerto planetario (depósito, outpost de cráter, asentamiento): mientras esperas para atracar, la columna izquierda de ESTACIÓN enseña el ALTÍMETRO con el suelo del planeta, como el cuadro 4, y arriba a la derecha la velocidad. El número de plataforma sigue a la derecha. Se quita en CAMBIO AUTO.
 - ESTACIÓN: el nombre sale entero (letra más pequeña o en dos líneas) y el tipo de estación ya no sale repetido.
