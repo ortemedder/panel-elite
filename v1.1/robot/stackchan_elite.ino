@@ -1,12 +1,15 @@
 // StackChan (kit oficial M5Stack, CoreS3) para el Panel Elite
 // CMDR ORTEM ED DER y Claude
 // Recibe los avisos del panel v1.1.2+ por UDP 5007 (12 AJUSTES > ROBOT). No necesita EMITIR.
+// v1.1.17: deja de grabar al callarte (preguntas mas rapidas), manda su version al panel, se queda en reposo
+//          (pantalla y luces apagadas) a los 10 min sin panel, cara de fuego con sobrecalentamiento, cara marron
+//          con la bodega llena y DOBLE TOQUE en la cabeza = quitar el ultimo aviso (en ALERTAS del panel).
 // v1.1.8: caras para BODEGA LLENA, PASAJEROS, CONSTRUCCION TERMINADA, NO VENDER y avisos de RUTA.
 // v1.1.11: cuenta atras del enfriamiento del FSD, vulcanismo al llegar a un planeta y siguiente parada de la ruta externa.
 // v1.1.10: susto con la PARADA DE EMERGENCIA; con la bodega llena enseña cajas apiladas (las manda el panel).
 // v1.1.9: compañero de viaje: copiloto en ruta, mapas, ventas, misiones, descanso, resumen, ascensos,
 //         sistemas CDSN, se duerme en el menu, tocar la cabeza repite el ultimo aviso y letra mas pequeña.
-static const char* ROBOT_VER = "v1.1.11";   // (SC_VERSION choca con la libreria smartconfig del ESP32)
+static const char* ROBOT_VER = "v1.1.18";   // (SC_VERSION choca con la libreria smartconfig del ESP32)
 #include <M5StackChan.h>
 #include <Avatar.h>
 #include <WiFi.h>
@@ -45,18 +48,22 @@ unsigned long finFsd = 0; bool fsdEnf = false; // v1.1.11: FSD enfriandose (finF
 bool noche = false; uint8_t brillo = BRILLO; // v1.1.9: modo noche (menos luz y menos volumen)
 uint8_t brilloPantalla = 128;
 // v1.1.9: preguntas por voz (tocar la pantalla). Graba aqui, el panel lo entiende y contesta.
-const int OIR_SEG = 4, OIR_RATE = 16000;
-int16_t* oirBuf = nullptr;                 // 4 s de audio (128 KB en la PSRAM)
+const int OIR_SEG = 6, OIR_RATE = 16000;   // v1.1.17: hasta 6 s, pero corta en cuanto te callas
+int16_t* oirBuf = nullptr;                 // 6 s de audio (192 KB en la PSRAM)
 uint8_t* vozBuf = nullptr; int vozLen = 0; // la voz de la respuesta
 unsigned long tFotoFuera = 0;
 String ultTxt; unsigned long tUlt = 0;     // v1.1.9: ultimo aviso (tocar la cabeza lo repite)
 String pendEv, pendKind, pendTit, pendDat; bool pend = false;
+String ultEv; unsigned long tCabeza = 0;   // v1.1.17: tipo del ultimo aviso (doble toque en la cabeza lo quita)
+unsigned long tArmado = 0;                 // v1.1.18: primer toque: «toca otra vez para quitarlo»
+bool calor = false, llena = false;         // v1.1.17: sobrecalentamiento y bodega llena (los manda el panel)
+bool reposo = false;                       // v1.1.17: 10 min sin panel: pantalla y luces apagadas
 unsigned long tHola = 0, finHabla = 0, finTexto = 0, tIdle = 0;
 String texto;
 
 // ---------- tipos (aqui arriba para que el Arduino IDE los vea antes que las funciones) ----------
 struct Paso { int x, y, vel, ms; };
-enum Luz { L_REPOSO, L_ALARMA, L_SALTO, L_BIEN, L_TRISTE, L_APAGADO, L_RECARGA };
+enum Luz { L_REPOSO, L_ALARMA, L_SALTO, L_BIEN, L_TRISTE, L_APAGADO, L_RECARGA, L_FUEGO };
 
 // ---------- cabeza: secuencias de pasos ----------
 Paso cola[8]; int nPasos = 0, iPaso = 0; unsigned long tPaso = 0;
@@ -93,7 +100,7 @@ void pintaLuz(unsigned long t) {
   static unsigned long tRef = 0;
   if (t - tRef < 30) return;
   tRef = t;
-  if (finLuz && t > finLuz) { luz = peligro ? L_ALARMA : recarga ? L_RECARGA : panelVivo ? L_REPOSO : L_APAGADO; finLuz = 0; }
+  if (finLuz && t > finLuz) { luz = peligro ? L_ALARMA : calor ? L_FUEGO : recarga ? L_RECARGA : panelVivo ? L_REPOSO : L_APAGADO; finLuz = 0; }
   float e = (t - tLuz) / 1000.0f;
   for (int i = 0; i < 12; i++) {
     uint8_t r = 0, g = 0, b = 0;
@@ -117,6 +124,9 @@ void pintaLuz(unsigned long t) {
         int j = i < 6 ? i : 11 - i;
         float k = j < nivel ? 1.0f : 0.1f;
         r = brillo * k; g = brillo * k * 0.75f; break; }
+      case L_FUEGO: {             // v1.1.17: llamas: rojo y naranja que tiemblan
+        float k = 0.45f + 0.55f * (random(0, 100) / 100.0f);
+        r = brillo * k; g = brillo * k * (random(5, 45) / 100.0f); break; }
       case L_TRISTE: {            // violeta tenue
         float k = 0.25f + 0.15f * sinf(e * 2.0f);
         r = brillo * k * 0.5f; b = brillo * k; break; }
@@ -189,6 +199,7 @@ void reaccionar(const String& ev, const String& kind, String titulo, String dato
   bool cdsn = tiene(T, {"CDSN", "CABALLEROS", "TOMAIS", "CONSEGUIDA", "EXPANSION"}) || tiene(dato, {"CDSN", "Caballeros"});
 
   ultTxt = txt; tUlt = millis();                                   // v1.1.9: para repetirlo tocando la cabeza
+  ultEv = ev;                                                      // v1.1.17: para quitarlo con doble toque
 
   // v1.1.10: parada de emergencia (te has acercado demasiado rapido a una estrella o un planeta): susto
   if (es(ev, {"emergstop"})) {
@@ -340,9 +351,10 @@ void ponColorCara(int c) {
   colorCara = c;
   ColorPalette cp;
   // 0 negro, 1 rojo peligro, 2 amarillo recarga, 3 verde a pie, 4 azul frio, 5 naranja calor, 6 azul oscuro mapa (v1.1.9)
-  const uint16_t fondos[] = {TFT_BLACK, 0xC000, 0xFE00, 0x2D84, 0x3B3F, 0xFC00, 0x08CA};
-  uint16_t fondo = fondos[constrain(c, 0, 6)];
-  cp.set(COLOR_PRIMARY, (c == 0 || c == 6) ? TFT_WHITE : TFT_BLACK);   // ojos y boca: blancos en fondo oscuro
+  // 7 fuego (sobrecalentamiento), 8 marron (bodega llena) (v1.1.17)
+  const uint16_t fondos[] = {TFT_BLACK, 0xC000, 0xFE00, 0x2D84, 0x3B3F, 0xFC00, 0x08CA, 0xF940, 0x8200};
+  uint16_t fondo = fondos[constrain(c, 0, 8)];
+  cp.set(COLOR_PRIMARY, (c == 0 || c == 6 || c == 8) ? TFT_WHITE : TFT_BLACK);   // ojos y boca: blancos en fondo oscuro
   cp.set(COLOR_BACKGROUND, fondo);
   cp.set(COLOR_BALLOON_FOREGROUND, TFT_BLACK);
   cp.set(COLOR_BALLOON_BACKGROUND, TFT_WHITE);
@@ -352,10 +364,54 @@ void ponColorCara(int c) {
 
 // color segun el estado (el peligro manda sobre todo)
 int colorBase() {
+  if (calor) return 7;                               // v1.1.17: sobrecalentamiento
   if (mapa.length()) return 6;                       // v1.1.9: mapa abierto
   if (recarga) return 2;
   if (aPie) return clima == "frio" ? 4 : clima == "calor" ? 5 : 3;
+  if (llena) return 8;                               // v1.1.17: bodega llena
   return 0;
+}
+
+// v1.1.17: sobrecalentamiento: cara de fuego y luces de llamas mientras dure
+void ponCalor(bool on) {
+  if (on == calor) return;
+  calor = on;
+  if (peligro) return;                               // el peligro manda
+  ponColorCara(colorBase());
+  if (on) {
+    avatar.setExpression(Expression::Angry);
+    texto = "SOBRECALENTAMIENTO"; pon(); finTexto = 0;
+    ponLuz(L_FUEGO, 0); mover("temblar"); M5.Speaker.tone(900, 150);
+  } else {
+    avatar.setExpression(Expression::Neutral); ponTexto(""); finTexto = 0;
+    ponLuz(L_BIEN, 2000);
+  }
+}
+
+// v1.1.17: bodega llena: cara marron mientras siga llena
+void ponLlena(bool on) {
+  if (on == llena) return;
+  llena = on;
+  if (!peligro) ponColorCara(colorBase());
+}
+
+// v1.1.17: reposo: 10 min sin panel, pantalla y luces apagadas; se despierta solo al volver el panel
+void entrarReposo() {
+  if (reposo) return;
+  reposo = true;
+  ponLuz(L_APAGADO, 0); pintaLuz(millis() + 100);
+  M5StackChan.Motion.move(CX, CY, 200);
+  avatar.suspend(); delay(50);
+  M5.Display.sleep();
+}
+
+void salirReposo() {
+  if (!reposo) return;
+  reposo = false;
+  M5.Display.wakeup();
+  M5.Display.setBrightness(noche ? brilloPantalla / 3 : brilloPantalla);
+  avatar.resume();
+  tIdle = millis();
 }
 
 void ponPie(bool pie, const String& c) {
@@ -489,8 +545,8 @@ bool bajarVoz(const String& ruta) {
 void preguntar() {
   if (vozBuf && !M5.Speaker.isPlaying()) { free(vozBuf); vozBuf = nullptr; }
   if (vozBuf) return;                                    // todavia esta hablando
-  const size_t n = (size_t)OIR_SEG * OIR_RATE;
-  if (!oirBuf) oirBuf = (int16_t*)ps_malloc(n * 2);
+  const size_t MAXN = (size_t)OIR_SEG * OIR_RATE;
+  if (!oirBuf) oirBuf = (int16_t*)ps_malloc(MAXN * 2);
   if (!oirBuf) { decir(Expression::Sad, "Sin memoria para oir", "negar", 3000); return; }
 
   avatar.setExpression(Expression::Doubt); texto = "Te escucho..."; pon(); finTexto = 0;
@@ -499,9 +555,22 @@ void preguntar() {
   while (M5.Speaker.isPlaying()) delay(5);
   M5.Speaker.end();                                      // altavoz y microfono no pueden ir a la vez
   M5.Mic.begin();
+  // v1.1.17: graba a trozos de 0,1 s y para cuando llevas 0,8 s callado despues de hablar (o 3 s sin oir nada)
   const size_t TROZO = 1600;                             // 0,1 s
-  for (size_t i = 0; i < n; i += TROZO) M5.Mic.record(oirBuf + i, min(TROZO, n - i), OIR_RATE);
-  while (M5.Mic.isRecording()) delay(5);
+  size_t n = 0; int k = 0, callado = 0; bool hablado = false; long ruido = 0;
+  while (n + TROZO <= MAXN) {
+    M5.Mic.record(oirBuf + n, TROZO, OIR_RATE);
+    while (M5.Mic.isRecording()) delay(1);
+    long s = 0;
+    for (size_t i = 0; i < TROZO; i++) s += abs((int)oirBuf[n + i]);
+    long nivel = s / (long)TROZO;
+    n += TROZO; k++;
+    if (k <= 3) { if (nivel > ruido) ruido = nivel; continue; }   // 0,3 s: ruido de fondo
+    long umbral = max(ruido * 2, 300L);
+    if (nivel > umbral) { hablado = true; callado = 0; }
+    else if (hablado && ++callado >= 8 && n >= (size_t)OIR_RATE) break;
+    if (!hablado && n >= (size_t)(3 * OIR_RATE)) break;
+  }
   M5.Mic.end();
   M5.Speaker.begin(); M5.Speaker.setVolume(noche ? 30 : 90);
   M5.Speaker.tone(1800, 60);
@@ -510,7 +579,7 @@ void preguntar() {
   HTTPClient http;
   http.setTimeout(25000);                                // en la Pi 3 tarda mas
   String body;
-  if (http.begin("http://" + panelIP.toString() + ":8081/oir?r=" + String(OIR_RATE))) {
+  if (http.begin("http://" + panelIP.toString() + ":8081/oir?r=" + String(OIR_RATE) + "&v=" + ROBOT_VER)) {
     http.addHeader("Content-Type", "application/octet-stream");
     if (http.POST((uint8_t*)oirBuf, n * 2) == 200) body = http.getString();
   }
@@ -526,13 +595,27 @@ void preguntar() {
   if (wav.length()) bajarVoz(wav);
   decir(ok ? Expression::Happy : Expression::Doubt, txt, ok ? "asentir" : "negar", 8000);
   ponLuz(ok ? L_BIEN : L_REPOSO, 3000);
-  ultTxt = txt; tUlt = millis();
+  ultTxt = txt; tUlt = millis(); ultEv = "";                     // v1.1.18: una respuesta no es un aviso que quitar
   if (vozBuf) {
     uint32_t rate = vozBuf[24] | (vozBuf[25] << 8) | (vozBuf[26] << 16) | (vozBuf[27] << 24);
     if (!rate) rate = 22050;
     M5.Speaker.playWav(vozBuf, vozLen);
     finHabla = millis() + (unsigned long)((vozLen - 44) * 1000ULL / (rate * 2));   // la boca se mueve mientras habla
   }
+}
+
+// v1.1.17: doble toque en la cabeza: el panel quita el ultimo aviso (se vuelve a poner en ALERTAS)
+void quitarAviso() {
+  HTTPClient http;
+  http.setTimeout(4000);
+  String body;
+  if (http.begin("http://" + panelIP.toString() + ":8081/quita?ev=" + ultEv) && http.GET() == 200) body = http.getString();
+  http.end();
+  JsonDocument doc;
+  if (!body.length() || deserializeJson(doc, body)) { decir(Expression::Sad, "No llego al panel", "negar", 3000); return; }
+  decir(Expression::Neutral, sinTildes(String((const char*)(doc["txt"] | ""))), "negar", 5000);
+  ponLuz(L_BIEN, 2000); M5.Speaker.tone(1600, 60);
+  ultEv = ""; ultTxt = "";
 }
 
 // v1.1.11: FSD enfriandose: -1 = no, 0 = enfriando sin saber cuanto, >0 = segundos que faltan (aprox.)
@@ -563,6 +646,7 @@ void escuchar(unsigned long t) {
     JsonDocument doc;
     if (deserializeJson(doc, buf)) continue;
     tHola = t;
+    salirReposo();                              // v1.1.17: vuelve el panel: se despierta
     if (!panelVivo) {
       panelVivo = true;
       if (!saludado) {
@@ -586,6 +670,8 @@ void escuchar(unsigned long t) {
     if (tipo == "hola" && doc["datq"].is<int>()) ponAtraque(doc["datq"] | -1);
     if (tipo == "hola" && doc["noche"].is<bool>()) ponNoche(doc["noche"] | false);
     if (tipo == "hola" && doc["fsdc"].is<int>()) ponFsd(doc["fsdc"] | -1);
+    if (tipo == "hola" && doc["calor"].is<bool>()) ponCalor(doc["calor"] | false);   // v1.1.17
+    if (tipo == "hola" && doc["llena"].is<bool>()) ponLlena(doc["llena"] | false);   // v1.1.17
     if (tipo == "foto") {
       ensenarFoto(doc["f"] | "", doc["port"] | 8081, doc["titulo"] | "", doc["dato"] | "", doc["seg"] | 6, doc["rot"] | false);
     } else if (tipo == "aviso") {
@@ -598,7 +684,7 @@ void escuchar(unsigned long t) {
     }
   }
   if (panelVivo && t - tHola > 45000) {       // 45 s sin noticias del panel
-    panelVivo = false; peligro = false; recarga = false; aPie = false; mapa = ""; ponColorCara(0);
+    panelVivo = false; peligro = false; recarga = false; aPie = false; mapa = ""; calor = false; llena = false; ponColorCara(0);
     decir(Expression::Sleepy, "Panel apagado\n(o ROBOT desactivado)", "dormir", 8000);
     ponLuz(L_APAGADO, 0);
   }
@@ -637,6 +723,7 @@ void setup() {
   udp.begin(UDP_PORT);
   texto = String("StackChan ") + ROBOT_VER + "\nEsperando al panel\n" + WiFi.localIP().toString();
   pon();
+  tHola = millis();                           // v1.1.17: cuenta para el reposo desde que arranca
 }
 
 void loop() {
@@ -644,6 +731,14 @@ void loop() {
   unsigned long t = millis();
 
   escuchar(t);
+
+  // v1.1.17: reposo a los 10 min sin panel (se despierta al volver el panel o tocando la pantalla)
+  if (!panelVivo && !reposo && t - tHola > 600000UL) entrarReposo();
+  if (reposo) {
+    if (M5.Touch.getCount()) { salirReposo(); tHola = t; }
+    delay(50);
+    return;
+  }
 
   motorCabeza(t);
   pintaLuz(t);
@@ -662,6 +757,7 @@ void loop() {
   if (finTexto && t > finTexto) {
     finTexto = 0;
     if (peligro) { avatar.setExpression(Expression::Angry); texto = motivo; pon(); }
+    else if (calor) { avatar.setExpression(Expression::Angry); texto = "SOBRECALENTAMIENTO"; pon(); }
     else if (recarga) { avatar.setExpression(Expression::Happy); texto = recTxt; pon(); }
     else if (dormido) { avatar.setExpression(Expression::Sleepy); texto = "Zzz..."; pon(); }
     else if (mapa.length()) { avatar.setExpression(Expression::Doubt); texto = textoMapa(); pon(); }
@@ -702,7 +798,7 @@ void loop() {
   }
 
   // v1.1.9: copiloto en ruta cuando no hay otra cosa que decir
-  if (panelVivo && !dormido && !peligro && !recarga && !mapa.length() && !finTexto && !finAtq && !fsdEnf) {
+  if (panelVivo && !dormido && !peligro && !calor && !recarga && !mapa.length() && !finTexto && !finAtq && !fsdEnf) {
     ponTexto(cop);
   }
 
@@ -710,10 +806,25 @@ void loop() {
   if (panelVivo && !dormido && !peligro && iPaso >= nPasos && t - tIdle > (mapa.length() ? 3000UL : 25000UL)) { tIdle = t; mover("mirar"); }
 
   // tocar la cabeza: repite el ultimo aviso (de los ultimos 15 min); si no hay, saluda (como mucho uno por minuto)
+  // v1.1.18: primer toque: repite el aviso y pide otro toque; el segundo (entre 0,4 y 4 s despues) lo quita en el panel
   if (M5StackChan.TouchSensor.wasPressed()) {
-    if (ultTxt.length() && t - tUlt < 900000UL) {
-      decir(Expression::Neutral, ultTxt, "asentir", 7000);
+    bool armado = tArmado && t - tArmado >= 400 && t - tArmado < 4000;
+    bool rebote = tArmado && t - tArmado < 400;                    // el mismo toque contado dos veces: no hace nada
+    tCabeza = t;
+    if (rebote) {
+    } else if (armado && ultEv.length() && t - tUlt < 900000UL && panelVivo) {
+      tArmado = 0;
+      quitarAviso();
+    } else if (ultTxt.length() && t - tUlt < 900000UL) {
+      String num;
+      int h = ultTxt.indexOf('#');
+      if (h >= 0) { int e = h + 1; while (e < (int)ultTxt.length() && isDigit(ultTxt[e])) e++; num = ultTxt.substring(h, e); }
+      bool quitable = ultEv.length() && panelVivo;
+      tArmado = quitable ? t : 0;
+      decir(Expression::Neutral, quitable ? ultTxt + "\n(toca otra vez para quitar " + (num.length() > 1 ? num : String("el aviso")) + ")" : ultTxt,
+            "asentir", 7000);
     } else if (t - tToque > 60000) {
+      tArmado = 0;
       tToque = t;
       decir(Expression::Happy, "o7 Comandante", "asentir", 3000);
       ponLuz(L_BIEN, 2000);

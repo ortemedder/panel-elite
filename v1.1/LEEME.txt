@@ -1,5 +1,13 @@
-PANEL ELITE v1.1.16  ·  version completa (sin parches)
+PANEL ELITE v1.1.18  ·  version completa (sin parches)
 =======================================================
+v1.1.18: voz del robot sin cortes (16 kHz y resumen), RESUMEN DEL DIA ordenado, creditos por hora, MASACRE,
+         EVACUACIONES y ficha del objetivo con mas datos y avisos.
+         CAMBIAN LOS TRES: panel, sender v1.0b17 (pc_ortem / pc_korzo, o patch_sender_v100b17.py sobre el b16)
+         y robot v1.1.18 (robot/stackchan_elite.ino: grabalo con el Arduino IDE, con tu WiFi en CONFIGURA).
+v1.1.17: MERCADO <-> PARA TU COLONIA con un toque, TODOS LOS MATERIALES COMPRADOS, cabina de PASAJEROS (cuadro 4 y
+         robot), LLEGADA AL SISTEMA aparte en ALERTAS, avisos de ingenieros, órdenes y preguntas nuevas al robot.
+         CAMBIAN LOS TRES: panel, sender v1.0b16 (pc_ortem / pc_korzo, o patch_sender_v100b16.py sobre el b15)
+         y robot v1.1.17 (robot/stackchan_elite.ino: grábalo con el Arduino IDE, con tu WiFi en CONFIGURA).
 v1.1.16: PERMISOS (AJUSTES > PERMISOS, ruta, ficha, ventajas cercanas, cuerpos cerrados), CORRECCION de EDSM en
          colonizacion, MERCANCIA RARA al atracar, avisos del robot con numero y «quita / silencia este aviso».
          Solo cambia el panel (sender v1.0b15 y robot v1.1.11 siguen igual). Datos nuevos en panel-v11/datos/.
@@ -30,8 +38,8 @@ QUE HAY
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.16.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.16.zip && bash ~/panel_v1.1.16/actualizar_v11.sh
+  1) Copia panel_v1.1.17.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.17.zip && bash ~/panel_v1.1.17/actualizar_v11.sh
   2) Solo la primera vez, para que el robot conteste por voz:   bash ~/instalar_oido_robot.sh
   3) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30

@@ -338,7 +338,7 @@ def r_sistema(d, now, t):
     bits = [f"{d.get('system') or 'Este sistema'}: controla {s_.get('faction') or '?'}"]
     if s_.get("fstate"):
         bits.append(s_["fstate"].lower())
-    bits.append(f"seguridad {(s_.get('sec') or '?').lower()}")
+    bits.append("seguridad " + re.sub(r"^seguridad\s*", "", (s_.get('sec') or '?').lower()))      # v1.1.18: sin «seguridad seguridad»
     if s_.get("econ"):
         bits.append(f"economía {s_['econ'].lower()}")
     bits.append(f"{s_['pop']:,} habitantes".replace(",", ".") if s_.get("pop") else "deshabitado")

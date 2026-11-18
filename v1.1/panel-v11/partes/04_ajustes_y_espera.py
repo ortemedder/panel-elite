@@ -551,6 +551,7 @@ def _xa_notes(d, now):
             xa["a"] = dict(until=now + 6, col=ORANGE, title="COMANDANTE FIJADO", big=p[0],
                            lines=[" · ".join(x for x in (p[1], p[2]) if x), l2_])
         elif kind == "arrive" and len(p) >= 4:
+            XA_K[0] = "arrsys"                           # v1.1.17: LLEGADA AL SISTEMA tiene su propia línea en ALERTAS
             cur = xa.get("a")
             if not (cur and cur.get("title") == "SISTEMA SIN EXPLORAR" and now < cur["until"]):
                 ui["alert"] = None
@@ -634,7 +635,7 @@ def _xa_notes(d, now):
 MERC = (255, 80, 200)      # rosa de las Merc Coin, como en el juego
 
 
-PANEL_VER = "v1.1.16 · 18/11/2026 09:35"
+PANEL_VER = "v1.1.18 · 18/11/2026 20:40"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")

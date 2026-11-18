@@ -822,6 +822,30 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.18
+- ROBOT: la voz va a 16 kHz y, si la respuesta es larga, dice un resumen («El resto, en pantalla») y el texto entero sale en su pantalla. Si aun así no cabe, se corta con un final suave (en el log: «ROBOT: voz demasiado larga, recortada»). Ya no se queda mudo con las respuestas largas.
+- ROBOT: lista de palabras de Vosk también con modelos que no traen words.txt. «¿En qué sistema estoy?» ya no dice «seguridad seguridad». Pregunta nueva: «¿cómo va la masacre?».
+- ROBOT v1.1.18: para quitar un aviso, toca la cabeza (dice el aviso y «toca otra vez para quitarlo») y vuelve a tocar en menos de 4 s.
+- RESUMEN DEL DÍA (y su cuadro de la HDMI): cada cosa en su línea y sin pisarse: AMIGOS (se mueven si no caben; se quita en ALERTAS > DÍA: AMIGOS EN MOVIMIENTO), PASAJEROS HOY / EVACUACIONES / copiloto, DÓNDE COMPRAR HOY y SIN COBRAR con su BORRAR. Créditos por hora junto al SALDO.
+- SESIÓN TERMINADA con créditos por hora.
+- MASACRE: contador de bajas de cada misión (como en el juego, una baja por facción que da la misión), recuadro en REGISTRO DE COMBATE y aviso al completar cada misión y al terminarlas todas.
+- EVACUACIONES: misiones, pasajeros, créditos y tiempo medio del día en el RESUMEN DEL DÍA y aviso EVACUACIÓN: MENOS DE 30 MIN.
+- COMBATE: ficha del objetivo con lo que bajó escudo y casco desde la lectura anterior (-35%), antigüedad del dato, subsistema grande (rojo por debajo del 20 %), facción y poder. Avisos ESCUDOS DEL OBJETIVO CAÍDOS y CASCO DEL OBJETIVO BAJO 25 %. Al derribarlo, el aviso del derribo dice la nave y lo que duró el combate.
+- EN VIVO: MERC COIN y copiloto ya no se pisan.
+- Sender v1.0b17: facción y poder del objetivo, masacre y evacuaciones.
+# Novedades v1.1.17
+- MERCADO <-> PARA TU COLONIA: si te falta material de tu construcción, un toque en MERCADO (en el panel o en su cuadro de la HDMI) enseña lo que vende esta estación para tu colonia (lo que falta ya descontando la bodega, precio y existencias, en naranja si no hay bastantes). Otro toque vuelve al MERCADO. Mientras falte algo sale la marca «COLONIA ›».
+- Aviso al abrir el mercado: «NO VENDAS AQUÍ LOS MATERIALES QUE LLEVAS DE COLONIZACIÓN» (también la voz y la franja del MERCADO).
+- Aviso nuevo «TODOS LOS MATERIALES COMPRADOS · ENTRÉGALOS EN DESTINO» cuando en la bodega ya llevas todo lo que falta (una vez por viaje, no en el depósito), con su número, pitido, voz y robot.
+- PASAJEROS: mientras los llevas, el cuadro 4 de la HDMI enseña la cabina dibujada (asientos ocupados, VIP en azul, buscados en rojo, clase de la cabina) con destino, recompensa y tiempo. En el robot, la cabina en su pantalla al embarcar y al desembarcar.
+- LLEGADA AL SISTEMA tiene su propia línea (y número) en ALERTAS, aparte de LLEGADA A ESTACIÓN / SEÑAL.
+- Arreglo: los avisos grandes (LLEGADA, SEÑAL, INTERDICCIÓN, COMBUSTIBLE...) volvían a salir aunque los quitaras en ALERTAS.
+- INGENIEROS: aviso al desbloquear uno o al subir de rango con él.
+- ROBOT, preguntas nuevas: «¿cómo consigo el permiso de Sirius?», «¿dónde venden huevos ornamentales?», «mercancías raras cerca», «¿qué versiones tienes?» (avisa si el sender o el robot no son los que tocan), «repite», «calla», «duérmete» y «despierta».
+- ROBOT, órdenes por voz: tren, luces, visión nocturna, recogedor, armas fuera/dentro, modo combate/análisis, marcha silenciosa, disipador, señuelo, célula de escudo, refuerzo, para / propulsión 50-75-máxima, pips a motores/armas/sistemas/equilibrados, siguiente sistema, mapa galáctico/del sistema, objetivos (delante, peligroso, siguiente, anterior, subsistema, su objetivo, ala 1-3), llamar/despedir la nave, escudo y linterna a pie, y cambiar la pantalla del panel. Salto, supercrucero, armas fuera y despedir la nave piden «sí». Se quitan en ALERTAS > ROBOT: ÓRDENES POR VOZ.
+- ROBOT más rápido: deja de grabar en cuanto te callas, Vosk se queda cargado en la Pi 4 (ALERTAS > ROBOT: OÍDO SIEMPRE LISTO), entiende primero con la lista de palabras del panel y guarda las frases fijas.
+- ROBOT: se duerme si llevas 15 min parado (se despierta con cualquier cosa), cara de fuego con sobrecalentamiento, cara marrón con la bodega llena, reposo con la pantalla apagada a los 10 min sin panel y doble toque en la cabeza para quitar el último aviso. Necesita el robot v1.1.17.
+- Sender v1.0b16: manda la música del juego, así el aterrizaje automático no da el aviso CERCA DEL SUELO.
 # Novedades v1.1.16
 - COLONIZACIÓN: los avisos que salen de EDSM (al conceder el atraque, antes de abrir el mercado) dicen «según EDSM». Al abrir el mercado del juego, si EDSM decía que había algo de tu construcción que no está, aviso CORRECCIÓN: EDSM SE EQUIVOCABA. Lo que has visto tú en el mercado (7 días) manda sobre EDSM: esa estación ya no sale para esa mercancía en AQUÍ, EN EL SISTEMA, «prueba en…» ni DÓNDE COMPRAR HOY.
 - ROBOT: «¿dónde compro / vendo…?» elige la mercancía por todas las palabras (antes «tejido de categoría militar» se confundía con «tejidos conductivos»).
@@ -1657,12 +1681,14 @@ def view_live_v071(surf, d, flags, now):
         return
     O = d.get("ops") or {}
     y = H - 20
+    mw_ = 0
     if O.get("merc") is not None:
         txt = f"MERC COIN {fnum(O['merc'], 0)}" + (f"  (+{O['lastgain']})" if O.get("lastgain") else "")
-        put(surf, F["small"], txt, (8, y), MERC)
+        mw_ = put(surf, F["small"], txt, (8, y), MERC)
     c_ = (O.get("crew") or {})
-    if c_.get("paid"):
-        put(surf, F["small"], f"copiloto {c_.get('name', '')}: -{crx(c_['paid'])} cr", (W - 8, y), (70, 120, 230), 240, anchor="topright")
+    if c_.get("paid"):                                    # v1.1.18: sin pisar la MERC COIN
+        put(surf, F["small"], f"copiloto {c_.get('name', '')}: -{crx(c_['paid'])} cr", (W - 8, y), (70, 120, 230),
+            max(60, min(240, W - 16 - mw_ - 12)), anchor="topright")
     if O.get("on"):
         mins = int((now - (O.get("t0") or now)) // 60)
         put(surf, F["small"], f"OPERACIÓN · {O.get('target') or O.get('mission') or ''} · {O.get('kills', 0)} derribos · "

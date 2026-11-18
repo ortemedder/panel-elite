@@ -494,7 +494,8 @@ def handle(e):
                       "cmdr": (e.get("PilotName") or "").startswith("$cmdr"),
                       "rank": e.get("PilotRank"), "shield": e.get("ShieldHealth"), "hull": e.get("HullHealth"),
                       "legal": e.get("LegalStatus"), "bounty": e.get("Bounty"),
-                      "subsys": e.get("Subsystem_Localised"), "subhealth": e.get("SubsystemHealth"), "t": time.time()}
+                      "subsys": e.get("Subsystem_Localised"), "subhealth": e.get("SubsystemHealth"), "t": time.time(),
+                      "faction": e.get("Faction_Localised") or e.get("Faction"), "power": e.get("Power_Localised") or e.get("Power")}
     elif ev in ("FSDJump", "SupercruiseEntry", "Docked", "Died"):
         target = None
     elif ev in ("LaunchFighter", "CrewLaunchFighter"):
@@ -2499,7 +2500,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b15"
+SENDER_VER = "v1.0b17"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3313,6 +3314,78 @@ def handle(e):
     except Exception as ex:
         print("cuerpo/outfitting:", ex, flush=True)
 
+# ---- v1.0b17: misiones de masacre y evacuaciones ----
+MASS = {}                                                   # MissionID -> misión de masacre
+EVAC = {}                                                   # MissionID -> (pasajeros, hora de aceptarla)
+EVS = {"day": None, "m": 0, "n": 0, "cr": 0, "s": 0}        # evacuaciones entregadas hoy
+
+def _es_evac(e):
+    n = (e.get("Name") or "").lower()
+    return "evacuat" in n or "rescue" in n or (e.get("PassengerType") or "").lower() == "refugee"
+
+def _mass_left():
+    return sum(1 for m in MASS.values() if m["k"] < m["n"])
+
+def _mass_done(m):
+    if LIVE[0]:
+        note("masdone", f"{m['giver']}|{m['target']}|{m['k']}|{m['n']}|{_mass_left()}")
+
+def mass_event(e):
+    ev = e.get("event")
+    mid = e.get("MissionID")
+    if ev == "MissionAccepted":
+        if "massacre" in (e.get("Name") or "").lower() and e.get("KillCount"):
+            MASS[mid] = {"giver": e.get("Faction") or "?", "target": e.get("TargetFaction") or "?",
+                         "n": int(e.get("KillCount") or 0), "k": 0, "exp": iso2epoch(e.get("Expiry")),
+                         "cr": e.get("Reward", 0), "t": iso2epoch(e.get("timestamp"))}
+        if e.get("PassengerCount") and _es_evac(e):
+            EVAC[mid] = (e.get("PassengerCount", 0), iso2epoch(e.get("timestamp")))
+            if mid in pax:
+                pax[mid]["evac"] = True
+    elif ev == "Bounty":
+        vic = e.get("VictimFaction") or ""
+        usadas = set()
+        for m in sorted(MASS.values(), key=lambda m: m["t"] or 0):
+            if m["target"] == vic and m["k"] < m["n"] and m["giver"] not in usadas:
+                usadas.add(m["giver"])
+                m["k"] += 1
+                if m["k"] >= m["n"]:
+                    _mass_done(m)
+    elif ev == "MissionRedirected" and mid in MASS:
+        m = MASS[mid]
+        if m["k"] < m["n"]:
+            m["k"] = m["n"]
+            _mass_done(m)
+    elif ev in ("MissionCompleted", "MissionAbandoned", "MissionFailed"):
+        MASS.pop(mid, None)
+        p = EVAC.pop(mid, None)
+        if p and ev == "MissionCompleted":
+            day = (e.get("timestamp") or "")[:10]
+            if EVS["day"] != day:
+                EVS.update(day=day, m=0, n=0, cr=0, s=0)
+            EVS["m"] += 1; EVS["n"] += p[0]; EVS["cr"] += e.get("Reward", 0)
+            EVS["s"] += max(0, (iso2epoch(e.get("timestamp")) or 0) - (p[1] or 0))
+    elif ev == "Missions":
+        act = {m.get("MissionID") for m in e.get("Active") or []}
+        for k in [k for k in MASS if k not in act]:
+            MASS.pop(k, None)
+        for k in [k for k in EVAC if k not in act]:
+            EVAC.pop(k, None)
+
+def mass_pkt():
+    now = time.time()
+    L = sorted((m for m in MASS.values() if not m["exp"] or m["exp"] > now), key=lambda m: m["t"] or 0)
+    return [[m["giver"][:30], m["target"][:30], m["k"], m["n"], m["exp"], m["cr"]] for m in L[:12]]
+
+_handle_b16 = handle
+
+def handle(e):
+    _handle_b16(e)
+    try:
+        mass_event(e)
+    except Exception as ex:
+        print("masacre/evacuación:", ex, flush=True)
+
 _v096_load()
 print("Sender", SENDER_VER)
 
@@ -3348,7 +3421,7 @@ while True:
                "bio": bio_pkt(st), "live": live_pkt(st),
                "mats": mats_pkt(), "carrier": carrier_pkt(), "market": market, "rings": rings_pkt(st), "dest": dest_pkt(st), "sysinfo": sysinfo, "ppme": ppme,
                "pack": {k: v for k, v in pack.items() if k != "raw"}, "srvmats": srvmats_pkt(), "combat": combat_pkt(), "footcz": footcz_pkt(), "ops": ops_pkt(), "exdiary": exdiary_pkt(), "routeinfo": routeinfo_pkt(), "alien": alien_pkt(), "friends": friends_pkt(), "mycg": mycg_pkt(), "binds": binds_pkt(), "squad": squad, "inara": inara_pkt(), "naves": naves_pkt(), "taxi": taxi_pkt(), "career": career_pkt(),
-               "cargo": cargo[:40], "cargok": cargok, "pax": pax_pkt(), "colonia": col_pkt(), "colsys": colsys_pkt(), "colbuy": COLBUY, "matsall": mats, "cuerpo": cuerpo_pkt(st), "outfit": OUTFIT, "mktall": MKTALL, "rutaext": rutaext_pkt(), "scb": SCB,
+               "cargo": cargo[:40], "cargok": cargok, "pax": pax_pkt(), "colonia": col_pkt(), "colsys": colsys_pkt(), "colbuy": COLBUY, "matsall": mats, "cuerpo": cuerpo_pkt(st), "outfit": OUTFIT, "mktall": MKTALL, "rutaext": rutaext_pkt(), "scb": SCB, "mtrack": music["track"], "masacre": mass_pkt(), "evac": EVS,
                "missions": sorted(([n[:60], d, x] for n, d, x in missions.values() if not x or x > now),
                                   key=lambda m: m[2] or 9e12)[:20]}
         send(pkt)
