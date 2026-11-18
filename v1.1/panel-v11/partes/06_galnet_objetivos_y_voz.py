@@ -822,6 +822,17 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v1.1.16
+- COLONIZACIÓN: los avisos que salen de EDSM (al conceder el atraque, antes de abrir el mercado) dicen «según EDSM». Al abrir el mercado del juego, si EDSM decía que había algo de tu construcción que no está, aviso CORRECCIÓN: EDSM SE EQUIVOCABA. Lo que has visto tú en el mercado (7 días) manda sobre EDSM: esa estación ya no sale para esa mercancía en AQUÍ, EN EL SISTEMA, «prueba en…» ni DÓNDE COMPRAR HOY.
+- ROBOT: «¿dónde compro / vendo…?» elige la mercancía por todas las palabras (antes «tejido de categoría militar» se confundía con «tejidos conductivos»).
+- PERMISOS (12 AJUSTES > PERMISOS): los sistemas con permiso, uno a uno. Tocando marcas los tuyos (ORTEM ya viene con sus 30). Los de rango de la Federación y del Imperio, Shinrarta (Elite) y HIP 22460 se ponen solos (AUTO).
+- RUTA: marca SIN PERMISO en los saltos que lo necesitan y aviso PERMISO NECESARIO (también ruta externa y destino fijado), con cómo conseguirlo. Zonas cerradas por el nombre del sector.
+- Ficha del sistema de la ruta: recuadro PERMISO (lo tienes / te falta, cómo conseguirlo o sus ventajas).
+- VENTAJAS CERCANAS: a menos de 15 al de un sistema con permiso que tienes y con descuento, ingeniero o mercancía rara, aviso con lo que ofrece (una vez al día).
+- CUERPO CERRADO: aviso al fijar como destino la Luna, Tritón, Diso 5 C o Lave 2.
+- MERCANCÍA RARA AQUÍ: aviso al atracar en una estación que vende una.
+- ROBOT: cada aviso lleva su número (#NN, el de ALERTAS / SONIDO). Di «quita este aviso» (lo quita en ALERTAS) o «silencia este aviso» (solo el pitido, en SONIDO).
+- Todo lo nuevo se quita uno a uno en ALERTAS.
 # Novedades v1.1.15
 - MERCADO PARA TU COLONIA en grande: atracado donde venden lo que le falta a tu construcción, en la HDMI (4 CUADROS) los cuadros 3 y 4 se juntan en uno ancho con la lista en letra grande: material, lo que falta, precio y existencias (en naranja si no hay bastante). Un toque vuelve a los 4 cuadros hasta la siguiente estación. Se quita en CAMBIO AUTO.
 - TEMPERATURA NORMAL: aviso verde con pitido cuando se acaba el sobrecalentamiento. Lleva su número: el mensaje se quita en ALERTAS y el pitido en SONIDO.

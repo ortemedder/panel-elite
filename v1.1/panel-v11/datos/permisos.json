@@ -1,0 +1,765 @@
+{
+ "ver": 2,
+ "fecha": "2026-11-17",
+ "fuentes": [
+  "elite-dangerous.fandom.com/wiki/Permits",
+  "forums.frontier.co.uk (guía de permisos)"
+ ],
+ "nota": "Los portanaves no pueden entrar en ningún sistema con permiso. Las regiones se detectan por el nombre del sector o por el dato needs_permit de Spansh/EDSM.",
+ "sistemas": [
+  {
+   "sistema": "Sol",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Federal Congress",
+   "requisito": "Armada Federal: Petty Officer",
+   "ventajas": "Capital de la Federación; 20% Eagle MkII y 10% Dropship y Vulture en Daedalus; ingeniera Bris Dekker (Dekker's Yard)",
+   "dist_sol": 0.0,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Beta Hydri",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Beta Hydri Democrats",
+   "requisito": "Armada Federal: Chief Petty Officer",
+   "ventajas": "Uno de los cinco sistemas fundadores de la Federación",
+   "dist_sol": 24.31,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Vega",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Vega Independents",
+   "requisito": "Armada Federal: Chief Petty Officer",
+   "ventajas": "10% Eagle MkII en Edmondson High; Vega Slimweed (rara) en Taylor City",
+   "dist_sol": 25.04,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "PLX 695",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "PLX 695 Values Party",
+   "requisito": "Armada Federal: Warrant Officer",
+   "ventajas": "Sede de In Depth Protection",
+   "dist_sol": 76.2,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Ross 128",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Social Ross 128 Coalition",
+   "requisito": "Armada Federal: Ensign",
+   "ventajas": "Warren Prison Mine",
+   "dist_sol": 10.94,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Exbeur",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Workers of Exbeur Democrats",
+   "requisito": "Armada Federal: Lieutenant",
+   "dist_sol": 56.07,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Hors",
+   "categoria": "federation",
+   "tipo": "rango",
+   "titular": "Clan of Hors",
+   "requisito": "Armada Federal: Post Commander",
+   "ventajas": "Sede de Clan of Hors y Brightlight Training",
+   "dist_sol": 57.06,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "4 Sextantis",
+   "categoria": "federation",
+   "tipo": "bloqueado",
+   "titular": "4 Sextantis Inc",
+   "requisito": "Aliado + misión (bloqueada)",
+   "dist_sol": 145.66,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "CD-44 1695",
+   "categoria": "federation",
+   "tipo": "desconocido",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 95.55,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 54530",
+   "categoria": "federation",
+   "tipo": "reputacion",
+   "titular": "Silver Legal Group",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Grasp of Unity (Odyssey) / Malchiodi Plant (Horizons) / Shewayish Pharmacology",
+   "mision_sistema": "Ts'ao Tach",
+   "ventajas": "Sede de Core Enterprises y de la antigua Jupiter Division",
+   "dist_sol": 130.98,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "LFT 509",
+   "categoria": "federation",
+   "tipo": "raro",
+   "titular": "Desconocido",
+   "requisito": "Desconocido; hay comandantes que lo tienen (ORTEM ED DER)",
+   "dist_sol": 53.03,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Mingfu",
+   "categoria": "federation",
+   "tipo": "desconocido",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 45.33,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Witch's Reach",
+   "categoria": "federation",
+   "tipo": "desconocido",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 33.25,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Achenar",
+   "categoria": "empire",
+   "tipo": "rango",
+   "titular": "Achenar Empire League",
+   "requisito": "Armada Imperial: Squire",
+   "ventajas": "Capital del Imperio; ingeniera Tiana Fortune (Fortune's Loss)",
+   "dist_sol": 139.45,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Summerland",
+   "categoria": "empire",
+   "tipo": "rango",
+   "titular": "Summerland Patron's Party",
+   "requisito": "Armada Imperial: Baron",
+   "ventajas": "Antigua sede de Darkwater Inc; 10% naves Gutamaya en Henry O'Hare's Hangar",
+   "dist_sol": 124.55,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Facece",
+   "categoria": "empire",
+   "tipo": "rango",
+   "titular": "Facece Empire Party",
+   "requisito": "Armada Imperial: Earl",
+   "ventajas": "Sede de la Armada Imperial",
+   "dist_sol": 131.09,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "LTT 198",
+   "categoria": "empire",
+   "tipo": "reputacion",
+   "titular": "Torval Mining Ltd",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Orchestral Falcon",
+   "mision_sistema": "Tavgi",
+   "ventajas": "Sede de Torval Mining; broker en Zetian's Recall: láser de minería modificado",
+   "dist_sol": 72.33,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Alioth",
+   "categoria": "alliance",
+   "tipo": "reputacion",
+   "titular": "Alioth Independents",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Meredith's Dream (o donde opere Alioth Independents)",
+   "mision_sistema": "Alcor",
+   "ventajas": "Capital de la Alianza; 5% naves Lakon en todas las estaciones; ingeniero Bill Turner (Turner Metallics Inc)",
+   "dist_sol": 82.53,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Shinrarta Dezhra",
+   "categoria": "independent",
+   "tipo": "rango",
+   "titular": "Pilots Federation Local Branch",
+   "requisito": "Elite en Combate, Comercio, Exploración, Mercenario o Exobiología",
+   "ventajas": "Sede de la Pilots Federation; 10% descuento naves y módulos en Jameson Memorial",
+   "dist_sol": 64.43,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "CD-43 11917",
+   "categoria": "independent",
+   "tipo": "rango",
+   "titular": "CQC Holdings",
+   "requisito": "Prestigio en CQC",
+   "ventajas": "Sede del campeonato CQC; 20% naves y 30% módulos en Attilius Orbital",
+   "dist_sol": 80.86,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Crom",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Crom Silver Boys",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "The Silver Cove",
+   "mision_sistema": "69 G. Carinae",
+   "ventajas": "Crom Silver Fesh (rara) en Chorel Survey",
+   "dist_sol": 56.46,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Hodack",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Hodack Prison Colony",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Varuna's Pledge",
+   "mision_sistema": "Pemoeri",
+   "dist_sol": 79.63,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Isinor",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Chapter of Isinor",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Chariot of the Faithful",
+   "mision_sistema": "HR 4803",
+   "ventajas": "Baliza de convoy con antigüedades",
+   "dist_sol": 110.35,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Jotun",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Dukes of Jotun",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "The Indefatigable",
+   "mision_sistema": "38 Arietis",
+   "ventajas": "Jotun Mookah (rara) en Icelock",
+   "dist_sol": 122.14,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Luyten 347-14",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Luyten 347-14 Prison Colony",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Warden's Oath",
+   "mision_sistema": "Narenses",
+   "dist_sol": 18.56,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Mbooni",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Azimuth Biotech",
+   "requisito": "Aliado + misión (o iniciativas de Salvation)",
+   "mision_estacion": "Hunziker Terminal",
+   "mision_sistema": "LHS 1163",
+   "ventajas": "Broker en Prospect's Deep: Gauss, Plasma y Shard modificados",
+   "dist_sol": 51.61,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Nastrond",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Defence Party of Nastrond",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "The People's Vigil",
+   "mision_sistema": "Wonorne Nu",
+   "dist_sol": 102.63,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Peregrina",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Peregrina Aristocrats",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Peregrina Gateway",
+   "mision_sistema": "HIP 18609",
+   "dist_sol": 202.73,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Pi Mensae",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Pi Mensae Brotherhood",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Shephard of the Mighty",
+   "mision_sistema": "LP 91-140",
+   "dist_sol": 59.72,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Sirius",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Sirius Corporation",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Spirit of Laelaps",
+   "mision_sistema": "Luyten's Star",
+   "ventajas": "Sede de Sirius Corporation; ingeniero Marco Qwent (Qwent Research Base)",
+   "dist_sol": 8.59,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Swoilz DB-X b5-1",
+   "categoria": "independent",
+   "tipo": "desconocido",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "ventajas": "Sede de la Fire Lotus Coalition",
+   "dist_sol": 847.38,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Terra Mater",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Brotherhood of Terra Mater",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Daunting Hammer",
+   "mision_sistema": "Hecate",
+   "ventajas": "Terra Mater Blood Bores (rara) en Gr8minds",
+   "dist_sol": 69.73,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Tiliala",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Conservatives of Tiliala / The Black Fleet",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Tiliala's Lament (o cualquier estación de Varpet)",
+   "mision_sistema": "Akandinigua",
+   "dist_sol": 86.98,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Van Maanen's Star",
+   "categoria": "independent",
+   "tipo": "reputacion",
+   "titular": "Sublime Order of van Maanen's Star",
+   "requisito": "Aliado + misión",
+   "mision_estacion": "Shadows Endurant",
+   "mision_sistema": "Epsilon Eridani",
+   "dist_sol": 13.91,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 22460",
+   "categoria": "uninhabited",
+   "tipo": "accesible",
+   "titular": "Desconocido",
+   "requisito": "Todos lo tienen ya (antes: escanear la baliza de Synuefe GB-O c9-8)",
+   "dist_sol": 362.01,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Alpha Hydri",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 71.81,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Bellica",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 86.36,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Dryio Flyuae IC-B c1-377",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 20170.0,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 10332",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 140.06,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 104941",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 219.96,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 22182",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 136.61,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 39425",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 174.13,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 51073",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 128.24,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HIP 87621",
+   "categoria": "uninhabited",
+   "tipo": "raro",
+   "titular": "Desconocido",
+   "requisito": "Desconocido; hay comandantes que lo tienen (ORTEM ED DER)",
+   "dist_sol": 411.31,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HR 4413",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 88.75,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "LHS 2894",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 68.08,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "LHS 2921",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 72.45,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "LHS 3091",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 61.29,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Plaa Ain HA-Z d46",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 9325.34,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Polaris",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 432.58,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Ross 354",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 153.15,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Scheau Bli NB-O d6-1409",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 32960.0,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "Wolf 262",
+   "categoria": "uninhabited",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "dist_sol": 194.03,
+   "fuente": "wiki"
+  },
+  {
+   "sistema": "HD 33766",
+   "categoria": "otros",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "fuente": "foro"
+  },
+  {
+   "sistema": "HIP 23874",
+   "categoria": "otros",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "fuente": "foro"
+  },
+  {
+   "sistema": "Hyades Sector YO-Q b5-1",
+   "categoria": "otros",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Solo bloqueado para portanaves",
+   "fuente": "foro"
+  }
+ ],
+ "regiones": [
+  {
+   "region": "Pilots' Federation District",
+   "tipo": "accesible",
+   "titular": "Pilots' Federation Administration",
+   "requisito": "Piloto nuevo que empieza en Dromi; se pierde al tener cualquier rango y atracar fuera del distrito",
+   "radio_al": 8.0,
+   "dist_sol": 57.9
+  },
+  {
+   "region": "Bleia (1-5)",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 37000.0
+  },
+  {
+   "region": "Bovomit",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 22000.0
+  },
+  {
+   "region": "Col 70 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 514.0,
+   "dist_sol": 1700.0
+  },
+  {
+   "region": "Col 97 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 250.0,
+   "dist_sol": 2100.0
+  },
+  {
+   "region": "Col 121 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 459.0,
+   "dist_sol": 1700.0
+  },
+  {
+   "region": "Cone Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 89.0,
+   "dist_sol": 2204.0
+  },
+  {
+   "region": "Dryman",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 28000.0
+  },
+  {
+   "region": "Formorian Frontier",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 1000.0,
+   "dist_sol": 116000.0
+  },
+  {
+   "region": "Froadik",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 24000.0
+  },
+  {
+   "region": "Horsehead Dark Region",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 200.0,
+   "dist_sol": 1500.0
+  },
+  {
+   "region": "Hyponia",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 33000.0
+  },
+  {
+   "region": "IC 4673 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 100.0,
+   "dist_sol": 13400.0
+  },
+  {
+   "region": "M41 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 350.0,
+   "dist_sol": 2500.0
+  },
+  {
+   "region": "NGC 1647 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 205.0,
+   "dist_sol": 1800.0
+  },
+  {
+   "region": "NGC 2264 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 510.0,
+   "dist_sol": 2600.0
+  },
+  {
+   "region": "NGC 2286 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 385.0,
+   "dist_sol": 9600.0
+  },
+  {
+   "region": "NGC 3603 Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 150.0,
+   "dist_sol": 20000.0
+  },
+  {
+   "region": "Praei (1-6)",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 512.0,
+   "dist_sol": 53000.0
+  },
+  {
+   "region": "Regor Sector",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 100.0,
+   "dist_sol": 1100.0
+  },
+  {
+   "region": "Sidgoir",
+   "tipo": "bloqueado",
+   "titular": "Desconocido",
+   "requisito": "Desconocido",
+   "radio_al": 100.0,
+   "dist_sol": 24000.0
+  }
+ ],
+ "cuerpos": [
+  {
+   "cuerpo": "Diso 5 C",
+   "sistema": "Diso",
+   "titular": "Diso Alliance Bond",
+   "requisito": "Desconocido",
+   "dist_sol": 112.2
+  },
+  {
+   "cuerpo": "Lave 2",
+   "sistema": "Lave",
+   "titular": "Workers of Lave Liberals",
+   "requisito": "Desconocido",
+   "dist_sol": 114.54
+  },
+  {
+   "cuerpo": "Moon",
+   "sistema": "Sol",
+   "titular": "Mother Gaia",
+   "requisito": "Desconocido",
+   "dist_sol": 0.0
+  },
+  {
+   "cuerpo": "Triton",
+   "sistema": "Sol",
+   "titular": "Mother Gaia",
+   "requisito": "Desconocido",
+   "dist_sol": 0.0
+  }
+ ]
+}

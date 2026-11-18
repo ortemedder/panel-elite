@@ -434,6 +434,7 @@ CHANGES = [
     ("1.1.13", "ALTÍMETRO en el atraque planetario, nombre entero, tu facción en verde, FSD LISTO y rótulo del suelo"),
     ("1.1.14", "Versión junto a los FPS en 4 CUADROS; CERCA DEL SUELO sin molestar al atracar"),
     ("1.1.15", "MERCADO para tu colonia en grande en la HDMI, TEMPERATURA NORMAL y FSD LISTO con número"),
+    ("1.1.16", "PERMISOS, CORRECCIÓN de EDSM en colonización, mercancías raras y avisos del robot con número"),
     ("1.1.11", "Suelo del planeta en el ALTÍMETRO, RUTA EXTERNA, FSD LISTO, caché y diario, células y vulcanismo"),
     ("1.1.10d", "MERCADO con la carga de ahora (no la de cuando abriste el mercado)"),
     ("1.1.10c", "PARADA DE EMERGENCIA también bajando a un planeta (sender v1.0b14b)"),
