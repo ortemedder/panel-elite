@@ -500,6 +500,7 @@ CHANGES = [
     ("2.0b7", "EXPLORACIÓN a 1280x800: submenú 7, EXPLORACIÓN, SISTEMA (órbitas), EXOBIOLOGÍA, YACIMIENTOS, DIARIO y ALIENÍGENAS"),
     ("2.0b8", "NAVEGACIÓN a 1280x800: RUTA/DESTINO, SISTEMA y POWERPLAY con botones, sistema de la ruta, RUTA EXTERNA y VIAJES"),
     ("2.0b9", "ESTACIÓN y MERCADO a 1280x800 (en el MENÚ, en el tablero y ATRAQUE a pantalla entera)"),
+    ("2.0b10", "CARGA y NAVE a 1280x800 (CARGA/MISIÓN, PASAJEROS, CABINA, MATERIALES, PORTANAVES, COLONIZACIÓN, NAVE, FLOTA); arreglo: pestañas del MENÚ nuevo"),
 ]
 
 def view_changelog_base(surf, d, flags, now):

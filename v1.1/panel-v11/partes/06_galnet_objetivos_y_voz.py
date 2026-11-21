@@ -822,6 +822,11 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v2.0b10
+- A 1280x800 en el MENÚ: CARGA/MISIÓN (BODEGA con barra de capacidad y dos columnas, MISIONES y PASAJEROS), PASAJEROS, CABINA, MATERIALES (dos columnas con barras), PORTANAVES (foto de fondo y reloj grande del salto), COLONIZACIÓN (TODO, AQUÍ y EN EL SISTEMA), NAVE (foto grande y módulos en dos columnas) y FLOTA (fotos más grandes).
+- En el tablero: CARGA/MISIÓN, PASAJEROS y la CABINA del cuadro 4 con el diseño nuevo (sus pestañas funcionan desde el tablero).
+- Arreglo: en el MENÚ nuevo, las pestañas de arriba a partir de la segunda (MERCADO, MATERIALES, FLOTA, NOTAS...) no hacían nada al tocarlas. Ya van.
+- Arreglo: COLONIZACIÓN > EN EL SISTEMA ponía «hace hace 20766 días»; ahora «hace 5 min», «hace 3 h»...
 # Novedades v2.0b9
 - ESTACIÓN a 1280x800: pidiendo atraque, el esquema de la estación con tu plataforma, el reloj de 10 minutos grande y, en puertos planetarios, el ALTÍMETRO. Atracado, la ficha de la estación con sus facciones (y POWERPLAY de vez en cuando).
 - ATRAQUE (la pantalla entera del tablero) y el cuadro ESTACIÓN usan la misma pantalla nueva.
