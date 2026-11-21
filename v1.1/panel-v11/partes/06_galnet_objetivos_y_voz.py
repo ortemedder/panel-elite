@@ -822,6 +822,9 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v2.0b11
+- FACCIÓN a 1280x800 en el MENÚ: el submenú (botón 3 CDSN en rojo si hay alerta), SISTEMAS (barra de influencia con la segunda facción, ventaja, tendencia y comandantes de hoy; botones ◄ ►), BGS (las 11 columnas de la web, filtros, tocar una cabecera ordena y flechas ▲ ▼ en vez de arrastrar) y la ficha del sistema con sus pestañas FACCIONES, ACTIVIDAD (gráfica de comandantes, zonas de conflicto y portanaves), ZONA (mapa de Powerplay a 20 al) e INFLUENCIA (gráfica grande y últimos cambios).
+- Tocar un sistema abre su ficha; < VOLVER e IR > como antes.
 # Novedades v2.0b10
 - A 1280x800 en el MENÚ: CARGA/MISIÓN (BODEGA con barra de capacidad y dos columnas, MISIONES y PASAJEROS), PASAJEROS, CABINA, MATERIALES (dos columnas con barras), PORTANAVES (foto de fondo y reloj grande del salto), COLONIZACIÓN (TODO, AQUÍ y EN EL SISTEMA), NAVE (foto grande y módulos en dos columnas) y FLOTA (fotos más grandes).
 - En el tablero: CARGA/MISIÓN, PASAJEROS y la CABINA del cuadro 4 con el diseño nuevo (sus pestañas funcionan desde el tablero).
