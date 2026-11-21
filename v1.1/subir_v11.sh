@@ -2,7 +2,7 @@
 # Sube el proyecto v1.1 a GitHub, en la carpeta v1.1/ del repositorio de siempre (ortemedder/panel-elite):
 # el codigo de ~/panel-v11 y el contenido del zip (senders, escucha del pueblo, scripts y herramientas).
 # La b20 de la raiz del repositorio no se toca. Lo personal y las claves no se suben nunca.
-# Uso:   bash ~/subir_v11.sh                      (busca el panel_v1.1*.zip mas nuevo en tu carpeta personal)
+# Uso:   bash ~/subir_v11.sh                      (busca el panel_v1.1*.zip o panel_v2*.zip mas nuevo en tu carpeta personal)
 #        bash ~/subir_v11.sh ~/panel_v1.1.zip     (o el zip / carpeta que le digas)
 set -u
 REPO=~/panel-elite
@@ -18,7 +18,7 @@ git pull -q --rebase 2>/dev/null
 mkdir -p v1.1 && cd v1.1 || exit 1                      # todo lo de la v1.1 va en esta carpeta
 
 TMP=""
-[ -z "$SRC" ] && SRC=$(ls -t ~/panel_v1.1*.zip 2>/dev/null | head -1)
+[ -z "$SRC" ] && SRC=$(ls -t ~/panel_v1.1*.zip ~/panel_v2*.zip 2>/dev/null | head -1)   # v2.0: también los panel_v2*.zip
 if [ -n "$SRC" ] && [ -f "$SRC" ]; then
     TMP=$(mktemp -d)
     unzip -q "$SRC" -d "$TMP" || { echo "No puedo abrir $SRC"; exit 1; }

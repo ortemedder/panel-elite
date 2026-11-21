@@ -1,5 +1,11 @@
-PANEL ELITE v1.1.20  ·  version completa (sin parches)
-=======================================================
+PANEL ELITE v2.0  ·  version completa (sin parches)
+====================================================
+v2.0:    «AJUSTE RESOLUCIONES DE PANTALLA». La HDMI se dibuja entera a 1280x800 (KORZO: 960x600 con franjas finas):
+         espera, tablero, avisos, cuadros y todo el MENU con la barra nueva. Un solo modo: tablero automatico y el
+         MENU al tocar la barra de arriba (vuelve solo a los 20 s). 12 AJUSTES > PANTALLA v2 en NO = la v1.1.20b.
+         Menos CPU sin la pantalla de 3,5". Arreglos: BGS fantasma en SISTEMAS, «hace hace 20766 dias».
+         Instalar: bash actualizar_v11.sh. Subir: bash ~/subir_v11.sh (ya encuentra los panel_v2*.zip).
+         Solo cambia el panel (sender v1.0b17 y robot v1.1.18 siguen igual).
 v1.1.20: LATIDO OLED (12 AJUSTES > LATIDO OLED: AUTO / SI / NO). El panel deja en ~/.panel_latido la hora del ultimo
          dato del PC; la OLED (oled/oled_stats.py, solo Ortem) pone los LEDs en POLICIA y «SIN DATOS PC» si lleva
          mas de 2 min sin datos. En AUTO solo se enciende si existe ~/oled_stats.py (en KORZO no hace nada).
