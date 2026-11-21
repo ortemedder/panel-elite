@@ -94,7 +94,7 @@ def big_tap(xn, yn):
         v0 = ui["view"]
         ui["view"] = v
         try:
-            _on_tap_v1112(int(px), int(py))
+            on_tap(int(px), int(py))                       # v1.1.20b: todos los botones, también los de v1.1.16 en adelante
         finally:
             ui["view"] = v0
         TAP_EV.set()

@@ -1,5 +1,16 @@
-PANEL ELITE v1.1.18  ·  version completa (sin parches)
+PANEL ELITE v1.1.20  ·  version completa (sin parches)
 =======================================================
+v1.1.20: LATIDO OLED (12 AJUSTES > LATIDO OLED: AUTO / SI / NO). El panel deja en ~/.panel_latido la hora del ultimo
+         dato del PC; la OLED (oled/oled_stats.py, solo Ortem) pone los LEDs en POLICIA y «SIN DATOS PC» si lleva
+         mas de 2 min sin datos. En AUTO solo se enciende si existe ~/oled_stats.py (en KORZO no hace nada).
+         Arreglos: VERSIONES otra vez con lo mas nuevo primero; el zip ya no lleva datos personales (ajustes,
+         log, base de datos del robot, cache de la faccion), que instalar_v11.sh copiaba a una Pi nueva;
+         lanzadores del sender en pc_ortem / pc_korzo; vuelve desarrollo/; fuera la copia vieja del escucha.
+         Solo cambia el panel (sender v1.0b17 y robot v1.1.18 siguen igual).
+v1.1.19: CDSN ESTILO WEB en 9 FACCION > 3 CDSN y en la pantalla de espera: pestañas RADAR, SISTEMAS, VISITAS y RESUMEN,
+         franja de avisos, EXPANSION, leyenda y avisos con voz de POSIBLE ATAQUE / DIA DECISIVO / SISTEMA EN DERROTA.
+         Se quita en AJUSTES > PANTALLA > RADAR CDSN (ESTILO WEB / CLASICO). Solo cambia el panel
+         (sender v1.0b17 y robot v1.1.18 siguen igual).
 v1.1.18: voz del robot sin cortes (16 kHz y resumen), RESUMEN DEL DIA ordenado, creditos por hora, MASACRE,
          EVACUACIONES y ficha del objetivo con mas datos y avisos.
          CAMBIAN LOS TRES: panel, sender v1.0b17 (pc_ortem / pc_korzo, o patch_sender_v100b17.py sobre el b16)
@@ -23,23 +34,24 @@ v1.1.11: suelo del planeta en el ALTIMETRO, RUTA EXTERNA y portapapeles, FSD LIS
 
 QUE HAY
   panel-v11/          el panel (panel.py carga las partes de partes/ en orden)
-  pc_ortem/           elite_sender.py v1.0b15 para el PC de Ortem (PI_IP 192.168.0.94) y sus lanzadores
-  pc_korzo/           elite_sender.py v1.0b15 para el PC de KORZO (PI_IP 192.168.1.151) y sus lanzadores
+  pc_ortem/           elite_sender.py v1.0b17 para el PC de Ortem (PI_IP 192.168.0.94) y sus lanzadores
+  pc_korzo/           elite_sender.py v1.0b17 para el PC de KORZO (PI_IP 192.168.1.151) y sus lanzadores
                       (control_sender.pyw: ventana INICIAR/PARAR · iniciar_sender.bat: con consola · elite_sender.bat: lo usa el .pyw)
-  patch_sender_v100b15.py   el mismo cambio en forma de parche (lleva un sender b14b propio a la b15)
-  escucha-pueblo/     escucha_faccion.py v5 (tick de cada sistema, historico de influencia y tick de la galaxia)
+  patch_sender_v100b13..b17.py   los mismos cambios en forma de parche (cada uno lleva al siguiente)
+  (el escucha de EDDN ya no va aqui: esta en su propio repositorio, ortemedder/escucha-eddn)
+  oled/               oled_stats.py de la OLED de la Pi de Ortem (con el LATIDO): solo para Ortem
   actualizar_v11.sh   actualiza ~/panel-v11 con esta version (guarda copia del codigo anterior)
   instalar_v11.sh     instalacion desde cero en ~/panel-v11 (copia tus datos de la b20)
   cambiar_panel.sh    elige cual arranca:  v11  o  b20
   prueba_sonido.sh    prueba la musica de inicio, la voz y los pitidos (bash ~/prueba_sonido.sh)
   subir_v11.sh        sube el proyecto a GitHub, carpeta v1.1/ de ortemedder/panel-elite (sin claves ni datos personales)
-  robot/              stackchan_elite.ino v1.1.11: la StackChan (M5Stack) para Arduino IDE (pon tu WiFi en WIFI_SSID / WIFI_PASS)
+  robot/              stackchan_elite.ino v1.1.18: la StackChan (M5Stack) para Arduino IDE (pon tu WiFi en WIFI_SSID / WIFI_PASS)
   instalar_oido_robot.sh  el «oido» del robot (Vosk, voz a texto en español sin internet): una vez en cada Pi
   desarrollo/         herramientas de comprobacion (capturas de las 60 pantallas, equivalencia) y PLAN.md
 
 EN LA RASPBERRY (Ortem y KORZO)
-  1) Copia panel_v1.1.17.zip a tu carpeta personal y:
-        cd ~ && unzip -o panel_v1.1.17.zip && bash ~/panel_v1.1.17/actualizar_v11.sh
+  1) Copia panel_v1.1.19.zip a tu carpeta personal y:
+        cd ~ && unzip -o panel_v1.1.19.zip && bash ~/panel_v1.1.19/actualizar_v11.sh
   2) Solo la primera vez, para que el robot conteste por voz:   bash ~/instalar_oido_robot.sh
   3) Comprueba:   bash ~/cambiar_panel.sh            (debe decir v1.1)
                   grep -a "ERROR" ~/panel-v11/panel.log | tail -30
@@ -58,7 +70,7 @@ EL ROBOT (StackChan · M5Stack CoreS3)
   Cargar:
     - Abre robot/stackchan_elite.ino y arriba, en CONFIGURA, pon tu WiFi en WIFI_SSID / WIFI_PASS
       (red de 2,4 GHz; nunca la pegues en el chat ni la subas a GitHub).
-    - Robot por USB-C, elige su puerto y Subir. Al arrancar debe decir «StackChan v1.1.11».
+    - Robot por USB-C, elige su puerto y Subir. Al arrancar debe decir «StackChan v1.1.18».
   Usar:
     - En el panel: 12 AJUSTES > ROBOT activado (encuentra el panel solo, por UDP 5007).
     - Preguntas por voz: toca su PANTALLA (no la cabeza, y sin foto), espera el pitido y habla 4 s.
@@ -82,15 +94,20 @@ EL ROBOT (StackChan · M5Stack CoreS3)
     - Si los textos duran demasiado: TIEMPO_X (en CONFIGURA): 3 = el triple, 1 = como antes.
 
 EN EL PC (Ortem y KORZO)
-  Esta version SI cambia el sender: v1.0b15 (cuerpo del planeta, modulos y mercado para el diario, ruta externa,
-  celulas de escudo). Sustituye elite_sender.py por el de tu carpeta (pc_ortem o pc_korzo) y arrancalo de nuevo.
-  Copia tambien la carpeta rutas\ junto al sender: ahi se dejan las rutas en CSV (Spansh, neutrones...).
-  Si tienes un sender b14b con cambios propios:  python patch_sender_v100b15.py elite_sender.py
+  Esta version NO cambia el sender: sigue el v1.0b17. Si aun tienes uno anterior, sustituye elite_sender.py por
+  el de tu carpeta (pc_ortem o pc_korzo) y arrancalo de nuevo. La carpeta rutas\ junto al sender guarda las rutas
+  en CSV (Spansh, neutrones...).
+  Si tienes un sender con cambios propios:  python patch_sender_v100b17.py elite_sender.py  (sobre el b16)
   Con un sender antiguo el panel avisa VERSIONES DISTINTAS.
 
 GITHUB (una vez)
   En la Pi:   bash ~/subir_v11.sh   (va a la carpeta v1.1/ del repositorio panel-elite de siempre)
   Nunca pegues el token en el chat: solo en la Pi, cuando git lo pida.
+
+LA OLED (solo la Pi de Ortem)
+  cp ~/panel_v1.1.20/oled/oled_stats.py ~/oled_stats.py && sudo systemctl restart oled
+  En el panel: 12 AJUSTES > LATIDO OLED debe decir «AUTO · SI».
+  Prueba: con el panel encendido, para el sender del PC; a los 2 min LEDs POLICIA y «SIN DATOS PC».
 
 VOLVER ATRAS
   Al codigo anterior de la v1.1: el comando que muestra actualizar_v11.sh al terminar.

@@ -822,6 +822,69 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v2.0b9
+- ESTACIÓN a 1280x800: pidiendo atraque, el esquema de la estación con tu plataforma, el reloj de 10 minutos grande y, en puertos planetarios, el ALTÍMETRO. Atracado, la ficha de la estación con sus facciones (y POWERPLAY de vez en cuando).
+- ATRAQUE (la pantalla entera del tablero) y el cuadro ESTACIÓN usan la misma pantalla nueva.
+- MERCADO a 1280x800: más filas, franjas de BODEGA LLENA y ENTREGA AQUÍ, recuadro PARA TU COLONIA y la vista COLONIA (tocar cambia, como antes).
+# Novedades v2.0b8
+- NAVEGACIÓN a 1280x800 en el MENÚ y en el tablero. Arriba, botones RUTA (o DESTINO), SISTEMA y POWERPLAY para elegir la cara (tocar el resto sigue pasando de cara) y RUTA EXT.
+- La lista de la ruta se mueve con las flechas ▲ ▼ (ya no se arrastra). Tocar un sistema abre su ficha (< VOLVER e IR >).
+- RUTA EXTERNA y VIAJES (mapa con sus botones; tocar el mapa amplía) también a 1280x800.
+# Novedades v2.0b7
+- EXPLORACIÓN a 1280x800 en el MENÚ: submenú 7, EXPLORACIÓN, SISTEMA, EXOBIOLOGÍA, YACIMIENTOS, DIARIO y ALIENÍGENAS. En el tablero también EXPLORACIÓN, SISTEMA, EXOBIOLOGÍA y YACIMIENTOS.
+- SISTEMA: las órbitas ocupan dos tercios de la pantalla y a la derecha van los datos del cuerpo y los botones − + PAUSA ZOOM AHORA. Tocar un cuerpo lo marca (también en el cuadro del tablero).
+- EXOBIOLOGÍA: brújula a la nave y NAVE AQUÍ como en EN VIVO.
+# Novedades v2.0b6
+- A 1280x800, en el MENÚ y como cuadros del tablero: COMBATE (ficha del objetivo con escudo, casco, subsistema, recompensa, facción y poder, ESCUDOS mm:ss y sus 12 botones), COMBATE + CAZA, OBJETIVO, MINERÍA (núcleo, prospector, refinado, t/h y cr/h, bodega, limpets) y ALTÍMETRO Y VELOCIDAD (mismos instrumentos, ahora a la resolución de la pantalla).
+- Los botones hacen exactamente lo mismo que antes.
+# Arreglos v2.0b5b
+- Barra de arriba del tablero: el CONSUMO (CPU, MHz, temperatura, RAM, FPS) ya no pisa el combustible; va en su propia línea. El combustible sale a la derecha de su barra y el nombre del sistema se ve entero (con letra algo más pequeña si es largo).
+- EMITIR en la Pi 4: 1280x800 de fábrica (se cambia una vez solo si tenías 960x600). OPCIONES > EMITIR: NO > 1280x800 > 960x600 > 640x400.
+# Novedades v2.0b5
+- MENÚ de la HDMI a 1280x800 de verdad (pantalla entera, botones grandes) en: MENÚ PRINCIPAL (también con ICONOS), 1 MANDOS, 2 PIPS, 5 SRV / RHINO / A PIE, SALUDOS y CAZA. Barra de arriba nueva: < MENÚ, título, pestañas, combustible y engranaje.
+- Los botones hacen exactamente lo mismo que antes (mismas teclas, mismos destellos).
+- PIPS y SRV / RHINO / A PIE también con el diseño nuevo como cuadros del tablero (y sus botones funcionan desde el tablero).
+- Con ratón (KORZO), la flecha y el clic van sobre el MENÚ nuevo.
+- Las pantallas del MENÚ que aún no están pasadas se ven como antes (nítidas).
+# Novedades v2.0b4
+- EN VIVO con diseño nuevo en el tablero de la HDMI: más grande y repartido para la pantalla ancha, en nave, SRV, a pie, EN COMBATE a pie y con el transporte reservado o a bordo. Mismos datos: casco, carga, estado, altitud, Rhino, indicadores, operación, Merc Coin, copiloto, células de escudo y la banda del FSD.
+- Tocar el nombre de la nave abre su ficha NAVE en el MENÚ; NAVE AQUÍ fija la nave donde estás.
+- En modo GRANDE, EN VIVO se ve el doble de grande.
+- RECOGIDA DE COMBUSTIBLE a pantalla entera dibujada a 1280x800.
+- Los demás cuadros siguen con su diseño (nítidos) hasta su beta. El MAPA ya se dibujaba a la resolución de la pantalla.
+# Novedades v2.0b3
+- TABLERO de la HDMI repartido en 1280x800: barra de arriba nueva con el botón MENÚ a la vista (tocar cualquier parte de la barra también abre el MENÚ), el sistema, la situación, el combustible, la fecha del juego y la hora.
+- Los cuadros siguen siendo las mismas pantallas (nítidas); se irán pasando a 1280x800 en las próximas betas.
+- ATRAQUE (al conceder el atraque, a pantalla entera) ya se ve nítido y sus botones responden.
+- AVISOS a pantalla entera (rojos, naranjas, de salto y los grandes de bajas, cobros, sesión…) dibujados a 1280x800. Tocar el aviso lo quita, como en el panel.
+- PARA TU COLONIA (al atracar con una construcción pendiente) ocupa la mitad de abajo del tablero nuevo.
+# Novedades v2.0b2
+- PANTALLA DE ESPERA en la HDMI dibujada a 1280x800 de verdad (pantalla entera, sin franjas en la de 10", letras más grandes): reloj y noticias de GALNET, CDSN con sus pestañas RADAR, SISTEMAS, VISITAS y RESUMEN, y ACTIVIDAD GALÁCTICA. Mismos datos, avisos y botones que antes.
+- En la espera: tocar un botón lo usa (pestañas, + − C ?, EXPANSIÓN, GALAXIA / COLONIA / SOL, FIJAR / SEGUIR); tocar un sistema del radar lo marca y tocarlo otra vez (o FICHA COMPLETA) abre su ficha en el MENÚ; tocar fuera de los botones abre el MENÚ.
+- Con FPS en AUTO, la espera va a 10 imágenes por segundo (el radar y las noticias ya no van a tirones); jugando sigue como antes.
+- Con el CDSN en CLÁSICO o con PANTALLA v2 en NO, la espera se ve como en la v2.0b1.
+# Novedades v2.0b1 (v2.0 «Ajuste resoluciones de pantalla», primera beta)
+- PANTALLA v2 (12 AJUSTES, de fábrica SÍ): el panel empieza a pensar en 1280x800 (tu pantalla de 10") en vez de 480x320. En esta beta todavía no cambia el diseño: se pone la base para ir pasando las pantallas una a una.
+- La pantalla de espera (reloj y GALNET, CDSN, ACTIVIDAD), los avisos grandes y la recogida de combustible se ven NÍTIDOS en la HDMI (antes eran una imagen pequeña ampliada).
+- Un solo modo en la HDMI: el tablero cambia solo según la situación. Toca la barra de arriba (sistema, combustible, hora) para abrir el MENÚ; a los 20 s sin tocar vuelve solo al tablero. En la espera, tocar fuera de los botones también abre el MENÚ. TAB, clic derecho y la pulsación larga siguen igual.
+- Con ratón: fuera del MENÚ, el clic izquierdo abre el MENÚ (antes pulsaba botones que no se veían).
+- EMITIR: la web enseña lo mismo que la HDMI y el clic funciona también en el tablero. AJUSTES > OPCIONES > EMITIR va pasando por NO > 960x600 > 640x400 > 1280x800 (en la Pi 3 empieza por 640x400).
+- 12 AJUSTES > PANTALLA v2: NO deja todo como en la v1.1.20b.
+# Arreglos v1.1.20b
+- Pantalla de espera en la HDMI (4 CUADROS FIJO): sus botones ya responden (pestañas RADAR / SISTEMAS / VISITAS / RESUMEN del CDSN, V 1/2, GALAXIA / COLONIA / SOL de ACTIVIDAD...). Antes el toque iba a los 4 cuadros de antes, que ya no se veían.
+- 4 CUADROS FIJO: dentro de los cuadros responden también los botones nuevos (desde la v1.1.16).
+# Novedades v1.1.20
+- LATIDO OLED (AJUSTES > LATIDO OLED): el panel deja en tu carpeta personal (.panel_latido) la hora del último dato del PC. La pantallita OLED (oled_stats.py) pone los LEDs en modo POLICÍA y «SIN DATOS PC» si el panel está encendido y lleva más de 2 min sin datos. De fábrica se activa solo si tienes ~/oled_stats.py; si no, queda apagado y no hace nada.
+- VERSIONES vuelve a enseñar lo más nuevo primero.
+- El zip ya no lleva datos personales (ajustes, log, base de datos del robot, caché de la facción).
+# Novedades v1.1.19
+- CDSN ESTILO WEB: 9 FACCIÓN > 3 CDSN (antes RADAR) y la pantalla de espera de la facción se ven como la web cdsn-web, con pestañas RADAR · SISTEMAS · VISITAS · RESUMEN. Mismas reglas y colores que la web y el radar ESP32.
+- RADAR: barrido, aros de aviso (grueso que late = grave; fino = aviso leve; los conflictos en marcha parpadean atenuándose), colores rojo grave, amarillo disputado, naranja aviso, verde a favor y morado pendiente. Tocar un sistema lo marca y sale su ficha corta a la derecha; tocarlo otra vez (o FICHA COMPLETA) abre su ficha. Tocar el vacío centra ahí; + / − zoom, C vista inicial, ? leyenda del mapa.
+- Franja de arriba con lo más grave (POSIBLE ATAQUE, DÍA DECISIVO, SISTEMA EN DERROTA; si no, ACTIVIDAD INUSUAL o DEFENSA EN CURSO): tocarla marca ese sistema. Botón EXPANSIÓN: la expansión pendiente es de toda la facción, así que sus aros solo se ven al tocarlo.
+- SISTEMAS: todos, primero los que tienen aviso, con influencia, cambio desde ayer, ventaja y aviso. VISITAS: visitas de hoy, ayer, media y los últimos 5 días. RESUMEN: cifras y QUÉ HACER HOY, de más a menos urgente, con lo que conviene hacer en cada sistema.
+- Aviso grande con voz, una vez al día por sistema: POSIBLE ATAQUE, DÍA DECISIVO y SISTEMA EN DERROTA (se quita en ALERTAS > CDSN: ATAQUE / DERROTA). Con CDSN activo ya no sale además el TRÁFICO ALTO de antes.
+- En la pantalla de espera, al usar la pantalla CDSN se queda fija (SEGUIR para que vuelva a ir rotando).
+- Se apaga en AJUSTES > PANTALLA > RADAR CDSN: ESTILO WEB / CLÁSICO. Con CLÁSICO todo queda como en la v1.1.18.
 # Novedades v1.1.18
 - ROBOT: la voz va a 16 kHz y, si la respuesta es larga, dice un resumen («El resto, en pantalla») y el texto entero sale en su pantalla. Si aun así no cabe, se corta con un final suave (en el log: «ROBOT: voz demasiado larga, recortada»). Ya no se queda mudo con las respuestas largas.
 - ROBOT: lista de palabras de Vosk también con modelos que no traen words.txt. «¿En qué sistema estoy?» ya no dice «seguridad seguridad». Pregunta nueva: «¿cómo va la masacre?».
@@ -879,7 +942,7 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - ALTÍMETRO: el suelo es el del planeta (helado, rocoso, rocoso con hielo, alto en metales, rico en metales), con rocas y cráteres que pasan con la velocidad, cielo si tiene atmósfera tenue, plantas si hay señales biológicas, grietas de magma o géiseres según el vulcanismo, la sombra de la nave y polvo por debajo de 15 m.
 - MERCADO: «NO LA VENDAS · ES PARA TU COLONIA» si llevas material que le falta a tu construcción, y «aquí pagan poco» si se paga menos que la media.
 - FSD: cuenta atrás del enfriamiento («FSD LISTO EN ≈ 23 s» en EN VIVO), que aprende lo que tarda cada nave, y «FSD LISTO» con pitido. El robot también la lleva.
-- RUTA EXTERNA (NAVEGACIÓN > RUTA EXT.): el CSV más nuevo de la carpeta rutas\ junto al sender (Spansh, neutrones...). Avanza sola al llegar a cada parada y copia la siguiente al portapapeles del PC (Ctrl+V en el mapa galáctico). Botones COPIAR, ATRÁS, SALTAR y BORRAR. Sin ruta externa, al llegar a cada sistema se copia el siguiente salto de la ruta del juego. Se quita en CAMBIO AUTO.
+- RUTA EXTERNA (NAVEGACIÓN > RUTA EXT.): el CSV más nuevo de la carpeta rutas\\ junto al sender (Spansh, neutrones...). Avanza sola al llegar a cada parada y copia la siguiente al portapapeles del PC (Ctrl+V en el mapa galáctico). Botones COPIAR, ATRÁS, SALTAR y BORRAR. Sin ruta externa, al llegar a cada sistema se copia el siguiente salto de la ruta del juego. Se quita en CAMBIO AUTO.
 - CACHÉ y DIARIO en la Pi: lo que se busca en Spansh y EDSM se guarda en disco; cada estación donde abres mercado o equipamiento se apunta con precios y módulos. El robot contesta «¿dónde venden multicañón?» primero con tu diario, y «¿dónde vendo el oro?» y «¿dónde compro acero?».
 - CÉLULAS DE ESCUDO de la nave: contador aproximado en EN VIVO (las del equipamiento menos las que disparas con el botón ESCUDO del panel). «¿Cuántas células me quedan?» al robot: a pie, las de energía y los botiquines.
 - ROBOT: avisa del vulcanismo al llegar a un planeta, dice la siguiente parada de la ruta externa y la lleva en el copiloto.
