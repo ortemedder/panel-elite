@@ -1,5 +1,8 @@
 PANEL ELITE v2.0  ·  version completa (sin parches)
 ====================================================
+v2.0b:   SOLO SCRIPTS (el panel no cambia). actualizar_v11.sh copia primero las partes nuevas y solo si estan todas
+         cambia las viejas (21/11 se quedo la Pi sin partes y sin panel). subir_v11.sh no sube nada si no encuentra el
+         panel en ~/panel-v11 ni si se iban a borrar partes en GitHub.
 v2.0:    «AJUSTE RESOLUCIONES DE PANTALLA». La HDMI se dibuja entera a 1280x800 (KORZO: 960x600 con franjas finas):
          espera, tablero, avisos, cuadros y todo el MENU con la barra nueva. Un solo modo: tablero automatico y el
          MENU al tocar la barra de arriba (vuelve solo a los 20 s). 12 AJUSTES > PANTALLA v2 en NO = la v1.1.20b.

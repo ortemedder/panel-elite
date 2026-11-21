@@ -506,6 +506,7 @@ CHANGES = [
     ("2.0b13", "GALNET, NOTAS y CALCULADORA a 1280x800 (y el cuadro GALNET del tablero)"),
     ("2.0b14", "AJUSTES y el resto del MENÚ con la barra nueva y a pantalla entera (adaptador): ya no queda ninguna con la barra vieja"),
     ("2.0", "v2.0 FINAL «Ajuste resoluciones de pantalla»: todo el MENÚ y el tablero a 1280x800; menos CPU sin la pantalla de 3,5 pulgadas; arreglos (BGS fantasma, «hace hace»); MANUAL al día"),
+    ("2.0b", "Scripts más seguros: actualizar_v11.sh no deja el panel sin partes si falla la copia y subir_v11.sh no sube nada si falta el panel"),
 ]
 
 def view_changelog_base(surf, d, flags, now):

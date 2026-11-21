@@ -14,6 +14,12 @@ if [ ! -d "$REPO/.git" ]; then
     git clone -q "$URL" "$REPO" || { echo "No he podido clonar $URL"; exit 1; }
 fi
 cd "$REPO" || exit 1
+# v2.0b: si en esta Pi no está el panel instalado, no se sube nada (antes se subía un commit que borraba las partes)
+if [ "$(ls ~/panel-v11/partes/[0-9]*.py 2>/dev/null | wc -l)" -lt 10 ] || [ ! -f ~/panel-v11/panel.py ]; then
+    echo "¡OJO! No encuentro el panel en ~/panel-v11 (faltan panel.py o las partes). No subo nada."
+    echo "      Instálalo primero (bash actualizar_v11.sh) y vuelve a lanzar este script."
+    exit 1
+fi
 git pull -q --rebase 2>/dev/null
 mkdir -p v1.1 && cd v1.1 || exit 1                      # todo lo de la v1.1 va en esta carpeta
 
@@ -96,6 +102,10 @@ if git diff --cached --quiet; then
     echo "Nada nuevo que subir."; exit 0
 fi
 VER=$(grep -ho 'PANEL_VER = "v[^ "]*' panel-v11/partes/*.py | head -1 | cut -d'"' -f2)
+if [ -z "$VER" ] || [ "$(git diff --cached --name-only --diff-filter=D | grep -c '^v1.1/panel-v11/partes/')" -gt 2 ]; then
+    echo "¡OJO! Se iban a borrar partes del panel en GitHub (o no encuentro la versión). Cancelado, no se ha subido nada."
+    git reset -q; exit 1
+fi
 git diff --cached --name-only | grep -qv "^v1.1/" && { echo "¡OJO! Se iba a cambiar algo fuera de v1.1/. Cancelado."; git reset -q; exit 1; }
 echo "== Cambios:"; git diff --cached --stat | tail -3
 git commit -q -m "Panel $VER · $(date '+%d/%m/%Y %H:%M')" || { echo "Fallo al hacer el commit (¿falta git config user.name / user.email?)"; exit 1; }

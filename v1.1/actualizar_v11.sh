@@ -17,8 +17,18 @@ sudo chown -R "$(id -un)": "$DEST" 2>/dev/null       # la caché que deja el pan
 mkdir -p "$DEST/copias"
 COPIA="$DEST/copias/codigo_${OLD:-anterior}_$(date +%Y%m%d_%H%M).tar.gz"
 tar -czf "$COPIA" -C "$DEST" panel.py panel_run.py partes 2>/dev/null && echo "== Copia del codigo ${OLD:-anterior}: $COPIA"
-rm -rf "$DEST/partes"
-cp -r "$ORIG/panel-v11/partes" "$DEST/"
+# v2.0b: primero se copian las partes nuevas aparte; solo si están todas se cambian por las viejas
+N_NEW=$(ls "$ORIG"/panel-v11/partes/[0-9]*.py 2>/dev/null | wc -l)
+rm -rf "$DEST/partes.nuevas"
+if ! cp -r "$ORIG/panel-v11/partes" "$DEST/partes.nuevas" || \
+   [ "$(ls "$DEST"/partes.nuevas/[0-9]*.py 2>/dev/null | wc -l)" -ne "$N_NEW" ] || [ "$N_NEW" -lt 10 ]; then
+    rm -rf "$DEST/partes.nuevas"
+    echo "¡OJO! No se han podido copiar las partes nuevas. No he tocado nada: el panel sigue con ${OLD:-el codigo de antes}."
+    exit 1
+fi
+rm -rf "$DEST/partes.viejas"
+[ -d "$DEST/partes" ] && mv "$DEST/partes" "$DEST/partes.viejas"
+mv "$DEST/partes.nuevas" "$DEST/partes" && rm -rf "$DEST/partes.viejas"
 cp "$ORIG/panel-v11/panel.py" "$ORIG/panel-v11/panel_run.py" "$ORIG"/panel-v11/*.wav "$DEST/"
 cp -r "$ORIG/panel-v11/datos" "$DEST/" 2>/dev/null          # v1.1.11: listas fijas (mercancias raras)
 rm -rf "$DEST/partes/__pycache__" "$DEST/__pycache__"
