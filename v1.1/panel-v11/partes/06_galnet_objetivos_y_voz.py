@@ -822,6 +822,18 @@ Panel táctil para Elite Dangerous: botones que pulsan teclas del juego y pantal
 - (10c) AJUSTES > OPCIONES: botón FLUJO DATOS EDDN con el estado del escucha (OK y hace cuánto se subió a GitHub; en rojo si lleva más de 7 h sin subir o EDDN está desconectado). Tocarlo da el detalle.
 - (10b) Menú 7: el botón < MENÚ vuelve a funcionar.
 - Al arrancar, la Pi sincroniza la hora; si no hay NTP, la toma de un servidor web y avisa con HORA CORREGIDA.
+# Novedades v2.0b14
+- AJUSTES (y 124, OPCIONES, PANTALLA, ALERTAS, CAMBIO AUTO, SONIDO Y VOZ, TECLAS, VERSIONES, PERMISOS, LOG, STREAM y MANUAL), CDSN, ACTIVIDAD, EN VIVO y MAPA en el MENÚ: con la barra nueva y ocupando todo el hueco, nítidas. Los botones hacen lo mismo que antes.
+- Con esto ya no queda ninguna pantalla del MENÚ con la barra vieja ni con franjas negras a los lados.
+# Novedades v2.0b13
+- GALNET a 1280x800: lista con las nuevas en verde y la noticia a pantalla entera (toca para pasar de página).
+- NOTAS DE VIAJE y NOTA: GUARDAR AQUÍ, filas grandes, brújula grande al sitio y BORRAR / ¿SEGURO? como antes.
+- CALCULADORA con teclas grandes y la cinta a la derecha (toca un resultado para recuperarlo).
+- En el tablero ATRACADO, el cuadro GALNET con las noticias subiendo despacio.
+# Novedades v2.0b12
+- A 1280x800 en el MENÚ: ESCUADRÓN (con el escudo, el ala y los comandantes de Inara con su foto; toca para pasar), AMIGOS (ESCUADRÓN > abajo), RANGOS (más grandes), OBJETIVOS COMUNITARIOS (3 por página) y RESUMEN DEL DÍA con sus caras AMIGOS y DÓNDE COMPRAR HOY (tocar una estación copia su sistema en el PC) y el botón BORRAR de lo sin cobrar.
+- REGISTRO DE COMBATE a 1280x800: derribos y bonos por facción en dos columnas, MASACRE abajo.
+- En el tablero, los cuadros RESUMEN DEL DÍA (ATRACADO) y REGISTRO DE COMBATE (COMBATE) con el diseño nuevo.
 # Novedades v2.0b11
 - FACCIÓN a 1280x800 en el MENÚ: el submenú (botón 3 CDSN en rojo si hay alerta), SISTEMAS (barra de influencia con la segunda facción, ventaja, tendencia y comandantes de hoy; botones ◄ ►), BGS (las 11 columnas de la web, filtros, tocar una cabecera ordena y flechas ▲ ▼ en vez de arrastrar) y la ficha del sistema con sus pestañas FACCIONES, ACTIVIDAD (gráfica de comandantes, zonas de conflicto y portanaves), ZONA (mapa de Powerplay a 20 al) e INFLUENCIA (gráfica grande y últimos cambios).
 - Tocar un sistema abre su ficha; < VOLVER e IR > como antes.

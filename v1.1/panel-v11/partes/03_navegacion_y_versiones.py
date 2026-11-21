@@ -502,6 +502,9 @@ CHANGES = [
     ("2.0b9", "ESTACIÓN y MERCADO a 1280x800 (en el MENÚ, en el tablero y ATRAQUE a pantalla entera)"),
     ("2.0b10", "CARGA y NAVE a 1280x800 (CARGA/MISIÓN, PASAJEROS, CABINA, MATERIALES, PORTANAVES, COLONIZACIÓN, NAVE, FLOTA); arreglo: pestañas del MENÚ nuevo"),
     ("2.0b11", "FACCIÓN a 1280x800 (submenú, SISTEMAS, BGS con flechas y la ficha del sistema: FACCIONES, ACTIVIDAD, ZONA, INFLUENCIA)"),
+    ("2.0b12", "ESCUADRÓN y DÍA a 1280x800 (ESCUADRÓN, AMIGOS, RANGOS, OBJ. COMUNITARIOS, RESUMEN DEL DÍA y REGISTRO DE COMBATE, también en el tablero)"),
+    ("2.0b13", "GALNET, NOTAS y CALCULADORA a 1280x800 (y el cuadro GALNET del tablero)"),
+    ("2.0b14", "AJUSTES y el resto del MENÚ con la barra nueva y a pantalla entera (adaptador): ya no queda ninguna con la barra vieja"),
 ]
 
 def view_changelog_base(surf, d, flags, now):
