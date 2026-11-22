@@ -508,6 +508,7 @@ CHANGES = [
     ("2.0", "v2.0 FINAL «Ajuste resoluciones de pantalla»: todo el MENÚ y el tablero a 1280x800; menos CPU sin la pantalla de 3,5 pulgadas; arreglos (BGS fantasma, «hace hace»); MANUAL al día"),
     ("2.0b", "Scripts más seguros: actualizar_v11.sh no deja el panel sin partes si falla la copia y subir_v11.sh no sube nada si falta el panel"),
     ("2.0c", "SIGUIENTE SALTO con número (6 s, con pitido, ALERTAS/SONIDO) y RECOGIENDO COMBUSTIBLE con depósito animado, LLENO EN y CALOR"),
+    ("2.1", "NÚCLEO en COMBATE (apunta solo a la planta de energía; también en CAMBIO AUTO) y AUTODESCUBRIMIENTO: el sender v1.0b18 encuentra la Pi solo"),
 ]
 
 def view_changelog_base(surf, d, flags, now):

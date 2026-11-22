@@ -386,6 +386,8 @@ HEAVY = ("outfit", "mktall", "rutaext", "matsall", "colonia", "colsys", "colbuy"
 _heavy, _full, last_size = {}, [0.0], [0]
 
 def send(obj):
+    if not PI_IP:
+        return                                               # v1.0b18: aún no se ha encontrado el panel
     out = obj
     if "Flags" in obj:
         now = time.time()
@@ -495,6 +497,7 @@ def handle(e):
                       "rank": e.get("PilotRank"), "shield": e.get("ShieldHealth"), "hull": e.get("HullHealth"),
                       "legal": e.get("LegalStatus"), "bounty": e.get("Bounty"),
                       "subsys": e.get("Subsystem_Localised"), "subhealth": e.get("SubsystemHealth"), "t": time.time(),
+                      "subraw": (e.get("Subsystem") or "").lower(),
                       "faction": e.get("Faction_Localised") or e.get("Faction"), "power": e.get("Power_Localised") or e.get("Power")}
     elif ev in ("FSDJump", "SupercruiseEntry", "Docked", "Died"):
         target = None
@@ -2500,7 +2503,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b17"
+SENDER_VER = "v1.0b18"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3387,13 +3390,54 @@ def handle(e):
         print("masacre/evacuación:", ex, flush=True)
 
 _v096_load()
+
+# ---- v1.0b18: autodescubrimiento del panel (la Pi se anuncia por UDP 5007) ----
+HOLA_PORT = 5007
+PI_AUTO = PI_IP.strip().upper() in ("", "AUTO")
+if PI_AUTO:
+    PI_IP = ""
+PANELES = {}                                                 # ip -> (hora, versión, cmdr)
+
+def hola_loop():
+    global PI_IP
+    try:
+        so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        so.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        so.bind(("0.0.0.0", HOLA_PORT))
+    except OSError as e:
+        print("Autodescubrimiento no disponible:", e, flush=True)
+        return
+    while True:
+        try:
+            data, addr = so.recvfrom(256)
+        except OSError:
+            continue
+        if not data.startswith(b"ELITEPANEL-HOLA|"):
+            continue
+        ver, cmdr = (data[16:].decode("utf-8", "ignore").split("|") + ["", ""])[:2]
+        ip, now = addr[0], time.time()
+        PANELES[ip] = (now, ver, cmdr)
+        if ip == PI_IP:
+            continue
+        cur = PANELES.get(PI_IP)
+        if PI_IP and ((cur is None and not PI_AUTO) or (cur and now - cur[0] < 60)):
+            continue                                         # el panel de siempre sigue ahí (o es una IP fija sin aviso)
+        mio = (ranks.get("cmdr") or "").lower()
+        if mio and cmdr.lower() != mio and any(c.lower() == mio and now - t < 60 for t, _, c in PANELES.values()):
+            continue                                         # hay otro panel de tu comandante: ese manda
+        antes = PI_IP
+        PI_IP = ip
+        print(time.strftime("%H:%M:%S"), "PANEL ENCONTRADO en", ip, ver, cmdr,
+              f"(antes {antes})" if antes else "", flush=True)
+
+threading.Thread(target=hola_loop, daemon=True).start()
 print("Sender", SENDER_VER)
 
 print("Leyendo journals...")
 startup_scan()
 LIVE[0] = True
 threading.Thread(target=fetch_edsm, args=(explo["system"],), daemon=True).start()
-print("Enviando a", PI_IP, PORT)
+print("Enviando a", PI_IP or "(buscando el panel en la red...)", PORT)
 last_info = None
 while True:
     try:
