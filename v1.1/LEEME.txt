@@ -1,5 +1,7 @@
-PANEL ELITE v2.0  ·  version completa (sin parches)
+PANEL ELITE v2.0c ·  version completa (sin parches)
 ====================================================
+v2.0c:   SIGUIENTE SALTO con numero (#NN), 6 s y pitido (se quitan en ALERTAS / SONIDO). RECOGIENDO COMBUSTIBLE con
+         deposito animado, LLENO EN grande y CALOR; se apaga en ALERTAS > RECOGIDA: DEPOSITO ANIMADO (menos CPU).
 v2.0b:   SOLO SCRIPTS (el panel no cambia). actualizar_v11.sh copia primero las partes nuevas y solo si estan todas
          cambia las viejas (21/11 se quedo la Pi sin partes y sin panel). subir_v11.sh no sube nada si no encuentra el
          panel en ~/panel-v11 ni si se iban a borrar partes en GitHub.
