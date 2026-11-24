@@ -1,5 +1,10 @@
-PANEL ELITE v2.2b2  ·  version completa (sin parches)
+PANEL ELITE v2.2b3  ·  version completa (sin parches)
 ======================================================
+v2.2b3:  MINERIA EN 2 CUADROS. ASTEROIDES (minando en un anillo): asteroide prospectado (veta madre, contenido,
+         % de cada material, lo que queda, ultimos asteroides) y BODEGA · REFINERIA · DRONES (bodega, refinado por
+         material, t/h, valor aproximado, drones). PLANETARIA (Rhino siempre; SRV normal si has recogido algo en los
+         ultimos 5 min): MAPA con un punto donde recoges y el SRV/RHINO con los MATERIALES recogidos y su total/maximo.
+         REGISTRO abajo con lo ultimo. 12 AJUSTES > PANTALLA > MINERIA / BIO (2 / 4 CUADROS). Sender igual (v1.0b19).
 v2.2b2:  COMBATE A PIE EN 2 CUADROS: MAPA grande (rastro, nave, una X en cada baja; tocar = zoom), TRAJE (escudo,
          salud, oxigeno, temperatura, arma, granadas / EMP / proyector «quedan X de Y», botiquines y baterias, con
          botones BOTIQUIN, BATERIA, ESCUDO y RECARGAR) y REGISTRO con SESION · SIN ENTREGAR · TOTAL A PIE.

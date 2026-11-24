@@ -511,6 +511,7 @@ CHANGES = [
     ("2.1", "NÚCLEO en COMBATE (apunta solo a la planta de energía; también en CAMBIO AUTO) y AUTODESCUBRIMIENTO: el sender v1.0b18 encuentra la Pi solo"),
     ("2.2b1", "COMBATE de nave en 2 CUADROS GRANDES: OBJETIVO (escudos, armazón, subsistema, NÚCLEO a la vista) y TU NAVE (escudos, casco, PIPS), con REGISTRO y bajas SESIÓN · SIN ENTREGAR · TOTAL; AJUSTES > PANTALLA > COMBATE"),
     ("2.2b2", "COMBATE A PIE en 2 CUADROS (MAPA grande, TRAJE con explosivos y botones, REGISTRO con SESIÓN · SIN ENTREGAR · TOTAL A PIE) y EDMC: el sender v1.0b19 lo abre solo al arrancar el juego"),
+    ("2.2b3", "MINERÍA en 2 CUADROS: asteroides (asteroide prospectado, veta madre, bodega, refinado, t/h, drones) y planetaria en SRV/Rhino (mapa con lo recogido, materiales con su máximo); AJUSTES > PANTALLA > MINERÍA / BIO"),
 ]
 
 def view_changelog_base(surf, d, flags, now):
