@@ -1,5 +1,7 @@
-PANEL ELITE v2.3b  ·  version completa (sin parches)
+PANEL ELITE v2.3c  ·  version completa (sin parches)
 =====================================================
+v2.3c:   ARREGLO: en 3 NAVEGACION, tocar la pestaña PLANETA abria AJUSTES (caia debajo del engranaje). Ahora las
+         pestañas se estrechan si no caben. Solo cambia el panel. Ortem y KORZO: bash actualizar_v11.sh
 v2.3b:   ARREGLOS (log de Operations del 24/11). Armas fuera en un ANILLO = COMBATE al momento (antes esperaba a la
          musica o al primer «te atacan»); si estas minando (prospectores, recolectores o refinado en 10 min) sigue
          MINERIA. MEGA NAVE de Operations: el contador de 15 min solo sale A PIE (o si ya lo arrancaste).

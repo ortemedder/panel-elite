@@ -35,3 +35,22 @@ def mega_rect(w, h):
     if ops_on(d) and not mega_ver(d):
         return pygame.Rect(0, 0, 0, 0)                   # sin cuadro: los toques de esa esquina van a lo de debajo
     return _mega_rect_v23b(w, h)
+
+# v2.3c: con la pestaña PLANETA, las de NAVEGACIÓN llegaban debajo del engranaje (480x320) y tocar PLANETA abría
+# AJUSTES. Si las pestañas no caben antes del engranaje, se estrechan todas por igual.
+_tab_rects_v23c = tab_rects
+
+def tab_rects(v):
+    out = _tab_rects_v23c(v)
+    if not out:
+        return out
+    x0, lim = out[0][2].x, GEAR.x - 4
+    if out[-1][2].right <= lim:
+        return out
+    k = (lim - x0 - 3 * (len(out) - 1)) / sum(r.w for _, _, r, _ in out)
+    res, x = [], x0
+    for t, name, r, on in out:
+        w = max(20, int(r.w * k))
+        res.append((t, name, pygame.Rect(x, r.y, w, r.h), on))
+        x += w + 3
+    return res
