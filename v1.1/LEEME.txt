@@ -1,5 +1,12 @@
-PANEL ELITE v2.3c  ·  version completa (sin parches)
+PANEL ELITE v2.3e  ·  version completa (sin parches)
 =====================================================
+v2.3e:   COMBATE + CAZA: con el nucleo apuntado, el recuadro del objetivo se pone VERDE y parpadea despacio, y sale
+         en grande «NUCLEO FIJADO · NN %» (salud de la planta). Otro subsistema: su nombre y salud en naranja.
+         Solo cambia el panel. Ortem y KORZO: bash actualizar_v11.sh
+v2.3d:   ARREGLOS: REGISTRO DE COMBATE daba «too many values to unpack» (los derribos llevan hora desde el sender
+         b20; tambien en RESUMEN DEL DIA y COMBATE 2 CUADROS). COMBATE + CAZA: la ficha del objetivo (escudo, casco)
+         se salia del recuadro en el cuadro del tablero; ahora encaja y lleva boton NUCLEO.
+         Solo cambia el panel. Ortem y KORZO: bash actualizar_v11.sh
 v2.3c:   ARREGLO: en 3 NAVEGACION, tocar la pestaña PLANETA abria AJUSTES (caia debajo del engranaje). Ahora las
          pestañas se estrechan si no caben. Solo cambia el panel. Ortem y KORZO: bash actualizar_v11.sh
 v2.3b:   ARREGLOS (log de Operations del 24/11). Armas fuera en un ANILLO = COMBATE al momento (antes esperaba a la

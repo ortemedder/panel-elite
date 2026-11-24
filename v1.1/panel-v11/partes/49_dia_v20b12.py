@@ -433,7 +433,7 @@ def lv_combatlog(L, area, d, flags, now):
     if not kills:
         put(L, fs, "ninguno en esta sesión", (x0, yk), DIM)
     rh = fb.get_height() + (10 if grande else 2)
-    for tgt, rew, kind in kills[:max(1, (bot - yk) // rh)]:
+    for tgt, rew, kind, *_ in kills[:max(1, (bot - yk) // rh)]:
         tag, col = {"R": ("RECOMPENSA", ORANGE), "B": ("BONO", BLUE), "P": ("PvP", RED)}.get(kind, ("", DIM))
         rw = f"+{cr(rew)}" if rew else ""
         wt = (xm - x0) - tw_(fb, rw) - tw_(fs, "RECOMPENSA") - 60

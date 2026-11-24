@@ -291,7 +291,7 @@ def view_combatlog(surf, d, flags, now):
     put(surf, F["small"], "ÚLTIMOS DERRIBOS", (8, y), DIM); y += 16
     if not kills:
         put(surf, F["small"], "ninguno en esta sesión", (8, y), DIM); y += 18
-    for tgt, rew, kind in kills[:6]:
+    for tgt, rew, kind, *_ in kills[:6]:
         tag, col = {"R": ("RECOMPENSA", ORANGE), "B": ("BONO", BLUE), "P": ("PvP", RED)}.get(kind, ("", DIM))
         put(surf, F["btn"], tgt, (8, y), WHITE, 230)
         put(surf, F["small"], tag, (250, y + 4), col)
@@ -520,6 +520,8 @@ CHANGES = [
     ("2.3", "NAVEGACIÓN PLANETARIA definitiva (b1-b3): ESFERA y FLECHA al destino, destino rápido, a mano, NOTAS y puntos automáticos, gravedad y plataformas; también para KORZO (sender b21)"),
     ("2.3b", "Arreglos: armas fuera en un anillo = COMBATE (salvo minando); contador de la MEGA NAVE de Operations solo a pie"),
     ("2.3c", "Arreglo: la pestaña PLANETA de NAVEGACIÓN abría AJUSTES (quedaba debajo del engranaje)"),
+    ("2.3d", "Arreglos: REGISTRO DE COMBATE («too many values to unpack» con los derribos con hora) y ficha del objetivo de COMBATE + CAZA bien encuadrada, con botón NÚCLEO"),
+    ("2.3e", "COMBATE + CAZA: NÚCLEO FIJADO muy a la vista (recuadro verde que parpadea y salud de la planta); otro subsistema en naranja con su salud"),
 ]
 
 def view_changelog_base(surf, d, flags, now):

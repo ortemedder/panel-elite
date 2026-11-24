@@ -330,7 +330,7 @@ def c2_registro(Z, d, flags, now):
     lh = (a.bottom + 8 - y) // 3
     if not kills:
         put(Z, F["small"], "sin derribos en esta sesión", (x, y + 4), DIM)
-    for tgt, rew, kind in kills:
+    for tgt, rew, kind, *_ in kills:
         tag, sub, col = C2_TIPO.get(kind, ("DERRIBO", "", DIM))
         put(Z, F["small"], tag, (x, y), GREEN)
         put(Z, F["small"], tgt, (x + 150, y), WHITE, w * 0.45)
