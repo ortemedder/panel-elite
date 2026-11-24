@@ -1,5 +1,11 @@
-PANEL ELITE v2.1  ·  version completa (sin parches)
-====================================================
+PANEL ELITE v2.2b1  ·  version completa (sin parches)
+======================================================
+v2.2b1:  COMBATE DE NAVE EN 2 CUADROS GRANDES (pantalla grande, armas fuera). OBJETIVO: modelo, piloto, BUSCADO/LIMPIO,
+         ESCUDOS y ARMAZON en grande, subsistema, faccion, recompensa, potencia y escuadron, con NUCLEO y SIG. SUBSIST.
+         a la vista (sin objetivo: OBJETIVO, SIGUIENTE, PELIGROSO, SU OBJ.). TU NAVE: escudos (activos / caidos con su
+         tiempo), casco, calor, combustible y PIPS con sus botones. Abajo REGISTRO con los ultimos derribos y
+         SESION · SIN ENTREGAR · TOTAL (tocarlo abre el REGISTRO DE COMBATE). Con el caza fuera, el tablero de siempre.
+         12 AJUSTES > PANTALLA > COMBATE: 2 CUADROS / 4 CUADROS. Solo cambia el panel (sender v1.0b18 igual).
 v2.1:    NUCLEO en COMBATE: boton en la ficha del objetivo que pulsa «siguiente subsistema» hasta apuntar a la
          planta de energia (y refresca escudo y casco). CAMBIO AUTO > COMBATE: APUNTAR AL NUCLEO AL FIJAR (apagado de
          fabrica). AUTODESCUBRIMIENTO: el panel se anuncia en la red (UDP 5007) y el sender v1.0b18 lo encuentra solo.

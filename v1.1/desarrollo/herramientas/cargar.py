@@ -1,5 +1,5 @@
 import importlib.util, json, os, sys
-sys.path.insert(0, "/home/claude/panel-elite/v1.1/desarrollo/herramientas")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy"); os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import capturar as C
 def cargar(panel):
