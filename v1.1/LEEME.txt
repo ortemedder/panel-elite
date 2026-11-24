@@ -1,5 +1,14 @@
-PANEL ELITE v2.2b1  ·  version completa (sin parches)
+PANEL ELITE v2.2b2  ·  version completa (sin parches)
 ======================================================
+v2.2b2:  COMBATE A PIE EN 2 CUADROS: MAPA grande (rastro, nave, una X en cada baja; tocar = zoom), TRAJE (escudo,
+         salud, oxigeno, temperatura, arma, granadas / EMP / proyector «quedan X de Y», botiquines y baterias, con
+         botones BOTIQUIN, BATERIA, ESCUDO y RECARGAR) y REGISTRO con SESION · SIN ENTREGAR · TOTAL A PIE.
+         Mismo boton 12 AJUSTES > PANTALLA > COMBATE (2 / 4 CUADROS).
+         EDMC SOLO: el sender v1.0b19 abre EDMarketConnector (Inara) al arrancar el juego si no esta abierto; el panel
+         avisa EDMC ABIERTO o NO ENCUENTRO EDMC. Arriba del sender: EDMC_AUTO = True/False y EDMC_EXE (ruta, si no lo
+         encuentra solo). KORZO viene con EDMC_AUTO = False.
+         SENDER NUEVO v1.0b19: python patch_sender_v100b19.py elite_sender.py (o copia pc_ortem/elite_sender.py;
+         KORZO: python patch_sender_v100b19.py elite_sender.py no, o pc_korzo/elite_sender.py).
 v2.2b1:  COMBATE DE NAVE EN 2 CUADROS GRANDES (pantalla grande, armas fuera). OBJETIVO: modelo, piloto, BUSCADO/LIMPIO,
          ESCUDOS y ARMAZON en grande, subsistema, faccion, recompensa, potencia y escuadron, con NUCLEO y SIG. SUBSIST.
          a la vista (sin objetivo: OBJETIVO, SIGUIENTE, PELIGROSO, SU OBJ.). TU NAVE: escudos (activos / caidos con su

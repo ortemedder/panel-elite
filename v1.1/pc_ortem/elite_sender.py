@@ -5,6 +5,8 @@ import sys, json, socket, time, glob, os, calendar, traceback, threading, urllib
 
 PI_IP = "192.168.0.94"   # IP de la Raspberry Pi (PI4ELITE)
 PORT = 5005
+EDMC_AUTO = True         # v1.0b19: abrir EDMarketConnector (Inara) al arrancar el juego si no está abierto
+EDMC_EXE = ""              # vacío = lo busco solo; si no, la ruta, p. ej. r"D:\Juegos\EDMarketConnector\EDMarketConnector.exe"
 DIR = os.path.expanduser(r"~\Saved Games\Frontier Developments\Elite Dangerous")
 MISSION_DAYS = 30          # dias de journal que se leen al arrancar para recuperar misiones
 
@@ -1081,6 +1083,8 @@ def handle_alerts(e):
     handle_v096(e)
     handle_v094(e)
     handle_v100b3(e)
+    if ev == "LoadGame":
+        edmc_check("juego")
     if ev == "SystemsShutdown":
         note("shutdown", "")
     if ev == "StartJump" and e.get("JumpType") == "Hyperspace":
@@ -2503,7 +2507,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b18"
+SENDER_VER = "v1.0b19"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3431,11 +3435,56 @@ def hola_loop():
               f"(antes {antes})" if antes else "", flush=True)
 
 threading.Thread(target=hola_loop, daemon=True).start()
+
+# ---- v1.0b19: abrir EDMC (Inara) si no está abierto ----
+EDMC = {"t": 0}
+
+def _edmc_rutas():
+    out = []
+    for base in (os.environ.get("ProgramFiles(x86)"), os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA"),
+                 os.path.join(os.environ.get("LOCALAPPDATA") or "", "Programs")):
+        if base:
+            out.append(os.path.join(base, "EDMarketConnector", "EDMarketConnector.exe"))
+    return out
+
+def _abierto(exe):
+    import subprocess
+    r = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {exe}", "/NH"], capture_output=True, text=True, timeout=15,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return exe.lower() in (r.stdout or "").lower()
+
+def _edmc_run(motivo):
+    import subprocess
+    try:
+        if motivo == "inicio" and not _abierto("EliteDangerous64.exe"):
+            return                                           # el juego no está abierto: nada
+        if _abierto("EDMarketConnector.exe"):
+            print("EDMC ya estaba abierto", flush=True)
+            return
+        exe = EDMC_EXE.strip() or next((p for p in _edmc_rutas() if os.path.isfile(p)), "")
+        if not exe or not os.path.isfile(exe):
+            print("NO ENCUENTRO EDMC: pon su ruta en EDMC_EXE (arriba del sender)", flush=True)
+            note("edmc", "no|" + (exe or ""))
+            return
+        subprocess.Popen([exe], cwd=os.path.dirname(exe), close_fds=True,
+                         creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        print("EDMC ABIERTO:", exe, flush=True)
+        note("edmc", "ok|" + exe)
+    except Exception as e:
+        print("No he podido abrir EDMC:", e, flush=True)
+
+def edmc_check(motivo):
+    if not EDMC_AUTO or os.name != "nt" or (motivo != "inicio" and not LIVE[0]) or time.time() - EDMC["t"] < 60:
+        return
+    EDMC["t"] = time.time()
+    threading.Thread(target=_edmc_run, args=(motivo,), daemon=True).start()
+
 print("Sender", SENDER_VER)
 
 print("Leyendo journals...")
 startup_scan()
 LIVE[0] = True
+edmc_check("inicio")
 threading.Thread(target=fetch_edsm, args=(explo["system"],), daemon=True).start()
 print("Enviando a", PI_IP or "(buscando el panel en la red...)", PORT)
 last_info = None
