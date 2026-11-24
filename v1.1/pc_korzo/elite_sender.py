@@ -134,9 +134,14 @@ def handle_extra(e):
             b["mapped"] = True; b["value"] = body_value(b["raw"], True); unsold[b["name"]] = b["value"]
     elif ev in ("SellExplorationData", "MultiSellExplorationData"):
         systems = e.get("Systems") or [d.get("SystemName", "") for d in e.get("Discovered") or []]
+        vend = []
         for sysname in systems:
+            v_ = 0
             for k in [k for k in unsold if k.startswith(sysname)]:
-                unsold.pop(k)
+                v_ += unsold.pop(k) or 0
+            vend.append(f"{sysname.replace('|', ' ').replace(';', ' ')}:{int(v_)}")
+        if LIVE[0] and systems:                             # v1.0b20: DATOS VENDIDOS
+            note("datavend", f"{len(systems)}|{int(e.get('TotalEarnings', 0))}|{int(e.get('Bonus', 0))}|" + ";".join(vend[:40]))
         if sess:
             sess["earn"]["explo"] += e.get("TotalEarnings", 0)
     elif ev == "Died":
@@ -717,7 +722,7 @@ def handle_combat(e):
             combat["bonds"][fac] = combat["bonds"].get(fac, 0) + rew
         else:
             tgt, rew, kind = e.get("Victim") or "?", 0, "P"
-        combat["kills"].insert(0, [tgt[:28], rew, kind])
+        combat["kills"].insert(0, [tgt[:28], rew, kind, int(iso2epoch(e.get("timestamp")) or time.time())])
         del combat["kills"][8:]
         if LIVE[0]:
             veh = "F" if cur_st.get("Flags2", 0) & 1 else "S" if cur_st.get("Flags", 0) & (1 << 26) else "N"
@@ -2507,7 +2512,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b19"
+SENDER_VER = "v1.0b20"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():
@@ -3149,6 +3154,9 @@ def pax_event(e):
         for mid in [k for k in pax if k not in act]:
             pax.pop(mid, None)
     elif ev == "MarketSell" and LIVE[0]:
+        n_, tot_ = e.get("Count", 0), e.get("TotalSale", 0)
+        note("venta", f"{n_}|{(e.get('Type_Localised') or e.get('Type') or '').replace('|', ' ')}|{tot_}|"
+                      f"{tot_ - (e.get('AvgPricePaid') or 0) * n_}|{e.get('AvgPricePaid') or 0}")   # v1.0b20
         note("mktsell", f"{(e.get('Type') or '').lower()}|{e.get('Type_Localised') or e.get('Type') or ''}|{e.get('Count', 0)}|{e.get('MarketID')}")
 
 def pax_pkt():

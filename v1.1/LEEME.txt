@@ -1,5 +1,14 @@
-PANEL ELITE v2.2b4  ·  version completa (sin parches)
+PANEL ELITE v2.2b5  ·  version completa (sin parches)
 ======================================================
+v2.2b5:  FIJAR PANTALLA (idea de CMDR KORZO): candado junto a MENU en la barra de arriba. Tocarlo deja fija la pantalla
+         que ves (combate, mineria, exobiologia, colonizacion...) con sus datos en vivo; el candado late en ambar y un
+         borde ambar enmarca el tablero. Tocarlo otra vez lo abre y vuelve el cambio automatico. Los avisos siguen
+         saliendo. Si entras en combate se suelta (CAMBIO AUTO > EL COMBATE QUITA LA PANTALLA FIJADA). Al reiniciar
+         el panel se suelta.
+         DATOS VENDIDOS: aviso con los sistemas y lo cobrado. VENTA EN EL MERCADO: toneladas, total y beneficio;
+         sonido de caja si pasa de 10 M cr. Los dos se quitan en ALERTAS / SONIDO. Hora en cada derribo del REGISTRO.
+         SENDER NUEVO v1.0b20: python patch_sender_v100b20.py elite_sender.py (desde la b19), o copia
+         pc_ortem/elite_sender.py. KORZO: pc_korzo/elite_sender.py (EDMC_AUTO = False) o el mismo parche.
 v2.2b4:  EXOBIOLOGIA EN 2 CUADROS (a pie en un planeta con el traje Artemis, con el muestreador en la mano o mientras
          muestreas con cualquier traje; el combate a pie siempre manda). MAPA: tu, las muestras con su circulo de
          distancia minima del genero (verde: puedes muestrear; rojo: alejate), rastro y nave; tocar = zoom; NAVE AQUI.

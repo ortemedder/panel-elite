@@ -513,6 +513,7 @@ CHANGES = [
     ("2.2b2", "COMBATE A PIE en 2 CUADROS (MAPA grande, TRAJE con explosivos y botones, REGISTRO con SESIÓN · SIN ENTREGAR · TOTAL A PIE) y EDMC: el sender v1.0b19 lo abre solo al arrancar el juego"),
     ("2.2b3", "MINERÍA en 2 CUADROS: asteroides (asteroide prospectado, veta madre, bodega, refinado, t/h, drones) y planetaria en SRV/Rhino (mapa con lo recogido, materiales con su máximo); AJUSTES > PANTALLA > MINERÍA / BIO"),
     ("2.2b4", "EXOBIOLOGÍA en 2 CUADROS (a pie con el Artemis o el muestreador): MAPA con las muestras y su distancia mínima, ESPECIE ACTUAL (muestras n/3, PUEDES TOMAR MUESTRA, valor, géneros del planeta) y REGISTRO con SESIÓN · SIN VENDER"),
+    ("2.2b5", "FIJAR PANTALLA con candado animado (idea de KORZO; el combate la suelta, CAMBIO AUTO), avisos DATOS VENDIDOS y VENTA EN EL MERCADO (caja si pasa de 10 M) y hora de cada derribo; sender v1.0b20"),
 ]
 
 def view_changelog_base(surf, d, flags, now):
