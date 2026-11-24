@@ -1227,8 +1227,10 @@ def handle_sysinfo(e):
         sysinfo.update(st_name=e.get("StationName"), st_faction=stf.get("Name"),
                        st_fstate=STATE_ES.get(stf.get("FactionState"), stf.get("FactionState") or ""),
                        st_gov=e.get("StationGovernment_Localised") or "", st_alleg=ALLEG_ES.get(e.get("StationAllegiance"), e.get("StationAllegiance") or ""))
+        lp = e.get("LandingPads") or {}
+        sysinfo["st_pads"] = [lp.get("Small", 0), lp.get("Medium", 0), lp.get("Large", 0)] if lp else None   # v1.0b21
     elif ev == "Undocked":
-        for k in ("st_name", "st_faction", "st_fstate", "st_gov", "st_alleg"):
+        for k in ("st_name", "st_faction", "st_fstate", "st_gov", "st_alleg", "st_pads"):
             sysinfo.pop(k, None)
 
 # ---- destino dentro del sistema (menu 3) ----
@@ -2512,7 +2514,7 @@ def day_check():
 
 
 # ---------- v0.96 ----------
-SENDER_VER = "v1.0b20"
+SENDER_VER = "v1.0b21"
 v096 = {"uncl_t0": None, "pp": [], "eng": None}
 
 def _v096_load():

@@ -516,6 +516,7 @@ CHANGES = [
     ("2.2b5", "FIJAR PANTALLA con candado animado (idea de KORZO; el combate la suelta, CAMBIO AUTO), avisos DATOS VENDIDOS y VENTA EN EL MERCADO (caja si pasa de 10 M) y hora de cada derribo; sender v1.0b20"),
     ("2.3b1", "PLANETA: con destino en el planeta, ESFERA en órbita y planeo (ruta más corta, RUMBO A SEGUIR, GIRA, DISTANCIA, LLEGAS EN, ALTITUD, ÁNGULO) y FLECHA en superficie, SRV y a pie con los demás puntos; FLECHA AL MÁS CERCANO; aviso HAS LLEGADO"),
     ("2.3b2", "DESTINOS EN EL PLANETA: el panel recuerda las coordenadas de puertos y asentamientos (destino rápido), pestaña 3 > PLANETA con sitios del planeta, COORDENADAS A MANO con teclado, IR AQUÍ en NOTAS (favoritos) y puntos ATERRIZAJE / SRV automáticos"),
+    ("2.3b3", "PLANETA: GRAVEDAD del planeta (naranja desde 1,5 G, roja desde 2 G) y PLATAFORMAS S/M/L del puerto con el tamaño de tu nave (CABES / NO CABES); sender v1.0b21"),
 ]
 
 def view_changelog_base(surf, d, flags, now):

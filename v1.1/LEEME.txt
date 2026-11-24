@@ -1,5 +1,11 @@
-PANEL ELITE v2.3b2  ·  version completa (sin parches)
+PANEL ELITE v2.3b3  ·  version completa (sin parches)
 ======================================================
+v2.3b3:  PLANETA: GRAVEDAD del planeta en DESTINO (naranja desde 1,5 G, roja desde 2 G con BAJA DESPACIO) y
+         PLATAFORMAS del puerto (S / M / L) con el tamaño de tu nave: CABES / NO CABES. Las plataformas se aprenden
+         al atracar (sender b21) y se ven desde la segunda vez que vas a ese puerto.
+         SENDER NUEVO v1.0b21: python patch_sender_v100b21.py elite_sender.py (desde la b20), o copia
+         pc_ortem/elite_sender.py. KORZO: al cerrar la v2.3.
+         Prueba: desarrollo/herramientas/capturar_gravedad_v23.py
 v2.3b2:  DESTINOS EN EL PLANETA. DESTINO RAPIDO: el panel guarda (sitios_planeta.json) las coordenadas de cada puerto
          o asentamiento planetario cuando el juego las da o cuando atracas en el; la proxima vez que lo fijes en el
          juego, la ESFERA sale ya desde la orbita. 3 NAVEGACION > PLANETA: destino actual, sitios conocidos de ese
