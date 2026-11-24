@@ -635,7 +635,7 @@ def _xa_notes(d, now):
 MERC = (255, 80, 200)      # rosa de las Merc Coin, como en el juego
 
 
-PANEL_VER = "v2.3b3 · 24/11/2026 20:25"
+PANEL_VER = "v2.3 · 24/11/2026 20:30"
 
 # ---------- estilo CABINA (decoracion, se cambia en SESION) ----------
 STYLE_FILE = os.path.join(PANEL_DIR, "estilo.txt")

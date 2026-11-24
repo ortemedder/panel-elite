@@ -1,5 +1,10 @@
-PANEL ELITE v2.3b3  ·  version completa (sin parches)
-======================================================
+PANEL ELITE v2.3  ·  version completa (sin parches)
+====================================================
+v2.3:    NAVEGACION PLANETARIA definitiva: junta la b1 (ESFERA y FLECHA), la b2 (DESTINOS) y la b3 (GRAVEDAD y
+         PLATAFORMAS). El panel es el mismo para Ortem y KORZO.
+         SENDER v1.0b21: Ortem pc_ortem/elite_sender.py; KORZO pc_korzo/elite_sender.py (PI_IP 192.168.1.151,
+         EDMC_AUTO = False) o, sobre su sender b20: python patch_sender_v100b21.py elite_sender.py (no pierde su IP).
+         Instalar en cada Pi: bash actualizar_v11.sh. Subir: bash ~/subir_v11.sh
 v2.3b3:  PLANETA: GRAVEDAD del planeta en DESTINO (naranja desde 1,5 G, roja desde 2 G con BAJA DESPACIO) y
          PLATAFORMAS del puerto (S / M / L) con el tamaño de tu nave: CABES / NO CABES. Las plataformas se aprenden
          al atracar (sender b21) y se ven desde la segunda vez que vas a ese puerto.
