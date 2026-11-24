@@ -285,6 +285,7 @@ def m2_registro(Z, d, flags, now, cont, cat):
         put(Z, F["small"], tag, (x + 90, y), col)
         put(Z, F["small"], txt, (x + 330, y), WHITE, w - 340)
         y += lh
+    lz_hit((0, 0, Z.get_width(), Z.get_height()), "vista", 61)
 
 def m2_reg_ast(Z, d, flags, now):
     m = (d or {}).get("mining") or {}
