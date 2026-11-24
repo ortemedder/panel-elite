@@ -1,5 +1,12 @@
-PANEL ELITE v2.3b1  ·  version completa (sin parches)
+PANEL ELITE v2.3b2  ·  version completa (sin parches)
 ======================================================
+v2.3b2:  DESTINOS EN EL PLANETA. DESTINO RAPIDO: el panel guarda (sitios_planeta.json) las coordenadas de cada puerto
+         o asentamiento planetario cuando el juego las da o cuando atracas en el; la proxima vez que lo fijes en el
+         juego, la ESFERA sale ya desde la orbita. 3 NAVEGACION > PLANETA: destino actual, sitios conocidos de ese
+         planeta (tocar = ir / quitar), A MANO, GUARDAR AQUI (en NOTAS), QUITAR y NOTAS. A MANO: teclado de LATITUD y
+         LONGITUD; IR lo pone de destino y lo guarda en NOTAS. FAVORITOS = NOTAS DE VIAJE: boton IR AQUI en cada sitio
+         con coordenadas. PUNTOS AUTOMATICOS: ATERRIZAJE (tu nave) y SRV (donde lo despliegas) en el mapa y en el aro.
+         Solo cambia el panel (sender v1.0b20 igual). Prueba: desarrollo/herramientas/capturar_destinos_v23.py
 v2.3b1:  NAVEGACION PLANETARIA. Si estas en un planeta y el destino tiene coordenadas en ese planeta (puerto o
          asentamiento fijado en el juego cuyas coordenadas ya conoce el sender; en la b2: a mano y favoritos):
          ORBITA y PLANEO: PLANETA como esfera girada para verte a ti y al destino (con zoom solo), ruta mas corta,

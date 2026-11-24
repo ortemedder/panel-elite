@@ -334,8 +334,8 @@ def np_flecha(Z, r, c):
     pygame.draw.circle(Z, (26, 18, 8), (cx, cy), rad)
     pygame.draw.circle(Z, DIM, (cx, cy), rad, 2)
     pygame.draw.circle(Z, (60, 40, 12), (cx, cy), int(rad * 0.68), 1)
-    put(Z, F["small"], "DELANTE", (cx, cy - rad - 6), DIM, anchor="midbottom")
-    put(Z, F["small"], "DETRÁS", (cx, cy + rad + 4), DIM, anchor="midtop")
+    put(Z, F["tiny"], "DELANTE", (cx, cy - rad + 10), DIM, anchor="midtop")
+    put(Z, F["tiny"], "DETRÁS", (cx, cy + rad - 10), DIM, anchor="midbottom")
     put(Z, F["tiny"], "toca: ESFERA / FLECHA", (r.x + 10, r.y + 10), DIM)
     hdg = c["hdg"]
     if hdg is None:
@@ -343,11 +343,13 @@ def np_flecha(Z, r, c):
         return
     # marcas de los otros puntos en el aro
     for nom, p, col in c["pts"]:
+        dm = hav(c["yo"], p, c["R"])
+        if dm < 25:
+            continue                                     # estás encima: no tiene dirección
         a = math.radians(np_giro(np_rumbo(c["yo"], p), hdg))
         x1, y1 = cx + (rad - 4) * math.sin(a), cy - (rad - 4) * math.cos(a)
         x2, y2 = cx + (rad + 14) * math.sin(a), cy - (rad + 14) * math.cos(a)
         pygame.draw.line(Z, col, (x1, y1), (x2, y2), 5)
-        dm = hav(c["yo"], p, c["R"])
         tx, ty = cx + (rad + 22) * math.sin(a), cy - (rad + 22) * math.cos(a)
         anc = "midleft" if math.sin(a) > 0.3 else "midright" if math.sin(a) < -0.3 else "center"
         put(Z, F["tiny"], f"{nom} {np_fmt(dm)}", (tx, ty), col, 220, anchor=anc)
@@ -396,7 +398,7 @@ def np_dch(Z, d, flags, now):
     if c is None:
         c2_marco(Z, "DESTINO")
         return
-    fuente = {"juego": "FIJADO EN EL JUEGO", "mano": "A MANO", "fav": "FAVORITO"}.get(c["dst"].get("src"), "")
+    fuente = {"juego": "FIJADO EN EL JUEGO", "mano": "A MANO", "fav": "DE TUS NOTAS", "memoria": "CONOCIDO"}.get(c["dst"].get("src"), "")
     a = c2_marco(Z, "DESTINO", fuente or None)
     x, w = a.x, a.w
     y = a.y - 6
