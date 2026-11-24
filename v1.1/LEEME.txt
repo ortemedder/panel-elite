@@ -1,5 +1,9 @@
-PANEL ELITE v2.3  ·  version completa (sin parches)
-====================================================
+PANEL ELITE v2.3b  ·  version completa (sin parches)
+=====================================================
+v2.3b:   ARREGLOS (log de Operations del 24/11). Armas fuera en un ANILLO = COMBATE al momento (antes esperaba a la
+         musica o al primer «te atacan»); si estas minando (prospectores, recolectores o refinado en 10 min) sigue
+         MINERIA. MEGA NAVE de Operations: el contador de 15 min solo sale A PIE (o si ya lo arrancaste).
+         Solo cambia el panel (sender v1.0b21 igual). Ortem y KORZO: bash actualizar_v11.sh
 v2.3:    NAVEGACION PLANETARIA definitiva: junta la b1 (ESFERA y FLECHA), la b2 (DESTINOS) y la b3 (GRAVEDAD y
          PLATAFORMAS). El panel es el mismo para Ortem y KORZO.
          SENDER v1.0b21: Ortem pc_ortem/elite_sender.py; KORZO pc_korzo/elite_sender.py (PI_IP 192.168.1.151,
