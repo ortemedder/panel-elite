@@ -1,5 +1,15 @@
-PANEL ELITE v2.2b5  ·  version completa (sin parches)
+PANEL ELITE v2.3b1  ·  version completa (sin parches)
 ======================================================
+v2.3b1:  NAVEGACION PLANETARIA. Si estas en un planeta y el destino tiene coordenadas en ese planeta (puerto o
+         asentamiento fijado en el juego cuyas coordenadas ya conoce el sender; en la b2: a mano y favoritos):
+         ORBITA y PLANEO: PLANETA como esfera girada para verte a ti y al destino (con zoom solo), ruta mas corta,
+         tu nave con su rumbo; RUMBO A SEGUIR, TU RUMBO, GIRA X DCHA/IZDA, DISTANCIA, LLEGAS EN, ALTITUD,
+         ANGULO AL DESTINO y RECORRIDO. SUPERFICIE (vuelo bajo, aterrizado, SRV, a pie): FLECHA grande al destino
+         (arriba = delante) con marcas de la NAVE, las MUESTRAS y las RECOGIDAS en el aro, y planeta pequeño.
+         Tocar el cuadro grande cambia ESFERA / FLECHA. Boton FLECHA: DESTINO / MAS CERCANO.
+         A menos de 500 m aviso HAS LLEGADO (ALERTAS / SONIDO); a los 20 s vuelve el tablero de siempre.
+         Se quita en 12 AJUSTES > CAMBIO AUTO > PLANETA: ESFERA Y FLECHA. Combate, exobiologia y mineria mandan.
+         Solo cambia el panel (sender v1.0b20 igual). Prueba: desarrollo/herramientas/capturar_planeta_v23.py
 v2.2b5:  FIJAR PANTALLA (idea de CMDR KORZO): candado junto a MENU en la barra de arriba. Tocarlo deja fija la pantalla
          que ves (combate, mineria, exobiologia, colonizacion...) con sus datos en vivo; el candado late en ambar y un
          borde ambar enmarca el tablero. Tocarlo otra vez lo abre y vuelve el cambio automatico. Los avisos siguen
